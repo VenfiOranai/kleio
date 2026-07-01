@@ -94,5 +94,12 @@ renderer (`shared/markdown-view`, marked + DOMPurify), a `Shell` layout, campaig
 session editor (markdown + live preview), and the character sheet (manual inputs + server-computed
 derived panel). Reactive forms throughout (Zard input is a CVA). Builds clean.
 
-Remaining in Phase 1: **EC2 deploy pipeline** (`deploy.yml` + prod compose + nginx) — needs AWS.
+**Phase 1 deploy pipeline written** (pending review/commit + EC2 provisioning): prod stack
+`infra/docker-compose.prod.yml` (db + oracle-with-migrations-on-start + herald nginx on :80),
+herald prod `Dockerfile` + `nginx.conf` (serves SPA, proxies `/api`), oracle `Dockerfile` now
+ships Alembic, `.github/workflows/deploy.yml` (SSH build-on-box on push to master), and a full
+AWS runbook in `docs/deployment.md`. HTTP-only for now (no domain); add TLS later. Local image
+builds couldn't be verified — this machine's Docker data dir is read-only — but contents are
+sound (`pip install`/wheel succeeded in-build; `ng build` verified natively); they build on EC2.
+
 Phase 2 adds the split-screen workspace + Playwright e2e. See `docs/roadmap.md`.
