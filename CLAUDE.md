@@ -73,7 +73,9 @@ Oracle uses a local venv at `oracle/.venv` (Windows paths shown; use `.venv/bin/
 - Herald build: `cd herald && npx ng build`
 - Herald e2e: `cd herald && npx playwright test` _(Playwright added in Phase 2)_
 - Local stack (API + Postgres): `docker compose -f infra/docker-compose.yml up`
-- Migrations: `cd oracle && ./.venv/Scripts/python -m alembic upgrade head` _(Alembic wired in Phase 1)_
+- Apply migrations: `cd oracle && ./.venv/Scripts/python -m alembic upgrade head`
+- New migration: `cd oracle && ./.venv/Scripts/python -m alembic revision --autogenerate -m "msg"`
+  (needs Postgres up: `docker compose -f infra/docker-compose.yml up -d db`)
 
 ## Status
 **Phase 0 complete** (pending review/commit). Scaffolded herald (Angular + Tailwind v4 + Zard
@@ -81,5 +83,10 @@ UI) and oracle (FastAPI); `infra/docker-compose.yml` (Postgres + oracle); **sing
 auth** end to end — oracle `POST /api/auth/login` + `GET /api/auth/me` (`core/security.py`,
 `api/deps.get_current_user`, `scripts/hash_password.py`), herald `AuthService` + `jwtInterceptor`
 + `authGuard` + login/home screens with a dev proxy (`herald/proxy.conf.json`); and
-`.github/workflows/ci.yml`. Next: **Phase 1** (Campaign/Session/Character models + CRUD). See
-`docs/roadmap.md`.
+`.github/workflows/ci.yml`.
+
+**Phase 1 backend done** (pending review/commit): `Campaign`/`Session`/`Character` models,
+initial Alembic migration, `character_calc` service, Pydantic schemas (`CharacterRead` exposes a
+computed `derived` block), and auth-protected CRUD routers — **46 tests pass** against Postgres.
+Remaining in Phase 1: **herald UI** (campaign list/detail, session markdown editor, character
+sheet) and the **EC2 deploy pipeline** (`deploy.yml` + prod compose + nginx). See `docs/roadmap.md`.
