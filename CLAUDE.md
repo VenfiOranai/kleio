@@ -73,7 +73,9 @@ Oracle uses a local venv at `oracle/.venv` (Windows paths shown; use `.venv/bin/
 - Herald build: `cd herald && npx ng build`
 - Herald e2e: `cd herald && npx playwright test` _(Playwright added in Phase 2)_
 - Local stack (API + Postgres): `docker compose -f infra/docker-compose.yml up`
-- Migrations: `cd oracle && ./.venv/Scripts/python -m alembic upgrade head` _(Alembic wired in Phase 1)_
+- Apply migrations: `cd oracle && ./.venv/Scripts/python -m alembic upgrade head`
+- New migration: `cd oracle && ./.venv/Scripts/python -m alembic revision --autogenerate -m "msg"`
+  (needs Postgres up: `docker compose -f infra/docker-compose.yml up -d db`)
 
 ## Status
 **Phase 0 complete** (pending review/commit). Scaffolded herald (Angular + Tailwind v4 + Zard
@@ -81,5 +83,23 @@ UI) and oracle (FastAPI); `infra/docker-compose.yml` (Postgres + oracle); **sing
 auth** end to end — oracle `POST /api/auth/login` + `GET /api/auth/me` (`core/security.py`,
 `api/deps.get_current_user`, `scripts/hash_password.py`), herald `AuthService` + `jwtInterceptor`
 + `authGuard` + login/home screens with a dev proxy (`herald/proxy.conf.json`); and
-`.github/workflows/ci.yml`. Next: **Phase 1** (Campaign/Session/Character models + CRUD). See
-`docs/roadmap.md`.
+`.github/workflows/ci.yml`.
+
+**Phase 1 backend done**: `Campaign`/`Session`/`Character` models, initial Alembic migration,
+`character_calc` service, Pydantic schemas (`CharacterRead` exposes a computed `derived` block),
+auth-protected CRUD routers — **46 tests pass** against Postgres.
+
+**Phase 1 herald UI done** (pending review/commit): typed API services (`core/api/`), a markdown
+renderer (`shared/markdown-view`, marked + DOMPurify), a `Shell` layout, campaign list/detail,
+session editor (markdown + live preview), and the character sheet (manual inputs + server-computed
+derived panel). Reactive forms throughout (Zard input is a CVA). Builds clean.
+
+**Phase 1 deploy pipeline written** (pending review/commit + EC2 provisioning): prod stack
+`infra/docker-compose.prod.yml` (db + oracle-with-migrations-on-start + herald nginx on :80),
+herald prod `Dockerfile` + `nginx.conf` (serves SPA, proxies `/api`), oracle `Dockerfile` now
+ships Alembic, `.github/workflows/deploy.yml` (SSH build-on-box on push to master), and a full
+AWS runbook in `docs/deployment.md`. HTTP-only for now (no domain); add TLS later. Local image
+builds couldn't be verified — this machine's Docker data dir is read-only — but contents are
+sound (`pip install`/wheel succeeded in-build; `ng build` verified natively); they build on EC2.
+
+Phase 2 adds the split-screen workspace + Playwright e2e. See `docs/roadmap.md`.

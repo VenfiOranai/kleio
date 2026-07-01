@@ -1,0 +1,127 @@
+@if (character()) {
+  <div class="flex flex-col gap-6" [formGroup]="form">
+    <div class="flex items-center justify-between">
+      <a
+        [routerLink]="['/campaigns', campaignId]"
+        class="text-sm text-muted-foreground hover:underline"
+      >
+        ← Back to campaign
+      </a>
+      <div class="flex items-center gap-2">
+        @if (saved()) {
+          <span class="text-sm text-muted-foreground">Saved</span>
+        }
+        <button z-button zType="ghost" zSize="sm" (click)="remove()">Delete</button>
+        <button z-button zSize="sm" (click)="save()">Save</button>
+      </div>
+    </div>
+
+    <input z-input class="text-lg font-semibold" placeholder="Character name" formControlName="name" />
+
+    <!-- Identity -->
+    <section class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      @for (field of ['class_name', 'subclass', 'race', 'background', 'alignment']; track field) {
+        <label class="flex flex-col gap-1 text-sm">
+          <span class="capitalize text-muted-foreground">{{ label(field) }}</span>
+          <input z-input [formControlName]="field" />
+        </label>
+      }
+      <label class="flex flex-col gap-1 text-sm">
+        <span class="text-muted-foreground">Level</span>
+        <input z-input type="number" formControlName="level" />
+      </label>
+      <label class="flex flex-col gap-1 text-sm">
+        <span class="text-muted-foreground">XP</span>
+        <input z-input type="number" formControlName="xp" />
+      </label>
+    </section>
+
+    <!-- Combat -->
+    <section class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+      @for (field of ['max_hp', 'current_hp', 'temp_hp', 'armor_class', 'speed']; track field) {
+        <label class="flex flex-col gap-1 text-sm">
+          <span class="capitalize text-muted-foreground">{{ label(field) }}</span>
+          <input z-input type="number" [formControlName]="field" />
+        </label>
+      }
+      <label class="flex flex-col gap-1 text-sm">
+        <span class="text-muted-foreground">Hit dice</span>
+        <input z-input formControlName="hit_dice" />
+      </label>
+    </section>
+
+    <div class="grid gap-6 lg:grid-cols-2">
+      <!-- Ability scores + saving throws -->
+      <section class="flex flex-col gap-3">
+        <h2 class="text-lg font-semibold">Abilities & Saving Throws</h2>
+        <div class="flex flex-col gap-2">
+          @for (ability of abilities; track ability) {
+            <div class="flex items-center gap-3">
+              <span class="w-28 text-sm capitalize">{{ ability }}</span>
+              <input z-input type="number" class="w-20" [formControlName]="ability" />
+              <span class="w-10 text-center text-sm text-muted-foreground">
+                @if (derived(); as d) {
+                  {{ fmt(d.ability_modifiers[ability]) }}
+                }
+              </span>
+              <label class="ml-auto flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  [checked]="saveProfs().has(ability)"
+                  (change)="toggleSave(ability)"
+                />
+                Save
+                @if (derived(); as d) {
+                  <span class="w-8 text-right text-muted-foreground">
+                    {{ fmt(d.saving_throws[ability]) }}
+                  </span>
+                }
+              </label>
+            </div>
+          }
+        </div>
+
+        @if (derived(); as d) {
+          <div class="mt-2 flex flex-wrap gap-4 rounded-lg border p-3 text-sm">
+            <span>Proficiency <strong>{{ fmt(d.proficiency_bonus) }}</strong></span>
+            <span>Initiative <strong>{{ fmt(d.initiative) }}</strong></span>
+            <span>Passive Perception <strong>{{ d.passive_perception }}</strong></span>
+          </div>
+        }
+      </section>
+
+      <!-- Skills -->
+      <section class="flex flex-col gap-3">
+        <h2 class="text-lg font-semibold">Skills</h2>
+        <div class="flex flex-col gap-1">
+          @for (skill of skills; track skill) {
+            <label class="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                [checked]="skillProfs().has(skill)"
+                (change)="toggleSkill(skill)"
+              />
+              <span class="capitalize">{{ label(skill) }}</span>
+              <span class="text-xs text-muted-foreground">({{ skillAbility[skill].slice(0, 3) }})</span>
+              @if (derived(); as d) {
+                <span class="ml-auto text-muted-foreground">{{ fmt(d.skills[skill]) }}</span>
+              }
+            </label>
+          }
+        </div>
+      </section>
+    </div>
+
+    <p class="text-xs text-muted-foreground">Derived values refresh after saving.</p>
+
+    <!-- Freeform -->
+    <section class="grid gap-4 md:grid-cols-2">
+      @for (field of ['equipment', 'features', 'spells', 'notes']; track field) {
+        <label class="flex flex-col gap-1 text-sm">
+          <span class="capitalize text-muted-foreground">{{ field }}</span>
+          <textarea z-input rows="4" [formControlName]="field"></textarea>
+        </label>
+      }
+    </section>
+  </div>
+}

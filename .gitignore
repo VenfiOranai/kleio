@@ -5,6 +5,7 @@
 .venv
 .venv.*
 !.venv.example
+secrets/
 
 # ---- Python (oracle) ----
 __pycache__/
