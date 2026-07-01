@@ -146,21 +146,26 @@ JWT interceptor. Angular CDK is used only for layout/`BreakpointObserver` (no An
 Material).
 
 > **Zard UI** components are scaffolded into the repo with `npx zard-cli add <name>` (init
-> once via `npx zard-cli init -y`) and are **committed** — they're source, not a dependency.
-> Requires Tailwind v4 and plain CSS (**no SCSS**), so `herald` is generated with `--style=css`.
+> once with `npx zard-cli init`, which asks for theme + import aliases) and are **committed**
+> — they're source, not a dependency. Requires Tailwind v4 and plain CSS (**no SCSS**), so
+> `herald` is generated with `--style=css`. Aliases were set to `@/components` and `@/utils`
+> (with `@/*` → `src/app/*` in `tsconfig.json`); Zard also drops runtime helpers into
+> `core/`. Note: the beta CLI hardcodes `@/shared/core` in the card component — repoint it to
+> `@/core` after `add`ing card (Zard bug).
 
 ```
 herald/src/app/
-  core/            # auth.service, auth.guard, jwt.interceptor, api/*.service.ts
+  components/      # Zard UI components (@/components) — copied via `zard-cli add`, committed
+  utils/           # Zard helpers: merge-classes (cn), number, etc. (@/utils)
+  core/            # Zard runtime directives/providers (@/core), PLUS our own
+                   #   auth.service, auth.guard, jwt.interceptor, api/*.service.ts
   features/
     campaigns/     # list + detail
     sessions/      # list, markdown editor + preview
     characters/    # 5E sheet (inputs for manual, read-only for derived)
     workspace/     # side-by-side notes|character view (desktop)
     search/        # global search box + results
-  shared/
-    ui/            # Zard UI components copied in via `zard-cli add` (committed source)
-    ...            # markdown-view, collapsible-pane, confirm-dialog, etc.
+  shared/          # our own presentational bits: markdown-view, collapsible-pane, confirm-dialog
 ```
 
 - **Markdown:** edit raw markdown; render preview with a sanitized lib (`ngx-markdown` /

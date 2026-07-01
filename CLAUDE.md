@@ -39,10 +39,22 @@ docs/      architecture.md, roadmap.md  (source of truth for design)
 - **Database is PostgreSQL** (+ `pgvector`, reserved for the later AI Q&A). One engine for
   relational data, full-text search, and embeddings. Migrations via **Alembic**.
 - **Styling = Tailwind CSS v4 + Zard UI** (shadcn-style), **not** Angular Material. Zard
-  components are added with `npx zard-cli add <name>` (init once: `npx zard-cli init -y`) and
-  are **copied into `herald/src/app/shared/ui/` and committed** — treat them as our source, not
-  a dependency. Requires Tailwind v4 and **plain CSS (no SCSS)** — `herald` is scaffolded with
-  `--style=css`. Angular CDK is allowed for layout/`BreakpointObserver` only.
+  components are added with `npx zard-cli add <name>` (init is interactive: `npx zard-cli init`)
+  and are **copied into `herald/src/app/components/` (alias `@/components`) and committed** —
+  treat them as our source, not a dependency. Helpers live in `@/utils` (e.g. `cn` /
+  `merge-classes`) and Zard runtime directives in `@/core`; `@/*` maps to `src/app/*`. Requires
+  Tailwind v4 and **plain CSS (no SCSS)** — `herald` is scaffolded with `--style=css`. Angular
+  CDK is allowed for layout/`BreakpointObserver` only. Gotcha: after `zard-cli add card`, fix
+  its `@/shared/core` import to `@/core` (beta CLI bug).
+- **Split component files:** template, styles, and logic live in **separate files** —
+  `templateUrl`/`styleUrl`, never inline `template:`/`styles:`. `ng generate component` already
+  does this by default. **Zard components from `zard-cli add` come with inline template/styles
+  — extract them** into `.html`/`.css` and switch to `templateUrl`/`styleUrl` after adding
+  (see `components/button` and `components/card` for the pattern). Directives (e.g. `input`)
+  have no template and need no split.
+- **Frontend testing:** unit runner is **Vitest** (not Karma/Jasmine); spec files are **not
+  auto-generated** (`skipTests: true` in `angular.json`) — write them by hand when wanted.
+  End-to-end is Playwright (added in Phase 2). Backend tests are Pytest.
 - **Split view is desktop-only** by design; mobile degrades to stacked/tabbed navigation.
 - **Secrets live in `.env`** (gitignored). See `.env.example` for the full list. Never commit
   real secrets.
