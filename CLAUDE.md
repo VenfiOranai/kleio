@@ -34,6 +34,12 @@ docs/      architecture.md, roadmap.md  (source of truth for design)
   **The backend is authoritative**; the frontend may mirror the math for live preview only.
 - **Notes are Markdown.** `raw_notes` is the canonical text the user writes and is **always
   preserved**; `summary` is a separate, nullable, editable field (filled by Gemini later).
+- **Routers auto-register.** Don't edit `main.py` to add endpoints — drop a module under
+  `oracle/app/api/routers/` that defines an `APIRouter` named `router`; `register_routers()`
+  (in `app/utils/router_registry.py`) discovers and mounts it under `/api` automatically.
+- **No `__all__`.** We don't maintain `__all__` lists. Re-export modules (`__init__.py`,
+  `api/deps.py`) just import names; ruff's F401 is ignored there via `per-file-ignores` in
+  `pyproject.toml` — extend that list if you add another re-export hub.
 - **Single-user auth.** One credential from env (`APP_USERNAME`, `APP_PASSWORD_HASH`,
   `JWT_SECRET`); JWT bearer token on all data routes. No signup/multi-user.
 - **Database is PostgreSQL** (+ `pgvector`, reserved for the later AI Q&A). One engine for
@@ -60,14 +66,17 @@ docs/      architecture.md, roadmap.md  (source of truth for design)
   real secrets.
 
 ## Commands
-_Filled in during Phase 0 scaffolding. Intended shape:_
-- Backend tests: `cd oracle && pytest`
-- Backend lint: `cd oracle && ruff check .`
-- Frontend build: `cd herald && ng build`
-- Frontend e2e: `cd herald && npx playwright test`
-- Local stack: `docker compose -f infra/docker-compose.yml up`
-- Migrations: `cd oracle && alembic upgrade head`
+Oracle uses a local venv at `oracle/.venv` (Windows paths shown; use `.venv/bin/…` on posix).
+- Oracle tests: `cd oracle && ./.venv/Scripts/python -m pytest`
+- Oracle lint: `cd oracle && ./.venv/Scripts/python -m ruff check .`
+- Oracle dev server: `cd oracle && ./.venv/Scripts/python -m uvicorn app.main:app --reload`
+- Herald build: `cd herald && npx ng build`
+- Herald e2e: `cd herald && npx playwright test` _(Playwright added in Phase 2)_
+- Local stack (API + Postgres): `docker compose -f infra/docker-compose.yml up`
+- Migrations: `cd oracle && ./.venv/Scripts/python -m alembic upgrade head` _(Alembic wired in Phase 1)_
 
 ## Status
-Planning done, docs committed. Next: **Phase 0** (scaffold herald + oracle, local Postgres,
-single-user auth, CI). See `docs/roadmap.md`.
+**Phase 0 in progress.** Done: herald (Angular + Tailwind v4 + Zard UI) and oracle (FastAPI
+skeleton, health route, config/db wiring, passing pytest) scaffolded; `infra/docker-compose.yml`
+(Postgres + oracle) validated. Remaining in Phase 0: **single-user JWT auth** (both sides) and
+**`.github/workflows/ci.yml`**. See `docs/roadmap.md`.
