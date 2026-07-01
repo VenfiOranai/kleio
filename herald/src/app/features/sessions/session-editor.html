@@ -24,7 +24,7 @@
       <input z-input placeholder="Session title" formControlName="title" />
       <input z-input type="date" class="w-fit" formControlName="session_date" />
 
-      <div class="grid gap-4 md:grid-cols-2">
+      <div class="grid gap-4" [ngClass]="{ 'md:grid-cols-2': !embedded() }">
         <div class="flex flex-col gap-1">
           <label class="text-sm font-medium">Raw notes (Markdown)</label>
           <textarea

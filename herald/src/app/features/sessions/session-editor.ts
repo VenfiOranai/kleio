@@ -1,3 +1,4 @@
+import { NgClass } from '@angular/common';
 import { Component, effect, inject, input, numberAttribute, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
@@ -11,7 +12,14 @@ import { MarkdownView } from '@/shared/markdown-view/markdown-view';
 
 @Component({
   selector: 'app-session-editor',
-  imports: [ReactiveFormsModule, RouterLink, ZardButtonComponent, ZardInputDirective, MarkdownView],
+  imports: [
+    NgClass,
+    ReactiveFormsModule,
+    RouterLink,
+    ZardButtonComponent,
+    ZardInputDirective,
+    MarkdownView,
+  ],
   templateUrl: './session-editor.html',
 })
 export class SessionEditor {
