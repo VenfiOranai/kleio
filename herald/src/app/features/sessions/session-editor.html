@@ -1,12 +1,16 @@
 @if (session()) {
   <div class="flex flex-col gap-4">
     <div class="flex items-center justify-between">
-      <a
-        [routerLink]="['/campaigns', campaignId]"
-        class="text-sm text-muted-foreground hover:underline"
-      >
-        ← Back to campaign
-      </a>
+      @if (!embedded()) {
+        <a
+          [routerLink]="['/campaigns', campaignId()]"
+          class="text-sm text-muted-foreground hover:underline"
+        >
+          ← Back to campaign
+        </a>
+      } @else {
+        <span></span>
+      }
       <div class="flex items-center gap-2">
         @if (saved()) {
           <span class="text-sm text-muted-foreground">Saved</span>
