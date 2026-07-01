@@ -1,1 +1,48 @@
+# ---- Secrets / environment ----
+.env
+.env.*
+!.env.example
+.venv
+.venv.*
+!.venv.example
+
+# ---- Python (oracle) ----
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+dist/
+build/
+
+# ---- Node / Angular (herald) ----
+node_modules/
+herald/dist/
+herald/.angular/
+herald/tmp/
+*.log
+npm-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# ---- Playwright ----
+test-results/
+playwright-report/
+playwright/.cache/
+
+# ---- Docker / local data ----
+*.pid
+pgdata/
+
+# ---- IDE / OS ----
 .idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
