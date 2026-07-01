@@ -69,14 +69,17 @@ docs/      architecture.md, roadmap.md  (source of truth for design)
 Oracle uses a local venv at `oracle/.venv` (Windows paths shown; use `.venv/bin/…` on posix).
 - Oracle tests: `cd oracle && ./.venv/Scripts/python -m pytest`
 - Oracle lint: `cd oracle && ./.venv/Scripts/python -m ruff check .`
-- Oracle dev server: `cd oracle && ./.venv/Scripts/python -m uvicorn app.main:app --reload`
+- Oracle dev server: `cd oracle && ./.venv/Scripts/python run.py`
 - Herald build: `cd herald && npx ng build`
 - Herald e2e: `cd herald && npx playwright test` _(Playwright added in Phase 2)_
 - Local stack (API + Postgres): `docker compose -f infra/docker-compose.yml up`
 - Migrations: `cd oracle && ./.venv/Scripts/python -m alembic upgrade head` _(Alembic wired in Phase 1)_
 
 ## Status
-**Phase 0 in progress.** Done: herald (Angular + Tailwind v4 + Zard UI) and oracle (FastAPI
-skeleton, health route, config/db wiring, passing pytest) scaffolded; `infra/docker-compose.yml`
-(Postgres + oracle) validated. Remaining in Phase 0: **single-user JWT auth** (both sides) and
-**`.github/workflows/ci.yml`**. See `docs/roadmap.md`.
+**Phase 0 complete** (pending review/commit). Scaffolded herald (Angular + Tailwind v4 + Zard
+UI) and oracle (FastAPI); `infra/docker-compose.yml` (Postgres + oracle); **single-user JWT
+auth** end to end — oracle `POST /api/auth/login` + `GET /api/auth/me` (`core/security.py`,
+`api/deps.get_current_user`, `scripts/hash_password.py`), herald `AuthService` + `jwtInterceptor`
++ `authGuard` + login/home screens with a dev proxy (`herald/proxy.conf.json`); and
+`.github/workflows/ci.yml`. Next: **Phase 1** (Campaign/Session/Character models + CRUD). See
+`docs/roadmap.md`.

@@ -10,8 +10,8 @@ cd oracle
 py -3.12 -m venv .venv
 # Windows:
 ./.venv/Scripts/python -m pip install -e ".[dev]"
-./.venv/Scripts/python -m uvicorn app.main:app --reload
-# macOS/Linux: source .venv/bin/activate && pip install -e ".[dev]" && uvicorn app.main:app --reload
+./.venv/Scripts/python run.py
+# macOS/Linux: source .venv/bin/activate && pip install -e ".[dev]" && python run.py
 ```
 
 Health check: <http://localhost:8000/api/health> → `{"status": "ok"}`
