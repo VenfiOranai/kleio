@@ -21,7 +21,7 @@ muse of history.
 
 | Layer | Choice |
 |---|---|
-| **Herald** (frontend) | Angular (standalone components, Material + CDK) |
+| **Herald** (frontend) | Angular (standalone components) + Tailwind CSS v4 + Zard UI |
 | **Oracle** (backend) | FastAPI (Python) |
 | Database | PostgreSQL (+ `pgvector` for later AI Q&A) |
 | Auth | Single-user JWT |

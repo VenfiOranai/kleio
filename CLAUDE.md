@@ -38,6 +38,11 @@ docs/      architecture.md, roadmap.md  (source of truth for design)
   `JWT_SECRET`); JWT bearer token on all data routes. No signup/multi-user.
 - **Database is PostgreSQL** (+ `pgvector`, reserved for the later AI Q&A). One engine for
   relational data, full-text search, and embeddings. Migrations via **Alembic**.
+- **Styling = Tailwind CSS v4 + Zard UI** (shadcn-style), **not** Angular Material. Zard
+  components are added with `npx zard-cli add <name>` (init once: `npx zard-cli init -y`) and
+  are **copied into `herald/src/app/shared/ui/` and committed** — treat them as our source, not
+  a dependency. Requires Tailwind v4 and **plain CSS (no SCSS)** — `herald` is scaffolded with
+  `--style=css`. Angular CDK is allowed for layout/`BreakpointObserver` only.
 - **Split view is desktop-only** by design; mobile degrades to stacked/tabbed navigation.
 - **Secrets live in `.env`** (gitignored). See `.env.example` for the full list. Never commit
   real secrets.

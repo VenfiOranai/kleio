@@ -140,8 +140,14 @@ Postgres, use FastAPI `TestClient`, each test in a rolled-back transaction. Cove
 
 ## 4. Herald — frontend (Angular)
 
-Standalone-components Angular, Angular Material + CDK, signals for state, typed `HttpClient`
-services, route guard + JWT interceptor.
+Standalone-components Angular, **Tailwind CSS v4** + **Zard UI** (shadcn-style, copy-in
+components) for styling, signals for state, typed `HttpClient` services, route guard +
+JWT interceptor. Angular CDK is used only for layout/`BreakpointObserver` (no Angular
+Material).
+
+> **Zard UI** components are scaffolded into the repo with `npx zard-cli add <name>` (init
+> once via `npx zard-cli init -y`) and are **committed** — they're source, not a dependency.
+> Requires Tailwind v4 and plain CSS (**no SCSS**), so `herald` is generated with `--style=css`.
 
 ```
 herald/src/app/
@@ -152,7 +158,9 @@ herald/src/app/
     characters/    # 5E sheet (inputs for manual, read-only for derived)
     workspace/     # side-by-side notes|character view (desktop)
     search/        # global search box + results
-  shared/          # markdown-view, collapsible-pane, confirm-dialog, etc.
+  shared/
+    ui/            # Zard UI components copied in via `zard-cli add` (committed source)
+    ...            # markdown-view, collapsible-pane, confirm-dialog, etc.
 ```
 
 - **Markdown:** edit raw markdown; render preview with a sanitized lib (`ngx-markdown` /
@@ -160,8 +168,8 @@ herald/src/app/
 - **Split-screen workspace (desktop only):** two-pane layout — notes | character — each
   pane independently collapsible to give the other full width, via Angular CDK. A
   `BreakpointObserver` detects desktop vs mobile.
-- **Responsive:** mobile-first CSS; on phones the split view degrades to tabbed/stacked
-  navigation (notes and character as separate full-width screens).
+- **Responsive:** mobile-first Tailwind utilities; on phones the split view degrades to
+  tabbed/stacked navigation (notes and character as separate full-width screens).
 - **E2E:** Playwright covers login → create campaign → add session → add character (verify a
   derived stat) → global search → split-view collapse/expand.
 
