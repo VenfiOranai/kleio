@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "scripts": {
     "ng": "ng",
-    "start": "ng serve",
+    "start": "ng serve --port 5000",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test"
@@ -22,6 +22,8 @@
     "@ng-icons/lucide": "^33.3.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "dompurify": "^3.4.11",
+    "marked": "^18.0.5",
     "rxjs": "~7.8.0",
     "tailwind-merge": "^3.6.0",
     "tslib": "^2.3.0"

@@ -1,15 +1,15 @@
 import { Component, inject } from '@angular/core';
-import { Router } from '@angular/router';
+import { Router, RouterLink, RouterOutlet } from '@angular/router';
 
 import { ZardButtonComponent } from '@/components/button/button.component';
 import { AuthService } from '@/core/auth/auth.service';
 
 @Component({
-  selector: 'app-home',
-  imports: [ZardButtonComponent],
-  templateUrl: './home.html',
+  selector: 'app-shell',
+  imports: [RouterOutlet, RouterLink, ZardButtonComponent],
+  templateUrl: './shell.html',
 })
-export class Home {
+export class Shell {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
 

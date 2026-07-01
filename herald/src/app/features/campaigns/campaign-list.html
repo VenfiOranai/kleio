@@ -1,0 +1,32 @@
+<div class="flex flex-col gap-6">
+  <h1 class="text-2xl font-semibold">Campaigns</h1>
+
+  <z-card zTitle="New campaign">
+    <form class="flex flex-col gap-3 sm:flex-row" [formGroup]="form" (ngSubmit)="create()">
+      <input z-input class="flex-1" placeholder="Campaign name" formControlName="name" />
+      <input z-input class="flex-1" placeholder="Description (optional)" formControlName="description" />
+      <button z-button type="submit" [zDisabled]="form.invalid">Add</button>
+    </form>
+  </z-card>
+
+  @if (campaigns().length) {
+    <div class="grid gap-3 sm:grid-cols-2">
+      @for (campaign of campaigns(); track campaign.id) {
+        <a [routerLink]="['/campaigns', campaign.id]" class="block">
+          <z-card [zTitle]="campaign.name" class="h-full transition-colors hover:border-primary">
+            <p class="text-sm text-muted-foreground">
+              {{ campaign.description || 'No description' }}
+            </p>
+            <div card-footer>
+              <button z-button zType="ghost" zSize="sm" (click)="remove(campaign.id, $event)">
+                Delete
+              </button>
+            </div>
+          </z-card>
+        </a>
+      }
+    </div>
+  } @else {
+    <p class="text-muted-foreground">No campaigns yet. Create your first above.</p>
+  }
+</div>

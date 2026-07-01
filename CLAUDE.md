@@ -85,8 +85,14 @@ auth** end to end — oracle `POST /api/auth/login` + `GET /api/auth/me` (`core/
 + `authGuard` + login/home screens with a dev proxy (`herald/proxy.conf.json`); and
 `.github/workflows/ci.yml`.
 
-**Phase 1 backend done** (pending review/commit): `Campaign`/`Session`/`Character` models,
-initial Alembic migration, `character_calc` service, Pydantic schemas (`CharacterRead` exposes a
-computed `derived` block), and auth-protected CRUD routers — **46 tests pass** against Postgres.
-Remaining in Phase 1: **herald UI** (campaign list/detail, session markdown editor, character
-sheet) and the **EC2 deploy pipeline** (`deploy.yml` + prod compose + nginx). See `docs/roadmap.md`.
+**Phase 1 backend done**: `Campaign`/`Session`/`Character` models, initial Alembic migration,
+`character_calc` service, Pydantic schemas (`CharacterRead` exposes a computed `derived` block),
+auth-protected CRUD routers — **46 tests pass** against Postgres.
+
+**Phase 1 herald UI done** (pending review/commit): typed API services (`core/api/`), a markdown
+renderer (`shared/markdown-view`, marked + DOMPurify), a `Shell` layout, campaign list/detail,
+session editor (markdown + live preview), and the character sheet (manual inputs + server-computed
+derived panel). Reactive forms throughout (Zard input is a CVA). Builds clean.
+
+Remaining in Phase 1: **EC2 deploy pipeline** (`deploy.yml` + prod compose + nginx) — needs AWS.
+Phase 2 adds the split-screen workspace + Playwright e2e. See `docs/roadmap.md`.
