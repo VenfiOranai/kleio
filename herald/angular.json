@@ -11,13 +11,13 @@
       "projectType": "application",
       "schematics": {
         "@schematics/angular:component": {
-          "skipTests": false
+          "skipTests": true
         },
         "@schematics/angular:directive": {
-          "skipTests": false
+          "skipTests": true
         },
         "@schematics/angular:service": {
-          "skipTests": false
+          "skipTests": true
         }
       },
       "root": "",
