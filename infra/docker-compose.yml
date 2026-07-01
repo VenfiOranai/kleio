@@ -1,0 +1,36 @@
+# Local development stack. Run from the repo root:
+#   docker compose -f infra/docker-compose.yml up
+# Uses sensible defaults; override via a .env file in this directory if desired.
+services:
+  db:
+    # Swap to pgvector/pgvector:pg17 at the AI Q&A phase (Phase 5) for embeddings.
+    image: postgres:17
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-kleio}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-kleio}
+      POSTGRES_DB: ${POSTGRES_DB:-kleio}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-kleio}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  oracle:
+    build: ../oracle
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-kleio}:${POSTGRES_PASSWORD:-kleio}@db:5432/${POSTGRES_DB:-kleio}
+    ports:
+      - "8000:8000"
+    volumes:
+      - ../oracle/app:/app/app
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata:

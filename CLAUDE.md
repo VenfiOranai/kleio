@@ -34,23 +34,52 @@ docs/      architecture.md, roadmap.md  (source of truth for design)
   **The backend is authoritative**; the frontend may mirror the math for live preview only.
 - **Notes are Markdown.** `raw_notes` is the canonical text the user writes and is **always
   preserved**; `summary` is a separate, nullable, editable field (filled by Gemini later).
+- **Routers auto-register.** Don't edit `main.py` to add endpoints — drop a module under
+  `oracle/app/api/routers/` that defines an `APIRouter` named `router`; `register_routers()`
+  (in `app/utils/router_registry.py`) discovers and mounts it under `/api` automatically.
+- **No `__all__`.** We don't maintain `__all__` lists. Re-export modules (`__init__.py`,
+  `api/deps.py`) just import names; ruff's F401 is ignored there via `per-file-ignores` in
+  `pyproject.toml` — extend that list if you add another re-export hub.
 - **Single-user auth.** One credential from env (`APP_USERNAME`, `APP_PASSWORD_HASH`,
   `JWT_SECRET`); JWT bearer token on all data routes. No signup/multi-user.
 - **Database is PostgreSQL** (+ `pgvector`, reserved for the later AI Q&A). One engine for
   relational data, full-text search, and embeddings. Migrations via **Alembic**.
+- **Styling = Tailwind CSS v4 + Zard UI** (shadcn-style), **not** Angular Material. Zard
+  components are added with `npx zard-cli add <name>` (init is interactive: `npx zard-cli init`)
+  and are **copied into `herald/src/app/components/` (alias `@/components`) and committed** —
+  treat them as our source, not a dependency. Helpers live in `@/utils` (e.g. `cn` /
+  `merge-classes`) and Zard runtime directives in `@/core`; `@/*` maps to `src/app/*`. Requires
+  Tailwind v4 and **plain CSS (no SCSS)** — `herald` is scaffolded with `--style=css`. Angular
+  CDK is allowed for layout/`BreakpointObserver` only. Gotcha: after `zard-cli add card`, fix
+  its `@/shared/core` import to `@/core` (beta CLI bug).
+- **Split component files:** template, styles, and logic live in **separate files** —
+  `templateUrl`/`styleUrl`, never inline `template:`/`styles:`. `ng generate component` already
+  does this by default. **Zard components from `zard-cli add` come with inline template/styles
+  — extract them** into `.html`/`.css` and switch to `templateUrl`/`styleUrl` after adding
+  (see `components/button` and `components/card` for the pattern). Directives (e.g. `input`)
+  have no template and need no split.
+- **Frontend testing:** unit runner is **Vitest** (not Karma/Jasmine); spec files are **not
+  auto-generated** (`skipTests: true` in `angular.json`) — write them by hand when wanted.
+  End-to-end is Playwright (added in Phase 2). Backend tests are Pytest.
 - **Split view is desktop-only** by design; mobile degrades to stacked/tabbed navigation.
 - **Secrets live in `.env`** (gitignored). See `.env.example` for the full list. Never commit
   real secrets.
 
 ## Commands
-_Filled in during Phase 0 scaffolding. Intended shape:_
-- Backend tests: `cd oracle && pytest`
-- Backend lint: `cd oracle && ruff check .`
-- Frontend build: `cd herald && ng build`
-- Frontend e2e: `cd herald && npx playwright test`
-- Local stack: `docker compose -f infra/docker-compose.yml up`
-- Migrations: `cd oracle && alembic upgrade head`
+Oracle uses a local venv at `oracle/.venv` (Windows paths shown; use `.venv/bin/…` on posix).
+- Oracle tests: `cd oracle && ./.venv/Scripts/python -m pytest`
+- Oracle lint: `cd oracle && ./.venv/Scripts/python -m ruff check .`
+- Oracle dev server: `cd oracle && ./.venv/Scripts/python run.py`
+- Herald build: `cd herald && npx ng build`
+- Herald e2e: `cd herald && npx playwright test` _(Playwright added in Phase 2)_
+- Local stack (API + Postgres): `docker compose -f infra/docker-compose.yml up`
+- Migrations: `cd oracle && ./.venv/Scripts/python -m alembic upgrade head` _(Alembic wired in Phase 1)_
 
 ## Status
-Planning done, docs committed. Next: **Phase 0** (scaffold herald + oracle, local Postgres,
-single-user auth, CI). See `docs/roadmap.md`.
+**Phase 0 complete** (pending review/commit). Scaffolded herald (Angular + Tailwind v4 + Zard
+UI) and oracle (FastAPI); `infra/docker-compose.yml` (Postgres + oracle); **single-user JWT
+auth** end to end — oracle `POST /api/auth/login` + `GET /api/auth/me` (`core/security.py`,
+`api/deps.get_current_user`, `scripts/hash_password.py`), herald `AuthService` + `jwtInterceptor`
++ `authGuard` + login/home screens with a dev proxy (`herald/proxy.conf.json`); and
+`.github/workflows/ci.yml`. Next: **Phase 1** (Campaign/Session/Character models + CRUD). See
+`docs/roadmap.md`.

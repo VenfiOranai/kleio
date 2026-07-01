@@ -140,19 +140,32 @@ Postgres, use FastAPI `TestClient`, each test in a rolled-back transaction. Cove
 
 ## 4. Herald — frontend (Angular)
 
-Standalone-components Angular, Angular Material + CDK, signals for state, typed `HttpClient`
-services, route guard + JWT interceptor.
+Standalone-components Angular, **Tailwind CSS v4** + **Zard UI** (shadcn-style, copy-in
+components) for styling, signals for state, typed `HttpClient` services, route guard +
+JWT interceptor. Angular CDK is used only for layout/`BreakpointObserver` (no Angular
+Material).
+
+> **Zard UI** components are scaffolded into the repo with `npx zard-cli add <name>` (init
+> once with `npx zard-cli init`, which asks for theme + import aliases) and are **committed**
+> — they're source, not a dependency. Requires Tailwind v4 and plain CSS (**no SCSS**), so
+> `herald` is generated with `--style=css`. Aliases were set to `@/components` and `@/utils`
+> (with `@/*` → `src/app/*` in `tsconfig.json`); Zard also drops runtime helpers into
+> `core/`. Note: the beta CLI hardcodes `@/shared/core` in the card component — repoint it to
+> `@/core` after `add`ing card (Zard bug).
 
 ```
 herald/src/app/
-  core/            # auth.service, auth.guard, jwt.interceptor, api/*.service.ts
+  components/      # Zard UI components (@/components) — copied via `zard-cli add`, committed
+  utils/           # Zard helpers: merge-classes (cn), number, etc. (@/utils)
+  core/            # Zard runtime directives/providers (@/core), PLUS our own
+                   #   auth.service, auth.guard, jwt.interceptor, api/*.service.ts
   features/
     campaigns/     # list + detail
     sessions/      # list, markdown editor + preview
     characters/    # 5E sheet (inputs for manual, read-only for derived)
     workspace/     # side-by-side notes|character view (desktop)
     search/        # global search box + results
-  shared/          # markdown-view, collapsible-pane, confirm-dialog, etc.
+  shared/          # our own presentational bits: markdown-view, collapsible-pane, confirm-dialog
 ```
 
 - **Markdown:** edit raw markdown; render preview with a sanitized lib (`ngx-markdown` /
@@ -160,8 +173,8 @@ herald/src/app/
 - **Split-screen workspace (desktop only):** two-pane layout — notes | character — each
   pane independently collapsible to give the other full width, via Angular CDK. A
   `BreakpointObserver` detects desktop vs mobile.
-- **Responsive:** mobile-first CSS; on phones the split view degrades to tabbed/stacked
-  navigation (notes and character as separate full-width screens).
+- **Responsive:** mobile-first Tailwind utilities; on phones the split view degrades to
+  tabbed/stacked navigation (notes and character as separate full-width screens).
 - **E2E:** Playwright covers login → create campaign → add session → add character (verify a
   derived stat) → global search → split-view collapse/expand.
 

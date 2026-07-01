@@ -1,0 +1,30 @@
+<div class="flex min-h-screen items-center justify-center bg-background p-4">
+  <z-card class="w-full max-w-sm" zTitle="Sign in to Kleio">
+    <form class="flex flex-col gap-4" (submit)="submit($event)">
+      <input
+        z-input
+        type="text"
+        name="username"
+        placeholder="Username"
+        autocomplete="username"
+        [value]="username()"
+        (valueChange)="setUsername($event)"
+      />
+      <input
+        z-input
+        type="password"
+        name="password"
+        placeholder="Password"
+        autocomplete="current-password"
+        [value]="password()"
+        (valueChange)="setPassword($event)"
+      />
+
+      @if (error()) {
+        <p class="text-sm text-destructive">{{ error() }}</p>
+      }
+
+      <button z-button type="submit" zFull [zLoading]="loading()">Sign in</button>
+    </form>
+  </z-card>
+</div>
