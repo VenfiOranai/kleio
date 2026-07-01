@@ -1,7 +1,7 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, effect, inject, input, numberAttribute, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 
 import { ZardButtonComponent } from '@/components/button/button.component';
 import { ZardInputDirective } from '@/components/input/input.directive';
@@ -15,13 +15,16 @@ import { MarkdownView } from '@/shared/markdown-view/markdown-view';
   templateUrl: './session-editor.html',
 })
 export class SessionEditor {
-  private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly service = inject(SessionService);
   private readonly fb = inject(FormBuilder);
 
-  private readonly sessionId = Number(this.route.snapshot.paramMap.get('sessionId'));
-  protected readonly campaignId = Number(this.route.snapshot.paramMap.get('campaignId'));
+  // Bound from route params when routed, or passed directly when embedded in the workspace.
+  readonly sessionId = input.required({ transform: numberAttribute });
+  readonly campaignId = input.required({ transform: numberAttribute });
+  /** Hide the page chrome (back link) when embedded in the workspace. */
+  readonly embedded = input(false);
+
   protected readonly session = signal<Session | null>(null);
   protected readonly saved = signal(false);
 
@@ -38,13 +41,17 @@ export class SessionEditor {
   });
 
   constructor() {
-    this.service.get(this.sessionId).subscribe((s) => {
-      this.session.set(s);
-      this.form.patchValue({
-        title: s.title,
-        session_date: s.session_date ?? '',
-        raw_notes: s.raw_notes,
-        summary: s.summary ?? '',
+    // Reload whenever the selected session changes (e.g. switching sessions in the workspace).
+    effect(() => {
+      const id = this.sessionId();
+      this.service.get(id).subscribe((s) => {
+        this.session.set(s);
+        this.form.patchValue({
+          title: s.title,
+          session_date: s.session_date ?? '',
+          raw_notes: s.raw_notes,
+          summary: s.summary ?? '',
+        });
       });
     });
   }
@@ -52,7 +59,7 @@ export class SessionEditor {
   protected save(): void {
     const value = this.form.getRawValue();
     this.service
-      .update(this.sessionId, {
+      .update(this.sessionId(), {
         title: value.title,
         session_date: value.session_date || null,
         raw_notes: value.raw_notes,
@@ -67,7 +74,7 @@ export class SessionEditor {
 
   protected remove(): void {
     this.service
-      .delete(this.sessionId)
-      .subscribe(() => this.router.navigate(['/campaigns', this.campaignId]));
+      .delete(this.sessionId())
+      .subscribe(() => this.router.navigate(['/campaigns', this.campaignId()]));
   }
 }

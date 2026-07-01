@@ -1,13 +1,18 @@
 @if (campaign(); as c) {
   <div class="flex flex-col gap-6">
-    <div>
-      <a routerLink="/campaigns" class="text-sm text-muted-foreground hover:underline">
-        ← Campaigns
+    <div class="flex items-start justify-between gap-4">
+      <div>
+        <a routerLink="/campaigns" class="text-sm text-muted-foreground hover:underline">
+          ← Campaigns
+        </a>
+        <h1 class="text-2xl font-semibold">{{ c.name }}</h1>
+        @if (c.description) {
+          <p class="text-muted-foreground">{{ c.description }}</p>
+        }
+      </div>
+      <a z-button zType="outline" [routerLink]="['/campaigns', campaignId, 'workspace']">
+        Open workspace
       </a>
-      <h1 class="text-2xl font-semibold">{{ c.name }}</h1>
-      @if (c.description) {
-        <p class="text-muted-foreground">{{ c.description }}</p>
-      }
     </div>
 
     <div class="grid gap-6 md:grid-cols-2">

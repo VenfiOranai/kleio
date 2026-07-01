@@ -1,0 +1,96 @@
+<div class="flex flex-col gap-4">
+  <div class="flex items-center justify-between gap-4">
+    <a
+      [routerLink]="['/campaigns', campaignId()]"
+      class="text-sm text-muted-foreground hover:underline"
+    >
+      ← Back to campaign
+    </a>
+
+    <div class="flex items-center gap-1 rounded-lg border p-1">
+      @if (isDesktop()) {
+        <button
+          z-button
+          zSize="sm"
+          [zType]="desktopLayout() === 'notes' ? 'secondary' : 'ghost'"
+          (click)="desktopLayout.set('notes')"
+        >
+          Notes
+        </button>
+        <button
+          z-button
+          zSize="sm"
+          [zType]="desktopLayout() === 'split' ? 'secondary' : 'ghost'"
+          (click)="desktopLayout.set('split')"
+        >
+          Split
+        </button>
+        <button
+          z-button
+          zSize="sm"
+          [zType]="desktopLayout() === 'character' ? 'secondary' : 'ghost'"
+          (click)="desktopLayout.set('character')"
+        >
+          Character
+        </button>
+      } @else {
+        <button
+          z-button
+          zSize="sm"
+          [zType]="mobileTab() === 'notes' ? 'secondary' : 'ghost'"
+          (click)="mobileTab.set('notes')"
+        >
+          Notes
+        </button>
+        <button
+          z-button
+          zSize="sm"
+          [zType]="mobileTab() === 'character' ? 'secondary' : 'ghost'"
+          (click)="mobileTab.set('character')"
+        >
+          Character
+        </button>
+      }
+    </div>
+  </div>
+
+  <div class="flex flex-col gap-4 md:flex-row">
+    @if (showNotes()) {
+      <section class="flex min-w-0 flex-1 flex-col gap-2">
+        <select
+          class="rounded-lg border bg-background px-3 py-1.5 text-sm"
+          [value]="selectedSessionId()"
+          (change)="selectSession($any($event.target).value)"
+        >
+          @for (session of sessions(); track session.id) {
+            <option [value]="session.id">{{ session.title }}</option>
+          }
+        </select>
+        @if (selectedSessionId(); as sid) {
+          <app-session-editor [sessionId]="sid" [campaignId]="campaignId()" [embedded]="true" />
+        } @else {
+          <p class="text-sm text-muted-foreground">No sessions in this campaign yet.</p>
+        }
+      </section>
+    }
+
+    @if (showCharacter()) {
+      <section class="flex min-w-0 flex-1 flex-col gap-2">
+        <select
+          class="rounded-lg border bg-background px-3 py-1.5 text-sm"
+          [value]="selectedCharacterId()"
+          (change)="selectCharacter($any($event.target).value)"
+        >
+          @for (character of characters(); track character.id) {
+            <option [value]="character.id">{{ character.name }}</option>
+          }
+        </select>
+        @if (selectedCharacterId(); as cid) {
+          <app-character-sheet [characterId]="cid" [campaignId]="campaignId()" [embedded]="true" />
+        } @else {
+          <p class="text-sm text-muted-foreground">No characters in this campaign yet.</p>
+        }
+      </section>
+    }
+  </div>
+</div>

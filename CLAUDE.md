@@ -102,4 +102,12 @@ AWS runbook in `docs/deployment.md`. HTTP-only for now (no domain); add TLS late
 builds couldn't be verified — this machine's Docker data dir is read-only — but contents are
 sound (`pip install`/wheel succeeded in-build; `ng build` verified natively); they build on EC2.
 
-Phase 2 adds the split-screen workspace + Playwright e2e. See `docs/roadmap.md`.
+**Phase 2 workspace done** (pending review/commit): desktop split-screen `Workspace`
+(`features/workspace`) showing a session editor and character sheet side by side, with a
+Notes/Split/Character toggle and a mobile tab fallback (CDK `BreakpointObserver`). To enable
+reuse, `SessionEditor` and `CharacterSheet` are now **input-driven** (`sessionId`/`characterId`/
+`campaignId` as signal inputs via `numberAttribute`, loaded in an `effect`, with an `embedded`
+input to hide page chrome) — they work both as routed pages (router `withComponentInputBinding`)
+and embedded in the workspace. Reachable via "Open workspace" on campaign detail.
+
+Remaining in Phase 2: **Playwright e2e**. See `docs/roadmap.md`.
