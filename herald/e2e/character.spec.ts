@@ -15,7 +15,12 @@ test.describe('character sheet', () => {
 
     await page.getByPlaceholder('Character name').fill(uniqueName('Aragorn'));
     await page.locator('input[formcontrolname="level"]').fill('5');
-    await page.locator('input[formcontrolname="strength"]').fill('16');
+    // The ability inputs bind [formControlName] dynamically, which Angular does not reflect to a
+    // DOM attribute, so target the strength row by its label and grab its number input instead.
+    await page
+      .locator('div.flex.items-center.gap-3', { hasText: 'strength' })
+      .getByRole('spinbutton')
+      .fill('16');
 
     // Derived stats are authoritative on the backend and refresh after saving.
     await page.getByRole('button', { name: 'Save' }).click();

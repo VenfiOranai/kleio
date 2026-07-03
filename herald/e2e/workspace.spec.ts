@@ -21,7 +21,9 @@ test.describe('workspace split view', () => {
     await expect(page).toHaveURL(/\/characters\/\d+$/);
     await page.getByRole('link', { name: '← Back to campaign' }).click();
 
-    await page.getByRole('link', { name: 'Open workspace' }).click();
+    // "Open workspace" is an <a z-button>; the Zard button directive stamps role="button" on it,
+    // so match it as a button rather than a link.
+    await page.getByRole('button', { name: 'Open workspace' }).click();
     await expect(page).toHaveURL(/\/workspace$/);
 
     const notesPane = page.getByText('Raw notes (Markdown)');

@@ -4,9 +4,11 @@ import { defineConfig, devices } from '@playwright/test';
 // servers must be up. Playwright manages them via `webServer`; commands run from the herald
 // directory (where you invoke `npm run e2e`). In CI, ORACLE_PYTHON points at the system
 // interpreter (deps installed globally); locally we default to the project venv (see CLAUDE.md).
+// Windows launches the webServer command via cmd.exe, which reads a forward-slashed
+// ".venv/Scripts/python" as the program ".venv" plus a "/Scripts" switch — so use backslashes there.
 const oraclePython =
   process.env.ORACLE_PYTHON ??
-  (process.platform === 'win32' ? '.venv/Scripts/python' : '.venv/bin/python');
+  (process.platform === 'win32' ? '.venv\\Scripts\\python' : '.venv/bin/python');
 
 // Static single-user credentials for e2e. The hash is bcrypt('e2e-password'); the oracle
 // reads these from the environment (env vars beat the dev .env file), so a real developer's
