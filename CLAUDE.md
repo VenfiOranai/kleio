@@ -71,7 +71,12 @@ Oracle uses a local venv at `oracle/.venv` (Windows paths shown; use `.venv/bin/
 - Oracle lint: `cd oracle && ./.venv/Scripts/python -m ruff check .`
 - Oracle dev server: `cd oracle && ./.venv/Scripts/python run.py`
 - Herald build: `cd herald && npx ng build`
-- Herald e2e: `cd herald && npx playwright test` _(Playwright added in Phase 2)_
+- Herald e2e: `cd herald && npx playwright test` — Playwright starts both the oracle (system/venv
+  Python, overridable via `ORACLE_PYTHON`) and herald (`ng serve`) itself, so you only need
+  **Postgres up + migrated** first (`docker compose -f infra/docker-compose.yml up -d db` then
+  `alembic upgrade head`). It runs against a real backend seeded with a static e2e credential;
+  tests use uniquely-named entities so a shared dev DB isn't clobbered. First run needs
+  `npx playwright install chromium`.
 - Local stack (API + Postgres): `docker compose -f infra/docker-compose.yml up`
 - Apply migrations: `cd oracle && ./.venv/Scripts/python -m alembic upgrade head`
 - New migration: `cd oracle && ./.venv/Scripts/python -m alembic revision --autogenerate -m "msg"`
@@ -102,7 +107,7 @@ AWS runbook in `docs/deployment.md`. HTTP-only for now (no domain); add TLS late
 builds couldn't be verified — this machine's Docker data dir is read-only — but contents are
 sound (`pip install`/wheel succeeded in-build; `ng build` verified natively); they build on EC2.
 
-**Phase 2 workspace done** (pending review/commit): desktop split-screen `Workspace`
+**Phase 2 complete** (pending review/commit): desktop split-screen `Workspace`
 (`features/workspace`) showing a session editor and character sheet side by side, with a
 Notes/Split/Character toggle and a mobile tab fallback (CDK `BreakpointObserver`). To enable
 reuse, `SessionEditor` and `CharacterSheet` are now **input-driven** (`sessionId`/`characterId`/
@@ -110,4 +115,10 @@ reuse, `SessionEditor` and `CharacterSheet` are now **input-driven** (`sessionId
 input to hide page chrome) — they work both as routed pages (router `withComponentInputBinding`)
 and embedded in the workspace. Reachable via "Open workspace" on campaign detail.
 
-Remaining in Phase 2: **Playwright e2e**. See `docs/roadmap.md`.
+**Playwright e2e added** (`herald/e2e/`, config `herald/playwright.config.ts`): full-stack specs
+covering login/auth-guard, campaign CRUD, the session markdown editor + live preview, the
+server-computed character derived stats, and the workspace split-pane toggle. Playwright's
+`webServer` boots the oracle + herald; a new **`e2e` CI job** (`.github/workflows/ci.yml`) spins
+up Postgres, runs migrations, installs Chromium, and runs the suite on every PR/push.
+
+Phase 2 is done. Next up is **Phase 3 — global search**. See `docs/roadmap.md`.
