@@ -1,0 +1,56 @@
+<div class="flex flex-col gap-6">
+  <h1 class="text-2xl font-semibold">Search</h1>
+
+  @if (!query()) {
+    <p class="text-muted-foreground">
+      Type a query in the search box above to find sessions and characters.
+    </p>
+  } @else if (loading()) {
+    <p class="text-muted-foreground">Searching…</p>
+  } @else if (!results().length) {
+    <p class="text-muted-foreground">No results for “{{ query() }}”.</p>
+  } @else {
+    <p class="text-sm text-muted-foreground">
+      {{ results().length }} result{{ results().length === 1 ? '' : 's' }} for “{{ query() }}”
+    </p>
+
+    @if (sessions().length) {
+      <section class="flex flex-col gap-3">
+        <h2 class="text-lg font-semibold">Sessions</h2>
+        @for (hit of sessions(); track hit.id) {
+          <a
+            [routerLink]="['/campaigns', hit.campaign_id, 'sessions', hit.id]"
+            class="block rounded-lg border p-3 transition-colors hover:border-primary"
+          >
+            <div class="flex items-center justify-between gap-2">
+              <span class="font-medium">{{ hit.title }}</span>
+              <span class="shrink-0 text-xs text-muted-foreground">{{ hit.campaign_name }}</span>
+            </div>
+            @if (hit.snippet) {
+              <!-- snippet contains server-highlighted <mark> tags; Angular sanitizes the HTML -->
+              <p
+                class="mt-1 text-sm text-muted-foreground [&_mark]:bg-primary/20 [&_mark]:text-foreground"
+                [innerHTML]="hit.snippet"
+              ></p>
+            }
+          </a>
+        }
+      </section>
+    }
+
+    @if (characters().length) {
+      <section class="flex flex-col gap-3">
+        <h2 class="text-lg font-semibold">Characters</h2>
+        @for (hit of characters(); track hit.id) {
+          <a
+            [routerLink]="['/campaigns', hit.campaign_id, 'characters', hit.id]"
+            class="flex items-center justify-between gap-2 rounded-lg border p-3 transition-colors hover:border-primary"
+          >
+            <span class="font-medium">{{ hit.title }}</span>
+            <span class="shrink-0 text-xs text-muted-foreground">{{ hit.campaign_name }}</span>
+          </a>
+        }
+      </section>
+    }
+  }
+</div>

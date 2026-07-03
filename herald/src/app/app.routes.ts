@@ -5,6 +5,7 @@ import { CampaignDetail } from '@/features/campaigns/campaign-detail';
 import { CampaignList } from '@/features/campaigns/campaign-list';
 import { CharacterSheet } from '@/features/characters/character-sheet';
 import { Login } from '@/features/login/login';
+import { SearchResults } from '@/features/search/search-results';
 import { SessionEditor } from '@/features/sessions/session-editor';
 import { Shell } from '@/features/shell/shell';
 import { Workspace } from '@/features/workspace/workspace';
@@ -17,6 +18,7 @@ export const routes: Routes = [
     canActivate: [authGuard],
     children: [
       { path: '', redirectTo: 'campaigns', pathMatch: 'full' },
+      { path: 'search', component: SearchResults },
       { path: 'campaigns', component: CampaignList },
       { path: 'campaigns/:campaignId', component: CampaignDetail },
       { path: 'campaigns/:campaignId/workspace', component: Workspace },

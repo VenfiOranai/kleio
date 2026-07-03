@@ -1,8 +1,17 @@
 <div class="min-h-screen bg-background">
   <header class="border-b">
-    <div class="flex items-center justify-between px-4 py-3">
-      <a routerLink="/campaigns" class="text-xl font-semibold">Kleio</a>
-      <button z-button zType="ghost" (click)="logout()">Sign out</button>
+    <div class="flex items-center justify-between gap-4 px-4 py-3">
+      <a routerLink="/campaigns" class="shrink-0 text-xl font-semibold">Kleio</a>
+      <form class="flex max-w-md flex-1 items-center" [formGroup]="form" (ngSubmit)="submitSearch()">
+        <input
+          z-input
+          type="search"
+          class="w-full"
+          placeholder="Search notes & characters"
+          formControlName="q"
+        />
+      </form>
+      <button z-button zType="ghost" class="shrink-0" (click)="logout()">Sign out</button>
     </div>
   </header>
   <main class="px-4 py-6">
