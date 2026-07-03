@@ -117,8 +117,20 @@ and embedded in the workspace. Reachable via "Open workspace" on campaign detail
 
 **Playwright e2e added** (`herald/e2e/`, config `herald/playwright.config.ts`): full-stack specs
 covering login/auth-guard, campaign CRUD, the session markdown editor + live preview, the
-server-computed character derived stats, and the workspace split-pane toggle. Playwright's
-`webServer` boots the oracle + herald; a new **`e2e` CI job** (`.github/workflows/ci.yml`) spins
-up Postgres, runs migrations, installs Chromium, and runs the suite on every PR/push.
+server-computed character derived stats, the workspace split-pane toggle, and global search.
+Playwright's `webServer` boots the oracle + herald; a new **`e2e` CI job**
+(`.github/workflows/ci.yml`) spins up Postgres, runs migrations, installs Chromium, and runs the
+suite on every PR/push.
 
-Phase 2 is done. Next up is **Phase 3 — global search**. See `docs/roadmap.md`.
+**Phase 3 complete** (pending review/commit): **global search**. Oracle — `sessions` gains a
+generated, weighted `search_vector` (`tsvector`, title A > summary B > raw_notes C) with a GIN
+index (migration `015bb0666895`); `services/search.py` (FTS query builder: `websearch_to_tsquery`
++ `ts_rank` + `ts_headline` highlight for sessions, ILIKE name match for characters, optional
+`campaign_id` scope); `schemas/search.py`; auto-registered `api/routers/search.py`
+(`GET /api/search?q=&campaign_id=`) returning a unified `results` list (`type` = session|character).
+**54 tests pass** (8 new in `tests/integration/test_search.py`). Herald — `SearchService` +
+types, a global search box in the `Shell` header (navigates to `/search?q=`), and a
+`features/search` results page (`SearchResults`, `?q=` bound via component input binding) that
+groups session/character hits and renders the server `<mark>` snippet via sanitized `[innerHTML]`.
+
+Phase 3 is done. Next up is **Phase 4 — AI summarization (Gemini)**. See `docs/roadmap.md`.

@@ -61,6 +61,22 @@ export interface Character {
   derived: DerivedStats;
 }
 
+export interface SearchResult {
+  type: 'session' | 'character';
+  id: number;
+  campaign_id: number;
+  campaign_name: string;
+  title: string;
+  /** Highlighted snippet (contains <mark> tags) for session hits; null for characters. */
+  snippet: string | null;
+  rank: number;
+}
+
+export interface SearchResponse {
+  query: string;
+  results: SearchResult[];
+}
+
 export const ABILITIES = [
   'strength',
   'dexterity',
