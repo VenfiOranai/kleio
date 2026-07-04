@@ -12,8 +12,9 @@ test.describe('session editor', () => {
     const title = uniqueName('Goblin Ambush');
     await page.getByPlaceholder('Session title').fill(title);
 
-    // Typing Markdown updates the live preview pane (marked + DOMPurify).
+    // Typing Markdown updates the live preview (marked + DOMPurify), shown on its own tab.
     await page.locator('textarea[formcontrolname="raw_notes"]').fill('# Hello World\n\nSome **bold** notes.');
+    await page.getByRole('button', { name: 'Preview', exact: true }).click();
     const preview = page.locator('app-markdown-view');
     await expect(preview.getByRole('heading', { name: 'Hello World' })).toBeVisible();
     await expect(preview.getByText('bold')).toBeVisible();
@@ -25,6 +26,7 @@ test.describe('session editor', () => {
     // Reload: the title and notes come back from the server.
     await page.reload();
     await expect(page.getByPlaceholder('Session title')).toHaveValue(title);
+    await page.getByRole('button', { name: 'Preview', exact: true }).click();
     await expect(preview.getByRole('heading', { name: 'Hello World' })).toBeVisible();
   });
 });

@@ -40,21 +40,11 @@ test.describe('workspace split view', () => {
     await openFreshCampaign(page, 'Editor Tabs Campaign');
 
     // Seed a session with notes so the preview has something to render.
-    await page
-      .locator('section', { has: page.getByRole('heading', { name: 'Sessions' }) })
-      .getByRole('button', { name: '+ New' })
-      .click();
-    await expect(page).toHaveURL(/\/sessions\/\d+$/);
+    // newSession leaves the workspace in the notes-only pane with the editor open.
+    await newSession(page);
     await page.locator('textarea[formcontrolname="raw_notes"]').fill('# Heading');
     await page.getByRole('button', { name: 'Save' }).click();
     await expect(page.getByText('Saved')).toBeVisible();
-    await page.getByRole('link', { name: '← Back to campaign' }).click();
-
-    await page.getByRole('button', { name: 'Open workspace' }).click();
-    await expect(page).toHaveURL(/\/workspace$/);
-
-    // Collapse the workspace to the notes pane to focus on the editor.
-    await page.getByRole('button', { name: 'Notes', exact: true }).click();
 
     const notesTextarea = page.locator('textarea[formcontrolname="raw_notes"]');
     const summaryTextarea = page.locator('textarea[formcontrolname="summary"]');
