@@ -34,6 +34,12 @@ docs/      architecture.md, roadmap.md  (source of truth for design)
   **The backend is authoritative**; the frontend may mirror the math for live preview only.
 - **Notes are Markdown.** `raw_notes` is the canonical text the user writes and is **always
   preserved**; `summary` is a separate, nullable, editable field (filled by Gemini later).
+- **Entity mentions (planned, Phase 7).** Notes tag important words with an `@[Name]` token
+  stored inline in `raw_notes` — **referenced by name, not id** (keeps raw text readable /
+  Gemini-friendly; `entities.name` is the stable key). `@[Name]` renders as bold+italic with
+  the `@` stripped, linking to `/api/search?q=Name`. Parsing lives in one **pure**
+  `extract_mentions()` (like `character_calc`); entities/groups are first-class tables
+  (user-defined groups). Design in `docs/architecture.md` §2/§3/§4; not yet implemented.
 - **Routers auto-register.** Don't edit `main.py` to add endpoints — drop a module under
   `oracle/app/api/routers/` that defines an `APIRouter` named `router`; `register_routers()`
   (in `app/utils/router_registry.py`) discovers and mounts it under `/api` automatically.
@@ -164,3 +170,8 @@ embedded now (the non-embedded page chrome is dead but retained). e2e reworked a
 `newSession`/`newCharacter`; **11 specs green**).
 
 Phase 4 is done. Next up is **Phase 5 — AI Q&A over notes (RAG)**. See `docs/roadmap.md`.
+
+**Planned — Phase 7 (Entities & mentions / "Codex")**: designed, not implemented. `@`-mentions
+in notes (`@[Name]`, by-name) + a per-campaign Codex page grouping entities into user-defined
+groups. Full plan in `docs/architecture.md` (data model §2, oracle §3, herald §4, search §5)
+and `docs/roadmap.md` (Phase 7). Independent of the AI phases — needs only Phases 1 & 3.
