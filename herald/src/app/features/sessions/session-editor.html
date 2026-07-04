@@ -24,7 +24,57 @@
       <input z-input placeholder="Session title" formControlName="title" />
       <input z-input type="date" class="w-fit" formControlName="session_date" />
 
-      <div class="grid gap-4" [ngClass]="{ 'md:grid-cols-2': !embedded() }">
+      @if (embedded()) {
+        <!-- Tight on space in the workspace: tab between panes instead of stacking them. -->
+        <div class="flex w-fit items-center gap-1 rounded-lg border p-1">
+          <button
+            z-button
+            zSize="sm"
+            [zType]="tab() === 'write' ? 'secondary' : 'ghost'"
+            (click)="tab.set('write')"
+          >
+            Write
+          </button>
+          <button
+            z-button
+            zSize="sm"
+            [zType]="tab() === 'preview' ? 'secondary' : 'ghost'"
+            (click)="tab.set('preview')"
+          >
+            Preview
+          </button>
+          <button
+            z-button
+            zSize="sm"
+            [zType]="tab() === 'summary' ? 'secondary' : 'ghost'"
+            (click)="tab.set('summary')"
+          >
+            Summary
+          </button>
+        </div>
+
+        @switch (tab()) {
+          @case ('write') {
+            <ng-container [ngTemplateOutlet]="notesPane" />
+          }
+          @case ('preview') {
+            <ng-container [ngTemplateOutlet]="previewPane" />
+          }
+          @case ('summary') {
+            <ng-container [ngTemplateOutlet]="summaryPane" />
+          }
+        }
+      } @else {
+        <div class="grid gap-4 md:grid-cols-2">
+          <ng-container [ngTemplateOutlet]="notesPane" />
+          <ng-container [ngTemplateOutlet]="previewPane" />
+        </div>
+        <ng-container [ngTemplateOutlet]="summaryPane" />
+      }
+
+      <!-- Panes are declared inside the form so formControlName resolves the form group,
+           and reused across the embedded (tabbed) and full-page (split) layouts. -->
+      <ng-template #notesPane>
         <div class="flex flex-col gap-1">
           <label class="text-sm font-medium">Raw notes (Markdown)</label>
           <textarea
@@ -35,45 +85,50 @@
             formControlName="raw_notes"
           ></textarea>
         </div>
+      </ng-template>
+
+      <ng-template #previewPane>
         <div class="flex flex-col gap-1">
           <label class="text-sm font-medium">Preview</label>
           <div class="min-h-40 rounded-lg border p-3">
             <app-markdown-view [source]="rawNotes()" />
           </div>
         </div>
-      </div>
+      </ng-template>
 
-      <div class="flex flex-col gap-1">
-        <div class="flex items-center justify-between gap-2">
-          <label class="text-sm font-medium">AI summary</label>
-          <button
-            z-button
-            type="button"
-            zType="outline"
-            zSize="sm"
-            [zLoading]="summarizing()"
-            [zDisabled]="summarizing()"
-            (click)="summarize()"
-          >
-            {{ summarizing() ? 'Summarizing…' : 'Summarize with AI' }}
-          </button>
-        </div>
-        <textarea
-          z-input
-          rows="6"
-          class="font-mono text-sm"
-          placeholder="Generate a summary from your notes, or write one yourself…"
-          formControlName="summary"
-        ></textarea>
-        @if (summarizeError()) {
-          <p class="text-sm text-destructive">{{ summarizeError() }}</p>
-        }
-        @if (summary()) {
-          <div class="mt-1 rounded-lg border bg-muted/30 p-3">
-            <app-markdown-view [source]="summary()" />
+      <ng-template #summaryPane>
+        <div class="flex flex-col gap-1">
+          <div class="flex items-center justify-between gap-2">
+            <label class="text-sm font-medium">AI summary</label>
+            <button
+              z-button
+              type="button"
+              zType="outline"
+              zSize="sm"
+              [zLoading]="summarizing()"
+              [zDisabled]="summarizing()"
+              (click)="summarize()"
+            >
+              {{ summarizing() ? 'Summarizing…' : 'Summarize with AI' }}
+            </button>
           </div>
-        }
-      </div>
+          @if (summary()) {
+            <div class="rounded-lg border bg-muted/30 p-3">
+              <app-markdown-view [source]="summary()" />
+            </div>
+          }
+          <textarea
+            z-input
+            rows="6"
+            class="font-mono text-sm"
+            placeholder="Generate a summary from your notes, or write one yourself…"
+            formControlName="summary"
+          ></textarea>
+          @if (summarizeError()) {
+            <p class="text-sm text-destructive">{{ summarizeError() }}</p>
+          }
+        </div>
+      </ng-template>
     </form>
   </div>
 }
