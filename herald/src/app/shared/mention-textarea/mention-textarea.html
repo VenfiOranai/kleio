@@ -1,0 +1,40 @@
+<div class="relative">
+  <textarea
+    #ta
+    [class]="textareaClass"
+    [rows]="rows()"
+    [placeholder]="placeholder()"
+    (input)="onInput()"
+    (keydown)="onKeydown($event)"
+    (keyup)="onKeyup($event)"
+    (click)="sync()"
+    (blur)="onBlur()"
+  ></textarea>
+
+  @if (open()) {
+    <ul
+      class="absolute z-50 max-h-56 w-64 overflow-auto rounded-md border bg-background p-1 shadow-md"
+      [style.top.px]="top()"
+      [style.left.px]="left()"
+    >
+      @for (option of options(); track option.name; let i = $index) {
+        <li>
+          <button
+            type="button"
+            class="flex w-full items-center gap-1.5 rounded px-2 py-1.5 text-left text-sm hover:bg-muted"
+            [class.bg-muted]="i === activeIndex()"
+            (mousedown)="$event.preventDefault(); choose(i)"
+            (mouseenter)="activeIndex.set(i)"
+          >
+            @if (option.create) {
+              <span class="text-muted-foreground">Create</span>
+              <span class="font-medium">“{{ option.name }}”</span>
+            } @else {
+              <span class="truncate">{{ option.name }}</span>
+            }
+          </button>
+        </li>
+      }
+    </ul>
+  }
+</div>

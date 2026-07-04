@@ -90,6 +90,27 @@ export interface AskResponse {
   citations: Citation[];
 }
 
+/** A user-defined bucket entities can be organized into, on the Codex page. */
+export interface EntityGroup {
+  id: number;
+  campaign_id: number;
+  name: string;
+  order_index: number;
+  created_at: string;
+  updated_at: string;
+}
+
+/** An "important word" tagged in notes via @[Name]; referenced by name. */
+export interface Entity {
+  id: number;
+  campaign_id: number;
+  name: string;
+  group_id: number | null;
+  description: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export const ABILITIES = [
   'strength',
   'dexterity',

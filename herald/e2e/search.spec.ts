@@ -15,7 +15,7 @@ test.describe('global search', () => {
     await newSession(page);
     await page.getByPlaceholder('Session title').fill(sessionTitle);
     await page
-      .locator('textarea[formcontrolname="raw_notes"]')
+      .locator('app-mention-textarea textarea')
       .fill(`The ancient ${term} artifact was recovered.`);
     await page.getByRole('button', { name: 'Save' }).click();
     await expect(page.getByText('Saved')).toBeVisible();

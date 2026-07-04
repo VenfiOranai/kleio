@@ -95,13 +95,13 @@
       <ng-template #notesPane>
         <div class="flex flex-col gap-1">
           <label class="text-sm font-medium">Raw notes (Markdown)</label>
-          <textarea
-            z-input
-            rows="18"
-            class="font-mono text-sm"
-            placeholder="# Session notes&#10;What happened..."
+          <app-mention-textarea
+            [rows]="18"
+            placeholder="# Session notes&#10;What happened... (type @ to tag a name, place, …)"
+            [entities]="entities()"
+            (create)="onCreateEntity($event)"
             formControlName="raw_notes"
-          ></textarea>
+          />
         </div>
       </ng-template>
 

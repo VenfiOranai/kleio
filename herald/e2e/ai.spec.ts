@@ -30,7 +30,7 @@ test.describe('AI summary', () => {
     await openNewSession(page);
 
     // Notes are entered on the Write tab; the value is kept when switching tabs.
-    await page.locator('textarea[formcontrolname="raw_notes"]').fill('The party explored the crypt.');
+    await page.locator('app-mention-textarea textarea').fill('The party explored the crypt.');
     await page.getByRole('button', { name: 'Summary', exact: true }).click();
     await page.getByRole('button', { name: 'Summarize with AI' }).click();
 
