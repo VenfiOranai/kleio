@@ -64,6 +64,11 @@ Fill in `infra/.env`: a strong `POSTGRES_PASSWORD`, your `APP_USERNAME`, a `JWT_
 ```
 Wrap the hash in single quotes in `.env` (it contains `$`).
 
+For the AI features (session summarization + RAG Q&A), also set `GEMINI_API_KEY` (a Google AI
+Studio key). It's optional — without it those endpoints just return 503 and the rest of the app
+works normally. `GEMINI_MODEL` / `GEMINI_EMBED_MODEL` have sensible defaults; override only if
+needed.
+
 ## 5. First deploy (manual)
 
 ```bash
