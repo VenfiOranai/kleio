@@ -227,3 +227,14 @@ editor passes `entities()` to the preview + summary views. e2e `entities.spec.ts
 unit `markdown-view.spec.ts` (render, click-nav, tooltip). `ng build` clean (bundle warning only).
 
 Next up: **Phase 6 — Polish & hardening** (backups first — see `docs/roadmap.md`).
+
+**Planned — Character Sheet Overhaul (Phases 8–14)**: designed, not implemented. Turns the
+character sheet's freeform `equipment`/`spells`/`features` text into **structured JSONB** on the
+`characters` table (money, misc proficiencies, spellcasting DC/attack; equipment/spells/features
+in modals; an attacks panel; **5etools** autocomplete-import then auto-populate-by-class). Derived
+values stay computed in the **pure** `character_calc`. 5etools has **no API** — `services/fivetools.py`
+reads user-mounted static JSON (`FIVETOOLS_DATA_DIR`) and a **pure** renderer converts its
+`entries`/`{@tag}` format to Markdown; the dataset is **never bundled** (verbatim WotC content,
+not SRD/OGL — DMCA'd 2024). Full plan in `docs/roadmap.md` (Character Sheet Overhaul epic) +
+`docs/architecture.md` (§2 structured schema, §3 fivetools/reference, §4 modal UI). Independent
+of the notes/AI/entities phases.
