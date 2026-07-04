@@ -29,6 +29,10 @@ services:
       APP_PASSWORD_HASH: ${APP_PASSWORD_HASH}
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRE_MINUTES: ${JWT_EXPIRE_MINUTES:-1440}
+      # AI (Gemini): summarization + RAG Q&A. Without a key those endpoints return 503.
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.5-flash}
+      GEMINI_EMBED_MODEL: ${GEMINI_EMBED_MODEL:-gemini-embedding-001}
     depends_on:
       db:
         condition: service_healthy
