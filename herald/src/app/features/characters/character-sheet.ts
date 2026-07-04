@@ -1,6 +1,15 @@
-import { Component, computed, effect, inject, input, numberAttribute, signal } from '@angular/core';
+import {
+  Component,
+  computed,
+  effect,
+  inject,
+  input,
+  numberAttribute,
+  output,
+  signal,
+} from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { RouterLink } from '@angular/router';
 
 import { ZardButtonComponent } from '@/components/button/button.component';
 import { ZardInputDirective } from '@/components/input/input.directive';
@@ -23,7 +32,6 @@ function toggle(set: Set<string>, key: string): Set<string> {
   templateUrl: './character-sheet.html',
 })
 export class CharacterSheet {
-  private readonly router = inject(Router);
   private readonly service = inject(CharacterService);
   private readonly fb = inject(FormBuilder);
 
@@ -32,6 +40,8 @@ export class CharacterSheet {
   readonly campaignId = input.required({ transform: numberAttribute });
   /** Hide the page chrome (back link) when embedded in the workspace. */
   readonly embedded = input(false);
+  /** Emitted (with the deleted id) after the character is removed, so the host can reselect. */
+  readonly deleted = output<number>();
 
   protected readonly character = signal<Character | null>(null);
   protected readonly saved = signal(false);
@@ -109,9 +119,8 @@ export class CharacterSheet {
   }
 
   protected remove(): void {
-    this.service
-      .delete(this.characterId())
-      .subscribe(() => this.router.navigate(['/campaigns', this.campaignId()]));
+    const id = this.characterId();
+    this.service.delete(id).subscribe(() => this.deleted.emit(id));
   }
 
   protected label(key: string): string {

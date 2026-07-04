@@ -1,15 +1,11 @@
 import { expect, test } from '@playwright/test';
 
-import { openFreshCampaign } from './helpers';
+import { newSession, openFreshCampaign } from './helpers';
 
-/** Open a fresh session editor within a new campaign. */
+/** Open a fresh, inline session editor within a new campaign's workspace. */
 async function openNewSession(page: import('@playwright/test').Page): Promise<void> {
   await openFreshCampaign(page, 'AI Campaign');
-  await page
-    .locator('section', { has: page.getByRole('heading', { name: 'Sessions' }) })
-    .getByRole('button', { name: '+ New' })
-    .click();
-  await expect(page).toHaveURL(/\/sessions\/\d+$/);
+  await newSession(page);
 }
 
 test.describe('AI summary', () => {

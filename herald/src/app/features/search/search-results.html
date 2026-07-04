@@ -19,7 +19,8 @@
         <h2 class="text-lg font-semibold">Sessions</h2>
         @for (hit of sessions(); track hit.id) {
           <a
-            [routerLink]="['/campaigns', hit.campaign_id, 'sessions', hit.id]"
+            [routerLink]="['/campaigns', hit.campaign_id]"
+            [queryParams]="{ session: hit.id }"
             class="block rounded-lg border p-3 transition-colors hover:border-primary"
           >
             <div class="flex items-center justify-between gap-2">
@@ -43,7 +44,8 @@
         <h2 class="text-lg font-semibold">Characters</h2>
         @for (hit of characters(); track hit.id) {
           <a
-            [routerLink]="['/campaigns', hit.campaign_id, 'characters', hit.id]"
+            [routerLink]="['/campaigns', hit.campaign_id]"
+            [queryParams]="{ character: hit.id }"
             class="flex items-center justify-between gap-2 rounded-lg border p-3 transition-colors hover:border-primary"
           >
             <span class="font-medium">{{ hit.title }}</span>

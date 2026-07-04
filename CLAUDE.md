@@ -146,4 +146,14 @@ mocks the service). Herald — `SessionService.summarize`, and the session edito
 state, graceful error line). e2e `ai.spec.ts` covers summary-editing/persistence and the not-configured
 error path (Playwright forces `GEMINI_API_KEY=''` so `/summarize` never calls Gemini).
 
+**Workspace-centric navigation** (pending review/commit): a campaign now opens **straight into its
+workspace** — `campaigns/:campaignId` renders `Workspace` (the standalone campaign-detail, session,
+and character page routes + `campaign-detail` component were removed). The workspace grew **+ New
+session / + New character** buttons; the embedded `SessionEditor`/`CharacterSheet` now emit a
+`deleted` output (instead of navigating) so the workspace reselects, and honor `?session=`/
+`?character=` query params for global-search deep-links (search results now link to the workspace
+with that param). The components keep their `embedded` dual-mode input, but are only ever used
+embedded now (the non-embedded page chrome is dead but retained). e2e reworked accordingly (helpers
+`newSession`/`newCharacter`; **11 specs green**).
+
 Phase 4 is done. Next up is **Phase 5 — AI Q&A over notes (RAG)**. See `docs/roadmap.md`.

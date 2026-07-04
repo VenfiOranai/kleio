@@ -1,17 +1,13 @@
 import { expect, test } from '@playwright/test';
 
-import { openFreshCampaign, uniqueName } from './helpers';
+import { newSession, openFreshCampaign, uniqueName } from './helpers';
 
 test.describe('session editor', () => {
   test('creates a session and live-renders the markdown preview', async ({ page }) => {
     await openFreshCampaign(page, 'Session Campaign');
 
-    // "+ New" inside the Sessions section creates a draft and opens the editor.
-    await page
-      .locator('section', { has: page.getByRole('heading', { name: 'Sessions' }) })
-      .getByRole('button', { name: '+ New' })
-      .click();
-    await expect(page).toHaveURL(/\/sessions\/\d+$/);
+    // Create a session from the workspace; the editor opens inline (no route change).
+    await newSession(page);
 
     const title = uniqueName('Goblin Ambush');
     await page.getByPlaceholder('Session title').fill(title);
