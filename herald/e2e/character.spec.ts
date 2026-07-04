@@ -1,17 +1,13 @@
 import { expect, test } from '@playwright/test';
 
-import { openFreshCampaign, uniqueName } from './helpers';
+import { newCharacter, openFreshCampaign, uniqueName } from './helpers';
 
 test.describe('character sheet', () => {
   test('server-computes derived stats from manual inputs', async ({ page }) => {
     await openFreshCampaign(page, 'Character Campaign');
 
-    // "+ New" inside the Characters section creates a draft and opens the sheet.
-    await page
-      .locator('section', { has: page.getByRole('heading', { name: 'Characters' }) })
-      .getByRole('button', { name: '+ New' })
-      .click();
-    await expect(page).toHaveURL(/\/characters\/\d+$/);
+    // Create a character from the workspace; the sheet opens inline (no route change).
+    await newCharacter(page);
 
     await page.getByPlaceholder('Character name').fill(uniqueName('Aragorn'));
     await page.locator('input[formcontrolname="level"]').fill('5');

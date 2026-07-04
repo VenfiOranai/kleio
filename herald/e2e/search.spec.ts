@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-import { openFreshCampaign, uniqueName } from './helpers';
+import { newCharacter, newSession, openFreshCampaign, uniqueName } from './helpers';
 
 test.describe('global search', () => {
   test('finds sessions (with highlight) and characters, and links to them', async ({ page }) => {
@@ -12,23 +12,16 @@ test.describe('global search', () => {
     const characterName = uniqueName('Zephyrquux Hero');
 
     // Seed a session whose notes contain the term.
-    await page
-      .locator('section', { has: page.getByRole('heading', { name: 'Sessions' }) })
-      .getByRole('button', { name: '+ New' })
-      .click();
-    await expect(page).toHaveURL(/\/sessions\/\d+$/);
+    await newSession(page);
     await page.getByPlaceholder('Session title').fill(sessionTitle);
-    await page.locator('textarea[formcontrolname="raw_notes"]').fill(`The ancient ${term} artifact was recovered.`);
+    await page
+      .locator('textarea[formcontrolname="raw_notes"]')
+      .fill(`The ancient ${term} artifact was recovered.`);
     await page.getByRole('button', { name: 'Save' }).click();
     await expect(page.getByText('Saved')).toBeVisible();
-    await page.getByRole('link', { name: '← Back to campaign' }).click();
 
     // Seed a character whose name contains the term.
-    await page
-      .locator('section', { has: page.getByRole('heading', { name: 'Characters' }) })
-      .getByRole('button', { name: '+ New' })
-      .click();
-    await expect(page).toHaveURL(/\/characters\/\d+$/);
+    await newCharacter(page);
     await page.getByPlaceholder('Character name').fill(characterName);
     await page.getByRole('button', { name: 'Save' }).click();
     await expect(page.getByText('Saved')).toBeVisible();
@@ -46,9 +39,9 @@ test.describe('global search', () => {
     // The matched term is highlighted in the session snippet.
     await expect(page.locator('mark', { hasText: term }).first()).toBeVisible();
 
-    // Clicking the session result opens its editor.
+    // Clicking the session result opens that campaign's workspace with the session preselected.
     await sessionHit.click();
-    await expect(page).toHaveURL(/\/sessions\/\d+$/);
+    await expect(page).toHaveURL(/\/campaigns\/\d+\?session=\d+$/);
     await expect(page.getByPlaceholder('Session title')).toHaveValue(sessionTitle);
   });
 });

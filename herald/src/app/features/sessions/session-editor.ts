@@ -1,9 +1,9 @@
 import { NgTemplateOutlet } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, effect, inject, input, numberAttribute, signal } from '@angular/core';
+import { Component, effect, inject, input, numberAttribute, output, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { RouterLink } from '@angular/router';
 import { switchMap } from 'rxjs';
 
 import { ZardButtonComponent } from '@/components/button/button.component';
@@ -25,7 +25,6 @@ import { MarkdownView } from '@/shared/markdown-view/markdown-view';
   templateUrl: './session-editor.html',
 })
 export class SessionEditor {
-  private readonly router = inject(Router);
   private readonly service = inject(SessionService);
   private readonly fb = inject(FormBuilder);
 
@@ -34,6 +33,8 @@ export class SessionEditor {
   readonly campaignId = input.required({ transform: numberAttribute });
   /** Hide the page chrome (back link) when embedded in the workspace. */
   readonly embedded = input(false);
+  /** Emitted (with the deleted id) after the session is removed, so the host can reselect. */
+  readonly deleted = output<number>();
 
   protected readonly session = signal<Session | null>(null);
   protected readonly saved = signal(false);
@@ -114,8 +115,7 @@ export class SessionEditor {
   }
 
   protected remove(): void {
-    this.service
-      .delete(this.sessionId())
-      .subscribe(() => this.router.navigate(['/campaigns', this.campaignId()]));
+    const id = this.sessionId();
+    this.service.delete(id).subscribe(() => this.deleted.emit(id));
   }
 }

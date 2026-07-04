@@ -27,14 +27,32 @@ export async function createCampaign(page: Page, name: string): Promise<void> {
 }
 
 /**
- * Log in, create a fresh campaign, and open its detail page.
- * Returns the campaign name so callers can clean up or assert on it.
+ * Log in, create a fresh campaign, and open it — which now lands directly in the
+ * campaign's workspace. Returns the campaign name so callers can assert/clean up.
  */
 export async function openFreshCampaign(page: Page, prefix = 'Campaign'): Promise<string> {
   await login(page);
   const name = uniqueName(prefix);
   await createCampaign(page, name);
   await page.getByText(name, { exact: true }).click();
-  await expect(page.getByRole('heading', { name, level: 1 })).toBeVisible();
+  await expect(page).toHaveURL(/\/campaigns\/\d+$/);
+  await expect(page.getByRole('button', { name: '+ New session' })).toBeVisible();
   return name;
+}
+
+/**
+ * From the workspace, collapse to the notes pane and create a draft session. Leaves the
+ * embedded session editor open. Single-pane so there's exactly one Save button on screen.
+ */
+export async function newSession(page: Page): Promise<void> {
+  await page.getByRole('button', { name: 'Notes', exact: true }).click();
+  await page.getByRole('button', { name: '+ New session' }).click();
+  await expect(page.getByPlaceholder('Session title')).toBeVisible();
+}
+
+/** From the workspace, collapse to the character pane and create a draft character. */
+export async function newCharacter(page: Page): Promise<void> {
+  await page.getByRole('button', { name: 'Character', exact: true }).click();
+  await page.getByRole('button', { name: '+ New character' }).click();
+  await expect(page.getByPlaceholder('Character name')).toBeVisible();
 }

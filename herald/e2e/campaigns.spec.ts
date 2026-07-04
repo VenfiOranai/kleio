@@ -15,11 +15,11 @@ test.describe('campaign CRUD', () => {
     const card = page.getByText(name, { exact: true });
     await expect(card).toBeVisible();
 
-    // …and opening it navigates to the detail view.
+    // …and opening it lands directly in the campaign workspace.
     await card.click();
     await expect(page).toHaveURL(/\/campaigns\/\d+$/);
-    await expect(page.getByRole('heading', { name, level: 1 })).toBeVisible();
-    await expect(page.getByText('A one-off test campaign')).toBeVisible();
+    await expect(page.getByRole('button', { name: '+ New session' })).toBeVisible();
+    await expect(page.getByRole('button', { name: '+ New character' })).toBeVisible();
 
     // Back to the list and delete it.
     await page.getByRole('link', { name: '← Campaigns' }).click();

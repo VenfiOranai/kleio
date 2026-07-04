@@ -1,30 +1,17 @@
 import { expect, test } from '@playwright/test';
 
-import { openFreshCampaign } from './helpers';
+import { newCharacter, newSession, openFreshCampaign } from './helpers';
 
 test.describe('workspace split view', () => {
   test('toggles between the notes, split, and character panes', async ({ page }) => {
     await openFreshCampaign(page, 'Workspace Campaign');
 
     // Seed one session and one character so both panes have real content.
-    await page
-      .locator('section', { has: page.getByRole('heading', { name: 'Sessions' }) })
-      .getByRole('button', { name: '+ New' })
-      .click();
-    await expect(page).toHaveURL(/\/sessions\/\d+$/);
-    await page.getByRole('link', { name: '← Back to campaign' }).click();
+    await newSession(page);
+    await newCharacter(page);
 
-    await page
-      .locator('section', { has: page.getByRole('heading', { name: 'Characters' }) })
-      .getByRole('button', { name: '+ New' })
-      .click();
-    await expect(page).toHaveURL(/\/characters\/\d+$/);
-    await page.getByRole('link', { name: '← Back to campaign' }).click();
-
-    // "Open workspace" is an <a z-button>; the Zard button directive stamps role="button" on it,
-    // so match it as a button rather than a link.
-    await page.getByRole('button', { name: 'Open workspace' }).click();
-    await expect(page).toHaveURL(/\/workspace$/);
+    // Show both panes side by side.
+    await page.getByRole('button', { name: 'Split', exact: true }).click();
 
     const notesPane = page.getByText('Raw notes (Markdown)');
     const characterPane = page.getByRole('heading', { name: 'Abilities & Saving Throws' });
@@ -53,21 +40,11 @@ test.describe('workspace split view', () => {
     await openFreshCampaign(page, 'Editor Tabs Campaign');
 
     // Seed a session with notes so the preview has something to render.
-    await page
-      .locator('section', { has: page.getByRole('heading', { name: 'Sessions' }) })
-      .getByRole('button', { name: '+ New' })
-      .click();
-    await expect(page).toHaveURL(/\/sessions\/\d+$/);
+    // newSession leaves the workspace in the notes-only pane with the editor open.
+    await newSession(page);
     await page.locator('textarea[formcontrolname="raw_notes"]').fill('# Heading');
     await page.getByRole('button', { name: 'Save' }).click();
     await expect(page.getByText('Saved')).toBeVisible();
-    await page.getByRole('link', { name: '← Back to campaign' }).click();
-
-    await page.getByRole('button', { name: 'Open workspace' }).click();
-    await expect(page).toHaveURL(/\/workspace$/);
-
-    // Collapse the workspace to the notes pane to focus on the editor.
-    await page.getByRole('button', { name: 'Notes', exact: true }).click();
 
     const notesTextarea = page.locator('textarea[formcontrolname="raw_notes"]');
     const summaryTextarea = page.locator('textarea[formcontrolname="summary"]');

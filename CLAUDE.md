@@ -153,4 +153,14 @@ toggled from a sun/moon button in the `Shell` header. Plus a small inline **lyre
 SVG logo** next to the title (Kleio = Muse of History; `currentColor`, theme-adaptive). e2e
 `theme.spec.ts` covers toggle + persistence.
 
+**Workspace-centric navigation** (pending review/commit): a campaign now opens **straight into its
+workspace** — `campaigns/:campaignId` renders `Workspace` (the standalone campaign-detail, session,
+and character page routes + `campaign-detail` component were removed). The workspace grew **+ New
+session / + New character** buttons; the embedded `SessionEditor`/`CharacterSheet` now emit a
+`deleted` output (instead of navigating) so the workspace reselects, and honor `?session=`/
+`?character=` query params for global-search deep-links (search results now link to the workspace
+with that param). The components keep their `embedded` dual-mode input, but are only ever used
+embedded now (the non-embedded page chrome is dead but retained). e2e reworked accordingly (helpers
+`newSession`/`newCharacter`; **11 specs green**).
+
 Phase 4 is done. Next up is **Phase 5 — AI Q&A over notes (RAG)**. See `docs/roadmap.md`.
