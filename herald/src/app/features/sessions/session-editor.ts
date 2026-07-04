@@ -1,8 +1,10 @@
 import { NgClass } from '@angular/common';
+import { HttpErrorResponse } from '@angular/common/http';
 import { Component, effect, inject, input, numberAttribute, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
+import { switchMap } from 'rxjs';
 
 import { ZardButtonComponent } from '@/components/button/button.component';
 import { ZardInputDirective } from '@/components/input/input.directive';
@@ -35,6 +37,8 @@ export class SessionEditor {
 
   protected readonly session = signal<Session | null>(null);
   protected readonly saved = signal(false);
+  protected readonly summarizing = signal(false);
+  protected readonly summarizeError = signal<string | null>(null);
 
   protected readonly form = this.fb.nonNullable.group({
     title: [''],
@@ -43,8 +47,11 @@ export class SessionEditor {
     summary: [''],
   });
 
-  /** Live-updating source for the markdown preview. */
+  /** Live-updating sources for the markdown previews. */
   protected readonly rawNotes = toSignal(this.form.controls.raw_notes.valueChanges, {
+    initialValue: '',
+  });
+  protected readonly summary = toSignal(this.form.controls.summary.valueChanges, {
     initialValue: '',
   });
 
@@ -64,19 +71,43 @@ export class SessionEditor {
     });
   }
 
-  protected save(): void {
+  private payload(): Partial<Session> {
     const value = this.form.getRawValue();
+    return {
+      title: value.title,
+      session_date: value.session_date || null,
+      raw_notes: value.raw_notes,
+      summary: value.summary || null,
+    };
+  }
+
+  private applySaved(s: Session): void {
+    this.session.set(s);
+    this.form.patchValue({ summary: s.summary ?? '' });
+    this.saved.set(true);
+    setTimeout(() => this.saved.set(false), 2000);
+  }
+
+  protected save(): void {
+    this.service.update(this.sessionId(), this.payload()).subscribe((s) => this.applySaved(s));
+  }
+
+  /** Persist current edits, then ask the server to summarize the saved notes. */
+  protected summarize(): void {
+    this.summarizing.set(true);
+    this.summarizeError.set(null);
     this.service
-      .update(this.sessionId(), {
-        title: value.title,
-        session_date: value.session_date || null,
-        raw_notes: value.raw_notes,
-        summary: value.summary || null,
-      })
-      .subscribe((s) => {
-        this.session.set(s);
-        this.saved.set(true);
-        setTimeout(() => this.saved.set(false), 2000);
+      .update(this.sessionId(), this.payload())
+      .pipe(switchMap(() => this.service.summarize(this.sessionId())))
+      .subscribe({
+        next: (s) => {
+          this.summarizing.set(false);
+          this.applySaved(s);
+        },
+        error: (err: HttpErrorResponse) => {
+          this.summarizing.set(false);
+          this.summarizeError.set(err.error?.detail ?? 'Summarization failed. Please try again.');
+        },
       });
   }
 

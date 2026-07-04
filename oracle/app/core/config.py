@@ -19,6 +19,10 @@ class Settings(BaseSettings):
     jwt_secret: str = ""
     jwt_expire_minutes: int = 1440
 
+    # AI (Gemini) — used from the summarization phase onward
+    gemini_api_key: str = ""
+    gemini_model: str = "gemini-2.5-flash"
+
 
 @lru_cache
 def get_settings() -> Settings:

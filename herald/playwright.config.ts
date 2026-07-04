@@ -39,6 +39,9 @@ export default defineConfig({
         APP_USERNAME: E2E_USERNAME,
         APP_PASSWORD_HASH: E2E_PASSWORD_HASH,
         JWT_SECRET: 'e2e-secret-not-for-production',
+        // Force AI off so /summarize deterministically returns a 503 (never calls Gemini),
+        // regardless of any key in a local oracle/.env. The e2e asserts the graceful error.
+        GEMINI_API_KEY: '',
         DATABASE_URL:
           process.env.DATABASE_URL ?? 'postgresql+psycopg://kleio:kleio@localhost:5432/kleio',
       },
