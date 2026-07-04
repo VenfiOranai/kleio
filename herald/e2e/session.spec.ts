@@ -13,7 +13,7 @@ test.describe('session editor', () => {
     await page.getByPlaceholder('Session title').fill(title);
 
     // Typing Markdown updates the live preview (marked + DOMPurify), shown on its own tab.
-    await page.locator('textarea[formcontrolname="raw_notes"]').fill('# Hello World\n\nSome **bold** notes.');
+    await page.locator('app-mention-textarea textarea').fill('# Hello World\n\nSome **bold** notes.');
     await page.getByRole('button', { name: 'Preview', exact: true }).click();
     const preview = page.locator('app-markdown-view');
     await expect(preview.getByRole('heading', { name: 'Hello World' })).toBeVisible();

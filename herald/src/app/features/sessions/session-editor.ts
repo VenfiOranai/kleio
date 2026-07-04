@@ -8,10 +8,12 @@ import { switchMap } from 'rxjs';
 
 import { ZardButtonComponent } from '@/components/button/button.component';
 import { ZardInputDirective } from '@/components/input/input.directive';
-import { Session } from '@/core/api/models';
+import { EntityService } from '@/core/api/entity.service';
+import { Entity, Session } from '@/core/api/models';
 import { SessionService } from '@/core/api/session.service';
 import { Ask } from '@/features/ask/ask';
 import { MarkdownView } from '@/shared/markdown-view/markdown-view';
+import { MentionTextarea } from '@/shared/mention-textarea/mention-textarea';
 
 @Component({
   selector: 'app-session-editor',
@@ -22,12 +24,14 @@ import { MarkdownView } from '@/shared/markdown-view/markdown-view';
     ZardButtonComponent,
     ZardInputDirective,
     MarkdownView,
+    MentionTextarea,
     Ask,
   ],
   templateUrl: './session-editor.html',
 })
 export class SessionEditor {
   private readonly service = inject(SessionService);
+  private readonly entityService = inject(EntityService);
   private readonly fb = inject(FormBuilder);
 
   // Bound from route params when routed, or passed directly when embedded in the workspace.
@@ -39,6 +43,8 @@ export class SessionEditor {
   readonly deleted = output<number>();
 
   protected readonly session = signal<Session | null>(null);
+  /** Campaign entities, for the @-mention autocomplete in the notes editor. */
+  protected readonly entities = signal<Entity[]>([]);
   protected readonly saved = signal(false);
   protected readonly summarizing = signal(false);
   protected readonly summarizeError = signal<string | null>(null);
@@ -74,6 +80,21 @@ export class SessionEditor {
         });
       });
     });
+    // Load the campaign's entities for the @-mention autocomplete.
+    effect(() => this.reloadEntities());
+  }
+
+  private reloadEntities(): void {
+    this.entityService.list(this.campaignId()).subscribe((list) => this.entities.set(list));
+  }
+
+  /** Persist a brand-new mention as an entity (idempotent) and add it to the local list. */
+  protected onCreateEntity(name: string): void {
+    this.entityService.create(this.campaignId(), { name }).subscribe((entity) => {
+      this.entities.update((list) =>
+        list.some((e) => e.id === entity.id) ? list : [...list, entity],
+      );
+    });
   }
 
   private payload(): Partial<Session> {
@@ -91,6 +112,8 @@ export class SessionEditor {
     this.form.patchValue({ summary: s.summary ?? '' });
     this.saved.set(true);
     setTimeout(() => this.saved.set(false), 2000);
+    // The server backfills entities from @[Name] mentions on save; pick up any new ones.
+    this.reloadEntities();
   }
 
   protected save(): void {

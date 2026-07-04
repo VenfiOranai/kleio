@@ -31,6 +31,21 @@ def test_summarize_stores_summary_and_preserves_raw_notes(
     assert db_client.get(f"/api/sessions/{session_id}").json()["summary"] == "## Recap\n- We won."
 
 
+def test_summarize_auto_tags_known_entities(
+    db_client: TestClient, campaign_id: int, monkeypatch
+):
+    # A known entity exists in the campaign…
+    db_client.post(f"/api/campaigns/{campaign_id}/entities", json={"name": "Balrog"})
+    # …and the model returns a summary mentioning it in plain text (no @[…] token).
+    monkeypatch.setattr(ai, "summarize_session", lambda notes: "The Balrog was defeated.")
+    session_id = _make_session(db_client, campaign_id, "@[Balrog] fell into shadow.")
+
+    resp = db_client.post(f"/api/sessions/{session_id}/summarize")
+    assert resp.status_code == 200, resp.text
+    # The summary's mention of the entity is auto-tagged so it links + renders.
+    assert resp.json()["summary"] == "The @[Balrog] was defeated."
+
+
 def test_summarize_empty_notes_is_400(db_client: TestClient, campaign_id: int, monkeypatch):
     called = False
 

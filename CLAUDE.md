@@ -195,10 +195,29 @@ notes editor** alongside Write/Preview/Summary (campaign-scoped, embedded — no
 `Ask` uses a `[formGroup]` div, not a `<form>`, so it nests validly inside the session form).
 e2e `ask.spec.ts` covers the not-configured (503) path. `ng build` clean.
 
-Phase 5 is done. Next up is **Phase 6 — Polish & hardening** (and/or the planned Phase 7
-below). See `docs/roadmap.md`.
+Phase 5 is done.
 
-**Planned — Phase 7 (Entities & mentions / "Codex")**: designed, not implemented. `@`-mentions
-in notes (`@[Name]`, by-name) + a per-campaign Codex page grouping entities into user-defined
-groups. Full plan in `docs/architecture.md` (data model §2, oracle §3, herald §4, search §5)
-and `docs/roadmap.md` (Phase 7). Independent of the AI phases — needs only Phases 1 & 3.
+**Phase 7 complete** (pending review/commit): **Entities & mentions ("Codex")**. Oracle —
+`entity_groups` + `entities` models (entities unique **case-insensitively** per campaign via a
+functional index on `lower(name)`; group delete `SET NULL` with `passive_deletes`) + migration
+`164e5aa4a525`; `services/entities.py` (**pure** `extract_mentions` regex `@\[([^\[\]\n]+)\]`,
+plus `get_or_create` (idempotent) and insert-only `reconcile_mentions`); `schemas/entity.py`;
+auto-registered `api/routers/entities.py` (entities + entity-groups CRUD — `POST` entity is
+idempotent 201/200, rename/group clashes → 409, foreign group → 400). Sessions router now
+backfills mentions on save (`reconcile_mentions`, alongside the RAG reindex). The **summarize**
+router post-processes the AI summary through `entities.mark_entities` (**pure**) — Gemini drops
+the notes' `@[Name]` tokens, so it re-tags the first whole-word occurrence of each known entity
+(case-insensitive, longest-wins, skips existing tokens/markdown links) so summary mentions render
++ link too. Tests: unit `test_entity_mentions.py` (incl. `mark_entities`); integration
+`test_entities.py` (CRUD, idempotency, group-delete ungroups, save-time backfill) +
+`test_ai_summarize.py` (auto-tag). Herald — `EntityService`; `MarkdownView` gained a `marked`
+inline extension rendering `@[Name]` as bold+italic (`<strong><em>`) linking to `/search?q=`
+(SPA-nav via a delegated click handler); a `MentionTextarea` CVA (caret-anchored `@` typeahead
+over the notes textarea, mirror-div caret coords, eager *Create "…"* → idempotent POST) wired
+into the session editor's Write tab; a **Codex page** (`features/entities`, route
+`campaigns/:id/entities`, "Codex" button in the workspace) grouping entities into user-defined
+groups with create/rename/delete + a per-entity group `<select>` and description. Reference is
+**by name** (renames don't rewrite existing `@[old]` tokens). e2e `entities.spec.ts` (mention
+insert → bold render → click-to-search; Codex grouping). `ng build` clean (bundle warning only).
+
+Next up: **Phase 6 — Polish & hardening** (backups first — see `docs/roadmap.md`).

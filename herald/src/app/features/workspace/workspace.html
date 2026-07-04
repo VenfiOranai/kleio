@@ -1,8 +1,13 @@
 <div class="flex flex-col gap-4">
   <div class="flex items-center justify-between gap-4">
-    <a routerLink="/campaigns" class="text-sm text-muted-foreground hover:underline">
-      ← Campaigns
-    </a>
+    <div class="flex items-center gap-3">
+      <a routerLink="/campaigns" class="text-sm text-muted-foreground hover:underline">
+        ← Campaigns
+      </a>
+      <a [routerLink]="['/campaigns', campaignId(), 'entities']">
+        <button z-button zSize="sm" zType="outline">Codex</button>
+      </a>
+    </div>
 
     <div class="flex items-center gap-1 rounded-lg border p-1">
       @if (isDesktop()) {

@@ -8,6 +8,7 @@ from app.core.db import Base
 
 if TYPE_CHECKING:
     from app.models.character import Character
+    from app.models.entity import Entity, EntityGroup
     from app.models.session import Session
 
 
@@ -26,5 +27,11 @@ class Campaign(Base):
         back_populates="campaign", cascade="all, delete-orphan"
     )
     characters: Mapped[list["Character"]] = relationship(
+        back_populates="campaign", cascade="all, delete-orphan"
+    )
+    entity_groups: Mapped[list["EntityGroup"]] = relationship(
+        back_populates="campaign", cascade="all, delete-orphan"
+    )
+    entities: Mapped[list["Entity"]] = relationship(
         back_populates="campaign", cascade="all, delete-orphan"
     )

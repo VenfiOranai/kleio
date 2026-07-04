@@ -1,0 +1,138 @@
+<div class="mx-auto flex w-full max-w-4xl flex-col gap-6">
+  <a
+    [routerLink]="['/campaigns', campaignId()]"
+    class="text-sm text-muted-foreground hover:underline"
+  >
+    ← Back to workspace
+  </a>
+
+  <div class="flex flex-col gap-1">
+    <h1 class="text-2xl font-semibold">Codex</h1>
+    <p class="text-sm text-muted-foreground">
+      Names, places, factions and items tagged in your notes with <code>{{ '@[…]' }}</code>.
+      Organize them into groups; each links to everything that mentions it.
+    </p>
+  </div>
+
+  <div class="grid gap-3 sm:grid-cols-2">
+    <form class="flex gap-2" [formGroup]="entityForm" (ngSubmit)="createEntity()">
+      <input z-input class="flex-1" placeholder="New entity name" formControlName="name" />
+      <button z-button type="submit" [zDisabled]="entityForm.invalid">Add entity</button>
+    </form>
+    <form class="flex gap-2" [formGroup]="groupForm" (ngSubmit)="createGroup()">
+      <input z-input class="flex-1" placeholder="New group name" formControlName="name" />
+      <button z-button type="submit" zType="outline" [zDisabled]="groupForm.invalid">
+        Add group
+      </button>
+    </form>
+  </div>
+
+  @for (section of sections(); track section.group.id) {
+    <section class="flex flex-col gap-2">
+      <div class="flex items-center gap-2">
+        <button
+          type="button"
+          class="w-4 shrink-0 text-muted-foreground"
+          [attr.aria-expanded]="isExpanded(section.group.id)"
+          [attr.aria-label]="(isExpanded(section.group.id) ? 'Collapse ' : 'Expand ') + section.group.name"
+          (click)="toggle(section.group.id)"
+        >
+          {{ isExpanded(section.group.id) ? '▾' : '▸' }}
+        </button>
+        <input
+          z-input
+          class="max-w-xs font-medium"
+          [value]="section.group.name"
+          (blur)="renameGroup(section.group, $any($event.target).value)"
+          (keydown.enter)="$any($event.target).blur()"
+        />
+        <span class="text-sm text-muted-foreground">{{ section.entities.length }}</span>
+        <button z-button zType="ghost" zSize="sm" (click)="deleteGroup(section.group)">
+          Delete group
+        </button>
+      </div>
+      @if (isExpanded(section.group.id)) {
+        @if (section.entities.length) {
+          <div class="flex flex-col gap-2 pl-6">
+            @for (entity of section.entities; track entity.id) {
+              <ng-container
+                [ngTemplateOutlet]="entityCard"
+                [ngTemplateOutletContext]="{ $implicit: entity }"
+              />
+            }
+          </div>
+        } @else {
+          <p class="pl-6 text-sm text-muted-foreground">No entities in this group yet.</p>
+        }
+      }
+    </section>
+  }
+
+  <section class="flex flex-col gap-2">
+    <div class="flex items-center gap-2">
+      <button
+        type="button"
+        class="w-4 shrink-0 text-muted-foreground"
+        [attr.aria-expanded]="isExpanded('ungrouped')"
+        [attr.aria-label]="(isExpanded('ungrouped') ? 'Collapse ' : 'Expand ') + 'Ungrouped'"
+        (click)="toggle('ungrouped')"
+      >
+        {{ isExpanded('ungrouped') ? '▾' : '▸' }}
+      </button>
+      <h2 class="font-medium">Ungrouped</h2>
+      <span class="text-sm text-muted-foreground">{{ ungrouped().length }}</span>
+    </div>
+    @if (isExpanded('ungrouped')) {
+      @if (ungrouped().length) {
+        <div class="flex flex-col gap-2 pl-6">
+          @for (entity of ungrouped(); track entity.id) {
+            <ng-container
+              [ngTemplateOutlet]="entityCard"
+              [ngTemplateOutletContext]="{ $implicit: entity }"
+            />
+          }
+        </div>
+      } @else {
+        <p class="pl-6 text-sm text-muted-foreground">
+          Nothing here — tag names in your notes with {{ '@[…]' }}, or add one above.
+        </p>
+      }
+    }
+  </section>
+</div>
+
+<ng-template #entityCard let-entity>
+  <div class="flex flex-col gap-2 rounded-lg border p-3">
+    <div class="flex flex-wrap items-center justify-between gap-2">
+      <a
+        [routerLink]="['/search']"
+        [queryParams]="{ q: entity.name }"
+        class="font-medium hover:underline"
+      >
+        {{ entity.name }}
+      </a>
+      <div class="flex items-center gap-2">
+        <select
+          class="rounded-lg border bg-background px-2 py-1 text-sm"
+          (change)="assignGroup(entity, $any($event.target).value)"
+        >
+          <option value="" [selected]="entity.group_id === null">Ungrouped</option>
+          @for (group of groups(); track group.id) {
+            <option [value]="group.id" [selected]="group.id === entity.group_id">
+              {{ group.name }}
+            </option>
+          }
+        </select>
+        <button z-button zType="ghost" zSize="sm" (click)="deleteEntity(entity)">Delete</button>
+      </div>
+    </div>
+    <textarea
+      z-input
+      rows="2"
+      class="text-sm"
+      placeholder="Description (optional)"
+      [value]="entity.description ?? ''"
+      (blur)="saveDescription(entity, $any($event.target).value)"
+    ></textarea>
+  </div>
+</ng-template>
