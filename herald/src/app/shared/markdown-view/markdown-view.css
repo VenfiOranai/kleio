@@ -63,3 +63,32 @@
   border-top: 1px solid var(--border);
   margin: 1rem 0;
 }
+.entity-tooltip {
+  position: fixed;
+  z-index: 50;
+  max-width: 20rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  background: var(--background);
+  color: var(--foreground);
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  box-shadow: 0 4px 12px rgb(0 0 0 / 0.15);
+  /* Never intercept the pointer, so hovering the tooltip itself can't flicker the mention. */
+  pointer-events: none;
+}
+.entity-tooltip-name {
+  font-weight: 700;
+  font-size: 0.9375rem;
+  padding-bottom: 0.3125rem;
+  margin-bottom: 0.375rem;
+  border-bottom: 1px solid var(--border);
+}
+/* The description renders as Markdown; trim its outer margins so it sits snug under the title. */
+.entity-tooltip-body > :first-child {
+  margin-top: 0;
+}
+.entity-tooltip-body > :last-child {
+  margin-bottom: 0;
+}

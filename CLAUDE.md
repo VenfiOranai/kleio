@@ -217,7 +217,13 @@ over the notes textarea, mirror-div caret coords, eager *Create "…"* → idemp
 into the session editor's Write tab; a **Codex page** (`features/entities`, route
 `campaigns/:id/entities`, "Codex" button in the workspace) grouping entities into user-defined
 groups with create/rename/delete + a per-entity group `<select>` and description. Reference is
-**by name** (renames don't rewrite existing `@[old]` tokens). e2e `entities.spec.ts` (mention
-insert → bold render → click-to-search; Codex grouping). `ng build` clean (bundle warning only).
+**by name** (renames don't rewrite existing `@[old]` tokens). Hovering a mention shows a
+**tooltip to the right** — titled with the entity's canonical name (bold, underlined) over its
+**Markdown-rendered description**. `MarkdownView` takes an `entities` input, and on mouseover of
+`a.entity-mention` looks up the entity (by lower-cased name) and renders a fixed-positioned
+`.entity-tooltip` (reusing the shared `renderMarkdown` + the `.markdown` styles); the session
+editor passes `entities()` to the preview + summary views. e2e `entities.spec.ts`
+(mention insert → bold render → click-to-search; Codex grouping + collapse; hover tooltip);
+unit `markdown-view.spec.ts` (render, click-nav, tooltip). `ng build` clean (bundle warning only).
 
 Next up: **Phase 6 — Polish & hardening** (backups first — see `docs/roadmap.md`).

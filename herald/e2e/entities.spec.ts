@@ -59,4 +59,35 @@ test.describe('Entities & mentions', () => {
     // The group select reflects the entity's actual group (regression: it showed Ungrouped).
     await expect(page.locator('select option:checked')).toHaveText('Allies');
   });
+
+  test('hovering a mention shows the entity description as a tooltip', async ({ page }) => {
+    await openFreshCampaign(page, 'Codex Campaign');
+    await newSession(page);
+
+    // Mention an entity in the notes (which creates it), and save.
+    const textarea = page.locator('app-mention-textarea textarea');
+    await textarea.click();
+    await textarea.pressSequentially('Meet @Gandalf');
+    await textarea.press('Enter');
+    await page.getByRole('button', { name: 'Save' }).click();
+    await expect(page.getByText('Saved')).toBeVisible();
+
+    // Give the entity a description on the Codex.
+    await page.getByRole('button', { name: 'Codex' }).click();
+    await page.getByRole('button', { name: /Expand Ungrouped/ }).click();
+    const description = page.getByPlaceholder('Description (optional)');
+    await description.fill('A wandering wizard.');
+    await description.blur();
+
+    // Back in the note's preview, hovering the mention reveals the description.
+    await page.getByRole('link', { name: /Back to workspace/ }).click();
+    await page.getByRole('button', { name: 'Preview', exact: true }).click();
+    const mention = page.locator('app-markdown-view a.entity-mention', { hasText: 'Gandalf' });
+    // Retry hover+assert: the editor loads entities (with the new description) asynchronously.
+    await expect(async () => {
+      await mention.hover();
+      await expect(page.locator('.entity-tooltip-name')).toHaveText('Gandalf');
+      await expect(page.locator('.entity-tooltip-body')).toContainText('A wandering wizard.');
+    }).toPass({ timeout: 10_000 });
+  });
 });
