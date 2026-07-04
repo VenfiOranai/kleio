@@ -48,4 +48,42 @@ test.describe('workspace split view', () => {
     await expect(notesPane).toBeVisible();
     await expect(characterPane).toBeVisible();
   });
+
+  test('the embedded session editor tabs between write, preview, and summary', async ({ page }) => {
+    await openFreshCampaign(page, 'Editor Tabs Campaign');
+
+    // Seed a session with notes so the preview has something to render.
+    await page
+      .locator('section', { has: page.getByRole('heading', { name: 'Sessions' }) })
+      .getByRole('button', { name: '+ New' })
+      .click();
+    await expect(page).toHaveURL(/\/sessions\/\d+$/);
+    await page.locator('textarea[formcontrolname="raw_notes"]').fill('# Heading');
+    await page.getByRole('button', { name: 'Save' }).click();
+    await expect(page.getByText('Saved')).toBeVisible();
+    await page.getByRole('link', { name: '← Back to campaign' }).click();
+
+    await page.getByRole('button', { name: 'Open workspace' }).click();
+    await expect(page).toHaveURL(/\/workspace$/);
+
+    // Collapse the workspace to the notes pane to focus on the editor.
+    await page.getByRole('button', { name: 'Notes', exact: true }).click();
+
+    const notesTextarea = page.locator('textarea[formcontrolname="raw_notes"]');
+    const summaryTextarea = page.locator('textarea[formcontrolname="summary"]');
+
+    // Default tab is Write: raw notes shown, other panes not rendered.
+    await expect(notesTextarea).toBeVisible();
+    await expect(summaryTextarea).toHaveCount(0);
+
+    // Preview tab renders the markdown and hides the editor textarea.
+    await page.getByRole('button', { name: 'Preview', exact: true }).click();
+    await expect(notesTextarea).toHaveCount(0);
+    await expect(page.getByRole('heading', { name: 'Heading' })).toBeVisible();
+
+    // Summary tab exposes the editable summary field + the Summarize action.
+    await page.getByRole('button', { name: 'Summary', exact: true }).click();
+    await expect(summaryTextarea).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Summarize with AI' })).toBeVisible();
+  });
 });

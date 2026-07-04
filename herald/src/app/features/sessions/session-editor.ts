@@ -1,4 +1,4 @@
-import { NgClass } from '@angular/common';
+import { NgTemplateOutlet } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, effect, inject, input, numberAttribute, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
@@ -15,7 +15,7 @@ import { MarkdownView } from '@/shared/markdown-view/markdown-view';
 @Component({
   selector: 'app-session-editor',
   imports: [
-    NgClass,
+    NgTemplateOutlet,
     ReactiveFormsModule,
     RouterLink,
     ZardButtonComponent,
@@ -39,6 +39,8 @@ export class SessionEditor {
   protected readonly saved = signal(false);
   protected readonly summarizing = signal(false);
   protected readonly summarizeError = signal<string | null>(null);
+  /** Active pane when embedded in the workspace (space is tight, so we tab instead of stack). */
+  protected readonly tab = signal<'write' | 'preview' | 'summary'>('write');
 
   protected readonly form = this.fb.nonNullable.group({
     title: [''],
