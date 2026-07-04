@@ -128,9 +128,22 @@ index (migration `015bb0666895`); `services/search.py` (FTS query builder: `webs
 + `ts_rank` + `ts_headline` highlight for sessions, ILIKE name match for characters, optional
 `campaign_id` scope); `schemas/search.py`; auto-registered `api/routers/search.py`
 (`GET /api/search?q=&campaign_id=`) returning a unified `results` list (`type` = session|character).
-**54 tests pass** (8 new in `tests/integration/test_search.py`). Herald — `SearchService` +
-types, a global search box in the `Shell` header (navigates to `/search?q=`), and a
-`features/search` results page (`SearchResults`, `?q=` bound via component input binding) that
-groups session/character hits and renders the server `<mark>` snippet via sanitized `[innerHTML]`.
+Herald — `SearchService` + types, a global search box in the `Shell` header (navigates to
+`/search?q=`), and a `features/search` results page (`SearchResults`, `?q=` bound via component
+input binding) that groups session/character hits and renders the server `<mark>` snippet via
+sanitized `[innerHTML]`.
 
-Phase 3 is done. Next up is **Phase 4 — AI summarization (Gemini)**. See `docs/roadmap.md`.
+**Phase 4 complete** (pending review/commit): **AI summarization (Gemini)**. Oracle — `services/ai.py`
+wraps the `google-genai` SDK (added to `pyproject`): a lazily-created, cached `genai.Client`
+(`summarize_session(raw_notes) -> markdown`, system-instruction prompt), raising
+`AINotConfiguredError`/`AIError`. Config gains `gemini_api_key` + `gemini_model`
+(default `gemini-2.5-flash`). Auto-registered `api/routers/ai.py` exposes
+`POST /api/sessions/{id}/summarize` — summarizes the **saved** `raw_notes` (never mutated) into the
+editable `summary`; maps errors to 400 (no notes) / 503 (not configured) / 502 (model error).
+**65 tests pass** (11 new: `tests/unit/test_ai.py` mocks the genai client, `tests/integration/test_ai_summarize.py`
+mocks the service). Herald — `SessionService.summarize`, and the session editor now has an editable
+`summary` textarea + live preview and a "Summarize with AI" button (`save-then-summarize`, `zLoading`
+state, graceful error line). e2e `ai.spec.ts` covers summary-editing/persistence and the not-configured
+error path (Playwright forces `GEMINI_API_KEY=''` so `/summarize` never calls Gemini).
+
+Phase 4 is done. Next up is **Phase 5 — AI Q&A over notes (RAG)**. See `docs/roadmap.md`.

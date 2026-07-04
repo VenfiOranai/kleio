@@ -43,14 +43,37 @@
         </div>
       </div>
 
-      @if (session()?.summary) {
-        <div class="flex flex-col gap-1">
+      <div class="flex flex-col gap-1">
+        <div class="flex items-center justify-between gap-2">
           <label class="text-sm font-medium">AI summary</label>
-          <div class="rounded-lg border bg-muted/30 p-3">
-            <app-markdown-view [source]="session()!.summary ?? ''" />
-          </div>
+          <button
+            z-button
+            type="button"
+            zType="outline"
+            zSize="sm"
+            [zLoading]="summarizing()"
+            [zDisabled]="summarizing()"
+            (click)="summarize()"
+          >
+            {{ summarizing() ? 'Summarizing…' : 'Summarize with AI' }}
+          </button>
         </div>
-      }
+        <textarea
+          z-input
+          rows="6"
+          class="font-mono text-sm"
+          placeholder="Generate a summary from your notes, or write one yourself…"
+          formControlName="summary"
+        ></textarea>
+        @if (summarizeError()) {
+          <p class="text-sm text-destructive">{{ summarizeError() }}</p>
+        }
+        @if (summary()) {
+          <div class="mt-1 rounded-lg border bg-muted/30 p-3">
+            <app-markdown-view [source]="summary()" />
+          </div>
+        }
+      </div>
     </form>
   </div>
 }

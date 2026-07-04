@@ -27,4 +27,9 @@ export class SessionService {
   delete(id: number): Observable<void> {
     return this.http.delete<void>(`/api/sessions/${id}`);
   }
+
+  /** Generate (and persist) an AI summary from the session's saved notes. */
+  summarize(id: number): Observable<Session> {
+    return this.http.post<Session>(`/api/sessions/${id}/summarize`, {});
+  }
 }
