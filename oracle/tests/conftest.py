@@ -17,7 +17,7 @@ os.environ["JWT_SECRET"] = "test-secret-key-not-for-production"
 
 import pytest  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
-from sqlalchemy import create_engine  # noqa: E402
+from sqlalchemy import create_engine, text  # noqa: E402
 from sqlalchemy.exc import OperationalError  # noqa: E402
 from sqlalchemy.orm import Session  # noqa: E402
 
@@ -55,6 +55,10 @@ def engine():
     # Short connect timeout so the suite fails fast (and skips) when Postgres is down.
     eng = create_engine(get_settings().database_url, connect_args={"connect_timeout": 3})
     try:
+        # Tests build the schema via create_all (not Alembic), so enable pgvector here the way
+        # the migration does — otherwise the note_embeddings VECTOR column can't be created.
+        with eng.begin() as conn:
+            conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
         # Idempotent (checkfirst); no drop_all — each test rolls back its own transaction,
         # so the suite is non-destructive even when run against a dev database.
         Base.metadata.create_all(eng)
