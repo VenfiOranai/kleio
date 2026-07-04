@@ -98,6 +98,46 @@ stored as JSONB sets); equipment / features / spells / notes (JSONB/markdown).
 > a `derived` block. Frontend renders `derived`; it may mirror the math locally for instant
 > live-edit feedback, but **the backend is authoritative**.
 
+### Character sheet — planned structured overhaul (Phases 8–14)
+
+The freeform `equipment` / `spells` / `features` **text** columns become **structured JSONB
+lists** on the same `characters` table (consistent with today's proficiency lists — one table,
+no joins; Pydantic validates each element). New derived values stay computed in
+`character_calc` (never stored). Blob→structured migrations preserve the old text as a
+section-level `notes`. Planned columns/shapes:
+
+- **`currency`** (JSONB) `{cp, sp, ep, gp, pp}` — money tracking *(feat. 7)*.
+- **`other_proficiencies`** (JSONB) — list of `{category, name}`, category ∈
+  `language|weapon|armor|tool|other`, rendered split by category *(feat. 6)*.
+- **`spellcasting_ability`** (str, one of the six or none) → new derived **spell attack bonus**
+  (`mod + prof`) and **spell save DC** (`8 + mod + prof`) *(feat. 8)*.
+- **`equipment`** (JSONB) — items `{name, quantity, category, weight?, equipped?, attuned?,
+  description(md)}`; optional derived total weight / attunement count *(feat. 1)*.
+- **`spells`** (JSONB) — `{name, level, school, prepared, always_prepared, ritual, concentration,
+  casting_time, range, components, duration, description(md)}`; **`spell_slots`** (JSONB) per
+  level `{total, expended}` *(feat. 2)*.
+- **`features`** (JSONB) — `{name, source, level?, uses?{max, expended, recharge}, description(md)}`
+  *(feat. 3)*.
+- **`attacks`** (JSONB) — `{name, ability, proficient, damage_dice, damage_type, bonus?, range,
+  notes, source}`; `character_calc` derives each attack's **to-hit** and **damage string**
+  *(feat. 4)*.
+
+**5etools reference import** *(feat. 5)*: `services/fivetools.py` reads the **5etools static
+JSON** (5etools has **no API**) from a configured `FIVETOOLS_DATA_DIR` — spells
+(`spells/index.json` → `spells-<src>.json`), classes (`class/class-<name>.json`), items
+(`items.json` + `items-base.json` + `magicvariants.json`), `races`/`backgrounds`/`feats`/
+`optionalfeatures` — builds a searchable in-memory index, and a **pure** renderer converts the
+nested `entries` arrays + `{@tag name|source|display}` markup into Markdown while normalizing
+each object into our item/spell/feature schema. Auto-registered `api/routers/reference.py`:
+Stage 1 — `GET /api/reference/search?type=&q=` (autocomplete) + `/api/reference/{type}/{id}`
+(full record) fill a structured entry; Stage 2 — `POST /api/characters/{id}/populate` parses the
+class JSON for level-appropriate features / proficiencies / slots (reviewed before applying).
+**The dataset is user-supplied, never bundled**: it's verbatim WotC-copyrighted content (not
+SRD/OGL — the 5etools mirror was DMCA'd in 2024), so Kleio ships no game data; the user mounts
+their own copy for personal single-user use, and import is disabled (503) when the dir is unset.
+Import is additive and optional. Full plan + sequencing in `docs/roadmap.md` (Character Sheet
+Overhaul).
+
 ### Entities & mentions ("Codex")
 
 Notes can tag important words — names, places, factions, items — as **entities**. In the note
@@ -173,12 +213,15 @@ oracle/
         entities.py         # entities + entity-groups CRUD (auto-registered)
         ai.py               # POST /api/sessions/{id}/summarize
         ask.py              # POST /api/campaigns/{id}/ask  (RAG Q&A)
+        reference.py        # (planned Ph13/14) 5etools autocomplete/import + populate-from-class
     services/
       character_calc.py     # PURE derived-stat math (unit-tested)
       search.py             # Postgres FTS query builder
       entities.py           # PURE extract_mentions() + save-time backfill/upsert
       ai.py                 # Gemini client: summarize, embeddings, RAG answer
       rag.py                # PURE chunk_text() + index/retrieve/answer orchestration
+      fivetools.py          # (planned Ph13/14) 5etools static-JSON loader + PURE entries/@tag
+                            #   → Markdown renderer + schema normalizer (no API; data mounted)
   alembic/                  # migrations
   tests/
     unit/                   # character_calc, security — no DB
@@ -243,7 +286,8 @@ herald/src/app/
   features/
     campaigns/     # list + detail
     sessions/      # list, markdown editor + preview (+ @-mention autocomplete)
-    characters/    # 5E sheet (inputs for manual, read-only for derived)
+    characters/    # 5E sheet (inputs for manual, read-only for derived); planned Ph8–14:
+                   #   structured equipment/spells/features/attacks in modals, 5etools import
     workspace/     # side-by-side notes|character view (desktop)
     search/        # global search box + results
     entities/      # Codex page: entities grouped by user-defined group; group + entity CRUD
@@ -286,6 +330,13 @@ herald/src/app/
   `BreakpointObserver` detects desktop vs mobile.
 - **Responsive:** mobile-first Tailwind utilities; on phones the split view degrades to
   tabbed/stacked navigation (notes and character as separate full-width screens).
+- **Character overhaul UI (planned Ph8–14):** the sheet shows compact per-section summaries;
+  each structured section (equipment, spells, features, attacks) opens a roomy **modal** (Zard
+  `dialog`) via a shared "structured-list section" component — grouped/collapsible entries,
+  add/edit/remove, in-modal search, and quantity/use/slot trackers. Structured-entry forms get
+  a **5etools name autocomplete** (`/api/reference/search`, backed by a user-mounted 5etools JSON
+  dataset) that imports full data; a "Populate from class" action reviews level-appropriate
+  suggestions before applying.
 - **E2E:** Playwright covers login → create campaign → add session → add character (verify a
   derived stat) → global search → split-view collapse/expand. Entities: type `@` in a note →
   dropdown → *Create* a new entity → token inserted → preview shows the name in bold+italic with
