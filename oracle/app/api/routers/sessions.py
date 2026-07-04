@@ -5,6 +5,7 @@ from app.api.deps import Db, get_current_user, get_or_404
 from app.models.campaign import Campaign
 from app.models.session import Session
 from app.schemas.session import SessionCreate, SessionRead, SessionUpdate
+from app.services import rag
 
 router = APIRouter(tags=["sessions"], dependencies=[Depends(get_current_user)])
 
@@ -30,6 +31,8 @@ def create_session(campaign_id: int, payload: SessionCreate, db: Db):
     db.add(session)
     db.commit()
     db.refresh(session)
+    # Keep RAG embeddings in sync; best-effort so a missing/failing AI key never blocks a save.
+    rag.reindex_session_safe(db, session)
     return session
 
 
@@ -41,10 +44,14 @@ def get_session(session_id: int, db: Db):
 @router.put("/sessions/{session_id}", response_model=SessionRead)
 def update_session(session_id: int, payload: SessionUpdate, db: Db):
     session = get_or_404(db, Session, session_id, "Session")
-    for key, value in payload.model_dump(exclude_unset=True).items():
+    fields = payload.model_dump(exclude_unset=True)
+    for key, value in fields.items():
         setattr(session, key, value)
     db.commit()
     db.refresh(session)
+    # Re-embed only when the notes themselves changed (best-effort; never blocks the save).
+    if "raw_notes" in fields:
+        rag.reindex_session_safe(db, session)
     return session
 
 

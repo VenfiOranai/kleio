@@ -48,8 +48,15 @@ docs/      architecture.md, roadmap.md  (source of truth for design)
   `pyproject.toml` — extend that list if you add another re-export hub.
 - **Single-user auth.** One credential from env (`APP_USERNAME`, `APP_PASSWORD_HASH`,
   `JWT_SECRET`); JWT bearer token on all data routes. No signup/multi-user.
-- **Database is PostgreSQL** (+ `pgvector`, reserved for the later AI Q&A). One engine for
-  relational data, full-text search, and embeddings. Migrations via **Alembic**.
+- **Database is PostgreSQL** (+ `pgvector`, now used by Phase 5 RAG — the `note_embeddings`
+  table). One engine for relational data, full-text search, and embeddings. Dev/prod/CI all use
+  the **`pgvector/pgvector:pg17`** image (the migration runs `CREATE EXTENSION vector`).
+  Migrations via **Alembic**.
+- **RAG embeddings are derived + best-effort.** Session notes are chunked + embedded into
+  `note_embeddings` on save via `rag.reindex_session_safe`, which **swallows AI errors** so a
+  missing/failing `GEMINI_API_KEY` never blocks a save; `/ask` back-fills missing embeddings on
+  demand. Chunking (`rag.chunk_text`) is a **pure**, unit-tested module. Embedding width is
+  fixed in code (`ai.EMBED_DIM = 768`) and the migration — changing it needs a new migration.
 - **Styling = Tailwind CSS v4 + Zard UI** (shadcn-style), **not** Angular Material. Zard
   components are added with `npx zard-cli add <name>` (init is interactive: `npx zard-cli init`)
   and are **copied into `herald/src/app/components/` (alias `@/components`) and committed** —
@@ -169,7 +176,27 @@ with that param). The components keep their `embedded` dual-mode input, but are 
 embedded now (the non-embedded page chrome is dead but retained). e2e reworked accordingly (helpers
 `newSession`/`newCharacter`; **11 specs green**).
 
-Phase 4 is done. Next up is **Phase 5 — AI Q&A over notes (RAG)**. See `docs/roadmap.md`.
+**Phase 5 complete** (pending review/commit): **AI Q&A over notes (RAG)**. Oracle —
+`pgvector` dep + `note_embeddings` model (768-dim `Vector`, HNSW cosine index) + migration
+`85a5f301d4ba` (enables the `vector` extension); `services/ai.py` gains `embed_texts` /
+`embed_query` / `answer_question`; `services/rag.py` (**pure** `chunk_text`, plus
+`reindex_session[_safe]`, `ensure_campaign_indexed`, `retrieve`, `answer_campaign_question`);
+`schemas/rag.py`; auto-registered `api/routers/ask.py` (`POST /api/campaigns/{id}/ask` →
+answer + one citation per source session; 400/503/502 error mapping). Notes are re-embedded
+**best-effort** on session create/update (never blocks a save); `/ask` back-fills missing
+embeddings on demand. Config gains `gemini_embed_model`; DB image → `pgvector/pgvector:pg17`
+(dev/prod/CI). Tests: unit `test_rag_chunking.py` + embedding/answer cases in `test_ai.py`;
+integration `test_ask.py` (router/error mapping, mocked) and `test_rag.py` (real pgvector
+retrieval with a deterministic fake embedder). **Phase 5 tests green** (the pre-existing
+`test_list_campaigns` asserts an empty-table count and only passes on a fresh DB — unrelated).
+Herald — `QaService` + `features/ask` `Ask` component (question box → Markdown answer +
+citation cards deep-linking to the workspace `?session=`), surfaced as an **"Ask" tab in the
+notes editor** alongside Write/Preview/Summary (campaign-scoped, embedded — no separate route;
+`Ask` uses a `[formGroup]` div, not a `<form>`, so it nests validly inside the session form).
+e2e `ask.spec.ts` covers the not-configured (503) path. `ng build` clean.
+
+Phase 5 is done. Next up is **Phase 6 — Polish & hardening** (and/or the planned Phase 7
+below). See `docs/roadmap.md`.
 
 **Planned — Phase 7 (Entities & mentions / "Codex")**: designed, not implemented. `@`-mentions
 in notes (`@[Name]`, by-name) + a per-campaign Codex page grouping entities into user-defined

@@ -1,0 +1,84 @@
+<div class="flex w-full flex-col gap-4">
+  @if (!embedded()) {
+    <a
+      [routerLink]="['/campaigns', campaignId()]"
+      class="text-sm text-muted-foreground hover:underline"
+    >
+      ← Back to workspace
+    </a>
+
+    <div class="flex flex-col gap-1">
+      <h1 class="text-2xl font-semibold">Ask the notes</h1>
+      <p class="text-sm text-muted-foreground">
+        Ask a question and get an answer drawn from this campaign's session notes, with the
+        sessions it came from.
+      </p>
+    </div>
+  }
+
+  <!-- Not a <form>: this renders inside the editor's session form, and nested forms are
+       invalid HTML. Enter-to-submit is wired on the input instead. -->
+  <div class="flex flex-col gap-2 sm:flex-row" [formGroup]="form">
+    <input
+      z-input
+      class="flex-1"
+      placeholder="e.g. Who betrayed the party at the Sunken Keep?"
+      formControlName="question"
+      (keydown.enter)="$event.preventDefault(); ask()"
+    />
+    <button
+      z-button
+      type="button"
+      [zLoading]="loading()"
+      [zDisabled]="form.invalid || loading()"
+      (click)="ask()"
+    >
+      {{ loading() ? 'Thinking…' : 'Ask AI' }}
+    </button>
+  </div>
+
+  @if (submitted(); as question) {
+    <div class="flex flex-col gap-4">
+      <div class="flex flex-col gap-3 rounded-lg border bg-muted/30 p-4">
+        <div class="flex flex-col gap-1">
+          <span class="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            Question
+          </span>
+          <p class="font-medium">{{ question }}</p>
+        </div>
+
+        @if (loading()) {
+          <p class="text-sm text-muted-foreground">Thinking…</p>
+        } @else if (error()) {
+          <p class="text-sm text-destructive">{{ error() }}</p>
+        } @else if (answer(); as result) {
+          <div class="border-t pt-3">
+            <app-markdown-view [source]="result.answer" />
+          </div>
+        }
+      </div>
+
+      @if (answer(); as result) {
+        @if (result.citations.length) {
+          <section class="flex flex-col gap-2">
+            <h2 class="text-sm font-medium text-muted-foreground">Sources</h2>
+            <ul class="flex flex-col gap-2">
+              @for (citation of result.citations; track citation.session_id) {
+                <li>
+                  <a
+                    [routerLink]="['/campaigns', campaignId()]"
+                    [queryParams]="{ session: citation.session_id }"
+                    class="block rounded-lg border p-3 transition-colors hover:border-primary"
+                  >
+                    <span class="font-medium">{{ citation.title }}</span>
+                    <span class="mt-1 block text-sm text-muted-foreground">{{ citation.snippet }}</span>
+                  </a>
+                </li>
+              }
+            </ul>
+          </section>
+        }
+      }
+    </div>
+  }
+</div>

@@ -9,6 +9,7 @@ from app.core.db import Base
 
 if TYPE_CHECKING:
     from app.models.campaign import Campaign
+    from app.models.note_embedding import NoteEmbedding
 
 # Weighted full-text vector: title (A) ranks above summary (B) above raw notes (C).
 # Generated/STORED so it stays in sync automatically; the two-arg to_tsvector is IMMUTABLE
@@ -49,3 +50,7 @@ class Session(Base):
     )
 
     campaign: Mapped["Campaign"] = relationship(back_populates="sessions")
+    # RAG chunks for this session's notes; replaced on note edits, cascaded on delete.
+    embeddings: Mapped[list["NoteEmbedding"]] = relationship(
+        back_populates="session", cascade="all, delete-orphan"
+    )

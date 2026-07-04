@@ -10,6 +10,7 @@ import { ZardButtonComponent } from '@/components/button/button.component';
 import { ZardInputDirective } from '@/components/input/input.directive';
 import { Session } from '@/core/api/models';
 import { SessionService } from '@/core/api/session.service';
+import { Ask } from '@/features/ask/ask';
 import { MarkdownView } from '@/shared/markdown-view/markdown-view';
 
 @Component({
@@ -21,6 +22,7 @@ import { MarkdownView } from '@/shared/markdown-view/markdown-view';
     ZardButtonComponent,
     ZardInputDirective,
     MarkdownView,
+    Ask,
   ],
   templateUrl: './session-editor.html',
 })
@@ -41,7 +43,7 @@ export class SessionEditor {
   protected readonly summarizing = signal(false);
   protected readonly summarizeError = signal<string | null>(null);
   /** Active pane when embedded in the workspace (space is tight, so we tab instead of stack). */
-  protected readonly tab = signal<'write' | 'preview' | 'summary'>('write');
+  protected readonly tab = signal<'write' | 'preview' | 'summary' | 'ask'>('write');
 
   protected readonly form = this.fb.nonNullable.group({
     title: [''],

@@ -3,4 +3,5 @@
 
 from app.models.campaign import Campaign
 from app.models.character import Character
+from app.models.note_embedding import NoteEmbedding
 from app.models.session import Session

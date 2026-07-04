@@ -3,8 +3,8 @@
 # Reads secrets from infra/.env (gitignored) — see infra/.env.example.
 services:
   db:
-    # Swap to pgvector/pgvector:pg17 at the AI Q&A phase (Phase 5).
-    image: postgres:17
+    # pgvector image (Postgres 17 + the `vector` extension) for RAG embeddings — Phase 5.
+    image: pgvector/pgvector:pg17
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER}

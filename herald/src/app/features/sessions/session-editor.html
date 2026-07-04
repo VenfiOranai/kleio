@@ -26,9 +26,13 @@
 
       @if (embedded()) {
         <!-- Tight on space in the workspace: tab between panes instead of stacking them. -->
+        <!-- type="button" on each: these live inside the session <form>, and z-button has no
+             default type (native "submit"), so Enter in a field would otherwise activate the
+             first one and switch tabs. -->
         <div class="flex w-fit items-center gap-1 rounded-lg border p-1">
           <button
             z-button
+            type="button"
             zSize="sm"
             [zType]="tab() === 'write' ? 'secondary' : 'ghost'"
             (click)="tab.set('write')"
@@ -37,6 +41,7 @@
           </button>
           <button
             z-button
+            type="button"
             zSize="sm"
             [zType]="tab() === 'preview' ? 'secondary' : 'ghost'"
             (click)="tab.set('preview')"
@@ -45,11 +50,21 @@
           </button>
           <button
             z-button
+            type="button"
             zSize="sm"
             [zType]="tab() === 'summary' ? 'secondary' : 'ghost'"
             (click)="tab.set('summary')"
           >
             Summary
+          </button>
+          <button
+            z-button
+            type="button"
+            zSize="sm"
+            [zType]="tab() === 'ask' ? 'secondary' : 'ghost'"
+            (click)="tab.set('ask')"
+          >
+            Ask
           </button>
         </div>
 
@@ -62,6 +77,9 @@
           }
           @case ('summary') {
             <ng-container [ngTemplateOutlet]="summaryPane" />
+          }
+          @case ('ask') {
+            <ng-container [ngTemplateOutlet]="askPane" />
           }
         }
       } @else {
@@ -128,6 +146,12 @@
             <p class="text-sm text-destructive">{{ summarizeError() }}</p>
           }
         </div>
+      </ng-template>
+
+      <!-- Campaign-scoped Q&A over notes — independent of the current session, embedded so it
+           has no page chrome. Ask uses a [formGroup] div (not a <form>) so it nests validly. -->
+      <ng-template #askPane>
+        <app-ask [campaignId]="campaignId()" [embedded]="true" />
       </ng-template>
     </form>
   </div>

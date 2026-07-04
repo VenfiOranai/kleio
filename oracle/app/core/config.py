@@ -22,6 +22,9 @@ class Settings(BaseSettings):
     # AI (Gemini) — used from the summarization phase onward
     gemini_api_key: str = ""
     gemini_model: str = "gemini-2.5-flash"
+    # Embedding model for RAG Q&A (Phase 5). The output width is fixed in code/migration
+    # (see app.services.ai.EMBED_DIM), so change the model here but not the dimension.
+    gemini_embed_model: str = "gemini-embedding-001"
 
 
 @lru_cache

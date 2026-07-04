@@ -53,6 +53,7 @@ Campaign 1───* Session
 Campaign 1───* Character
 Campaign 1───* EntityGroup
 Campaign 1───* Entity  *───1 EntityGroup   (Entity.group_id nullable)
+Session  1───* NoteEmbedding  (also FK campaign_id, denormalized)
 ```
 
 **campaigns**: `id`, `name`, `description`, `created_at`, `updated_at`
@@ -61,6 +62,16 @@ Campaign 1───* Entity  *───1 EntityGroup   (Entity.group_id nullable
 `raw_notes` (markdown, the canonical text you write), `summary` (markdown, nullable —
 filled by Gemini later, editable), `search_vector` (tsvector, generated),
 `created_at`, `updated_at`. GIN index on `search_vector`.
+
+**note_embeddings** (Phase 5, RAG): `id`, `session_id (FK, cascade)`,
+`campaign_id (FK, cascade — denormalized from the session so retrieval filters by campaign
+without a join)`, `chunk_index`, `content` (the chunk text), `embedding`
+(`vector(768)`, pgvector), `created_at`. A session's notes are chunked and embedded into these
+rows; they're fully owned by the session (editing notes replaces them, deleting cascades).
+HNSW index on `embedding` (`vector_cosine_ops`). Requires the `vector` extension
+(`CREATE EXTENSION IF NOT EXISTS vector`, in the migration) — hence the `pgvector/pgvector`
+Postgres image. The embedding width is fixed in code (`services/ai.EMBED_DIM` /
+`models/note_embedding.EMBED_DIM`) and the migration; changing it needs a new migration.
 
 **characters**: `id`, `campaign_id (FK)`, plus 5E fields below. Typed columns for the
 well-known scalars; flexible/list-y bits (equipment, features, spells, proficiency
@@ -148,7 +159,8 @@ oracle/
       config.py             # pydantic-settings, reads env
       db.py                 # SQLAlchemy engine + session dependency
       security.py           # password hash (passlib/bcrypt), JWT encode/verify
-    models/                 # SQLAlchemy: campaign.py, session.py, character.py, entity.py
+    models/                 # SQLAlchemy: campaign.py, session.py, character.py, entity.py,
+                            #   note_embedding.py (pgvector chunks)
     schemas/                # Pydantic v2 request/response models
     api/
       deps.py               # get_db, get_current_user
@@ -159,12 +171,14 @@ oracle/
         characters.py       # CRUD (nested under campaign)
         search.py           # GET /api/search?q=
         entities.py         # entities + entity-groups CRUD (auto-registered)
-        # (AI phases) ai.py # summarize, ask
+        ai.py               # POST /api/sessions/{id}/summarize
+        ask.py              # POST /api/campaigns/{id}/ask  (RAG Q&A)
     services/
       character_calc.py     # PURE derived-stat math (unit-tested)
       search.py             # Postgres FTS query builder
       entities.py           # PURE extract_mentions() + save-time backfill/upsert
-      # (AI phases) ai.py   # Gemini client wrapper
+      ai.py                 # Gemini client: summarize, embeddings, RAG answer
+      rag.py                # PURE chunk_text() + index/retrieve/answer orchestration
   alembic/                  # migrations
   tests/
     unit/                   # character_calc, security — no DB
@@ -184,6 +198,10 @@ oracle/
   `group_id` / edits `description`; `DELETE` removes the row only (note text untouched).
 - `GET/POST /api/campaigns/{id}/entity-groups`, `GET/PUT/DELETE /api/entity-groups/{id}`
   — deleting a group sets member entities' `group_id` to `NULL` (they become ungrouped).
+- `POST /api/sessions/{id}/summarize` → AI summary of the saved notes (Phase 4).
+- `POST /api/campaigns/{id}/ask` → RAG answer over the campaign's notes, with citations
+  (Phase 5). Body `{question}`; returns `{question, answer, citations[]}`. Maps errors to
+  400 (blank question) / 503 (no key) / 502 (model error).
 
 **Auth:** single set of credentials from env (`APP_USERNAME`, `APP_PASSWORD_HASH`,
 `JWT_SECRET`). Login returns a JWT; all data routes require a valid bearer token.
@@ -229,6 +247,8 @@ herald/src/app/
     workspace/     # side-by-side notes|character view (desktop)
     search/        # global search box + results
     entities/      # Codex page: entities grouped by user-defined group; group + entity CRUD
+    ask/           # AI Q&A (RAG): question box + answer + citations; embedded as the notes
+                   #   editor's "Ask" tab (campaign-scoped, not a separate route)
   shared/          # our own presentational bits: markdown-view, collapsible-pane,
                    #   confirm-dialog, mention-autocomplete (@ typeahead over a textarea)
 ```
@@ -270,7 +290,8 @@ herald/src/app/
   derived stat) → global search → split-view collapse/expand. Entities: type `@` in a note →
   dropdown → *Create* a new entity → token inserted → preview shows the name in bold+italic with
   no `@` → click navigates to `/search?q=…`; Codex page → create a group → assign an entity → it
-  appears under that group.
+  appears under that group. Ask (RAG): open the notes editor's "Ask" tab → ask a question → with
+  no key configured, a graceful "not configured" message (503) rather than a crash.
 
 ---
 
@@ -288,9 +309,28 @@ every session that mentions the entity is found by the existing FTS. (Optional l
 strip the `@[]` syntax from `ts_headline` snippets so highlights read cleanly, and/or add an
 `entity` result `type` that links to the Codex — deferred; the plain search route is enough.)
 
-**Later (AI Q&A):** add a `note_embeddings` table (`pgvector`). On session save, chunk +
-embed via Gemini; `/api/campaigns/{id}/ask` does vector retrieval → feeds top chunks to
-Gemini → returns an answer with source-session citations (RAG). Same DB engine, no new infra.
+**AI Q&A (Phase 5 — implemented, RAG).** `note_embeddings` (`pgvector`) holds chunked,
+embedded notes (§2). Flow:
+- **Chunking** (`services/rag.chunk_text`, pure): notes split into ~1200-char chunks by
+  paragraph, over-long paragraphs hard-split with overlap.
+- **Embedding** (`services/ai.embed_texts`): Gemini `gemini-embedding-001`, 768-dim
+  (`output_dimensionality`); documents use `RETRIEVAL_DOCUMENT`, the question `RETRIEVAL_QUERY`.
+- **Indexing:** on session create/update the sessions router calls
+  `rag.reindex_session_safe` — **best-effort**, so a missing/failing key never blocks a save.
+  At ask time, `ensure_campaign_indexed` back-fills any not-yet-embedded sessions (bootstraps
+  notes written before the key existed).
+- **Retrieval + answer** (`POST /api/campaigns/{id}/ask`): embed the question, retrieve the
+  top-K nearest chunks for the campaign (HNSW cosine distance), feed them to Gemini
+  (`answer_question`) under a "answer only from these excerpts, cite inline" system prompt, and
+  return the answer plus one **citation per source session** (best-ranked chunk → title +
+  snippet). Same DB engine, no new infra — just the `pgvector` extension/image.
+
+Cosine distance is scale-invariant, so the Matryoshka-truncated 768-dim vectors need no manual
+normalization. Errors map to 503 (no key) / 502 (model). Herald surfaces this as an **"Ask" tab
+in the notes editor** (alongside Write/Preview/Summary) — the `Ask` component renders the answer
+as Markdown and links each citation to the workspace deep-link (`?session=<id>`). `Ask` is
+campaign-scoped and embedded (no separate route); it uses a `[formGroup]` div rather than a
+`<form>` so it nests validly inside the editor's session form.
 
 ---
 
