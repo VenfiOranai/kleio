@@ -3,3 +3,10 @@
 } @else {
   <p class="text-sm text-muted-foreground italic">Nothing written yet.</p>
 }
+
+@if (tooltip(); as tip) {
+  <div class="entity-tooltip" [style.top.px]="tip.top" [style.left.px]="tip.left">
+    <div class="entity-tooltip-name">{{ tip.name }}</div>
+    <div class="markdown entity-tooltip-body" [innerHTML]="tip.html"></div>
+  </div>
+}

@@ -109,7 +109,7 @@
         <div class="flex flex-col gap-1">
           <label class="text-sm font-medium">Preview</label>
           <div class="min-h-40 rounded-lg border p-3">
-            <app-markdown-view [source]="rawNotes()" />
+            <app-markdown-view [source]="rawNotes()" [entities]="entities()" />
           </div>
         </div>
       </ng-template>
@@ -132,7 +132,7 @@
           </div>
           @if (summary()) {
             <div class="rounded-lg border bg-muted/30 p-3">
-              <app-markdown-view [source]="summary()" />
+              <app-markdown-view [source]="summary()" [entities]="entities()" />
             </div>
           }
           <textarea
