@@ -77,6 +77,19 @@ export interface SearchResponse {
   results: SearchResult[];
 }
 
+/** A source session an AI answer drew from. */
+export interface Citation {
+  session_id: number;
+  title: string;
+  snippet: string;
+}
+
+export interface AskResponse {
+  question: string;
+  answer: string;
+  citations: Citation[];
+}
+
 export const ABILITIES = [
   'strength',
   'dexterity',

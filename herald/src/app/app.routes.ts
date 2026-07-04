@@ -18,6 +18,7 @@ export const routes: Routes = [
       { path: 'search', component: SearchResults },
       { path: 'campaigns', component: CampaignList },
       // Opening a campaign lands straight in its workspace (notes + character side by side).
+      // AI Q&A over the campaign's notes (RAG) lives as an "Ask" tab inside the notes editor.
       { path: 'campaigns/:campaignId', component: Workspace },
     ],
   },
