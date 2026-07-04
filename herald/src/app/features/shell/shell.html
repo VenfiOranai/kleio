@@ -1,17 +1,51 @@
 <div class="min-h-screen bg-background">
   <header class="border-b">
-    <div class="flex items-center justify-between gap-4 px-4 py-3">
-      <a routerLink="/campaigns" class="shrink-0 text-xl font-semibold">Kleio</a>
-      <form class="flex max-w-md flex-1 items-center" [formGroup]="form" (ngSubmit)="submitSearch()">
+    <div class="flex items-center gap-4 px-4 py-3">
+      <a
+        routerLink="/campaigns"
+        class="flex shrink-0 items-center gap-2 text-xl font-semibold"
+      >
+        <!-- Kleio: a lyre (Muse of History's instrument) stylized into a "K" -->
+        <svg
+          class="h-6 w-6 text-primary"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.6"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M8 4 V 21" />
+          <path d="M16 4 C 19.5 8, 19.5 17, 16 21" />
+          <path d="M6.5 5.5 H 17.5" />
+          <path d="M8 12.5 L 15.2 6.6" />
+          <path d="M8 12.5 L 15.2 18.4" />
+        </svg>
+        <span>Kleio</span>
+      </a>
+      <form class="flex flex-1 justify-center" [formGroup]="form" (ngSubmit)="submitSearch()">
         <input
           z-input
           type="search"
-          class="w-full"
+          class="w-full max-w-md"
           placeholder="Search notes & characters"
           formControlName="q"
         />
       </form>
-      <button z-button zType="ghost" class="shrink-0" (click)="logout()">Sign out</button>
+      <div class="flex shrink-0 items-center gap-2">
+        <button
+          z-button
+          zType="ghost"
+          (click)="themeService.toggle()"
+          [attr.aria-label]="
+            themeService.theme() === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'
+          "
+        >
+          <ng-icon [name]="themeService.theme() === 'dark' ? 'lucideSun' : 'lucideMoon'" />
+        </button>
+        <button z-button zType="ghost" (click)="logout()">Sign out</button>
+      </div>
     </div>
   </header>
   <main class="px-4 py-6">

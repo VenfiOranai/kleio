@@ -146,6 +146,13 @@ mocks the service). Herald — `SessionService.summarize`, and the session edito
 state, graceful error line). e2e `ai.spec.ts` covers summary-editing/persistence and the not-configured
 error path (Playwright forces `GEMINI_API_KEY=''` so `/summarize` never calls Gemini).
 
+**UI polish** (pending review/commit): **dark mode** — `core/theme/theme.service.ts` toggles a
+`dark` class on `<html>` (the `.dark` token set already exists in `styles.css`), persisted to
+localStorage, defaulting to the OS preference; applied at bootstrap (injected in root `App`) and
+toggled from a sun/moon button in the `Shell` header. Plus a small inline **lyre-stylized-as-"K"
+SVG logo** next to the title (Kleio = Muse of History; `currentColor`, theme-adaptive). e2e
+`theme.spec.ts` covers toggle + persistence.
+
 **Workspace-centric navigation** (pending review/commit): a campaign now opens **straight into its
 workspace** — `campaigns/:campaignId` renders `Workspace` (the standalone campaign-detail, session,
 and character page routes + `campaign-detail` component were removed). The workspace grew **+ New
