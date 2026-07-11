@@ -64,6 +64,16 @@ class SpellSlot(BaseModel):
     expended: int = 0
 
 
+class HitDie(BaseModel):
+    """A pool of hit dice of one size (e.g. ``die="d8"``). ``spent`` are expended; a long
+    rest restores up to half the pool (handled client-side). Multiclass characters have one
+    entry per die size."""
+
+    die: str = "d8"
+    total: int = 0
+    spent: int = 0
+
+
 class CharacterBase(BaseModel):
     name: str
 
@@ -88,7 +98,7 @@ class CharacterBase(BaseModel):
     max_hp: int = 0
     current_hp: int = 0
     temp_hp: int = 0
-    hit_dice: str = ""
+    hit_dice: list[HitDie] = Field(default_factory=list)
     armor_class: int = 10
     speed: int = 30
 
@@ -134,7 +144,7 @@ class CharacterUpdate(BaseModel):
     max_hp: int | None = None
     current_hp: int | None = None
     temp_hp: int | None = None
-    hit_dice: str | None = None
+    hit_dice: list[HitDie] | None = None
     armor_class: int | None = None
     speed: int | None = None
     saving_throw_proficiencies: list[str] | None = None

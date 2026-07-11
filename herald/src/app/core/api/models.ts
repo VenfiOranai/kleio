@@ -86,6 +86,14 @@ export interface SpellSlot {
   expended: number;
 }
 
+/** A pool of hit dice of one size (e.g. `die: "d8"`). `spent` are expended; a long rest
+ * restores up to half the pool. Multiclass characters have one entry per die size. */
+export interface HitDie {
+  die: string;
+  total: number;
+  spent: number;
+}
+
 /** The eight standard 5E schools of magic, offered in the spell form. */
 export const SPELL_SCHOOLS = [
   'Abjuration',
@@ -118,7 +126,7 @@ export interface Character {
   max_hp: number;
   current_hp: number;
   temp_hp: number;
-  hit_dice: string;
+  hit_dice: HitDie[];
   armor_class: number;
   speed: number;
   saving_throw_proficiencies: string[];

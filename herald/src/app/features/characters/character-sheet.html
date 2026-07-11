@@ -41,17 +41,82 @@
     </section>
 
     <!-- Combat -->
-    <section class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-      @for (field of ['max_hp', 'current_hp', 'temp_hp', 'armor_class', 'speed']; track field) {
-        <label class="flex flex-col gap-1 text-sm">
-          <span class="capitalize text-muted-foreground">{{ label(field) }}</span>
-          <input z-input type="number" [formControlName]="field" />
-        </label>
-      }
-      <label class="flex flex-col gap-1 text-sm">
-        <span class="text-muted-foreground">Hit dice</span>
-        <input z-input formControlName="hit_dice" />
-      </label>
+    <section class="flex flex-col gap-3">
+      <div class="flex items-center justify-between">
+        <h2 class="text-lg font-semibold">Combat</h2>
+        <button z-button zType="outline" zSize="sm" type="button" (click)="longRest()">
+          Long rest
+        </button>
+      </div>
+      <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+        @for (field of ['max_hp', 'current_hp', 'temp_hp', 'armor_class', 'speed']; track field) {
+          <label class="flex flex-col gap-1 text-sm">
+            <span class="capitalize text-muted-foreground">{{ label(field) }}</span>
+            <input z-input type="number" [formControlName]="field" />
+          </label>
+        }
+      </div>
+
+      <!-- Hit dice: structured pools (one per die size); a long rest restores half of each. -->
+      <div class="flex flex-col gap-2 rounded-lg border p-3">
+        <div class="flex items-center gap-2">
+          <span class="text-sm font-medium">Hit dice</span>
+          <button
+            z-button
+            zType="outline"
+            zSize="sm"
+            type="button"
+            class="ml-auto"
+            (click)="addHitDie()"
+          >
+            + Add pool
+          </button>
+        </div>
+        @for (hd of hitDice(); track $index) {
+          <div class="flex flex-wrap items-center gap-2 text-sm">
+            <input
+              z-input
+              class="w-20"
+              placeholder="d8"
+              [value]="hd.die"
+              (change)="setHitDie(hd, 'die', $any($event.target).value)"
+              aria-label="Hit die size"
+            />
+            <label class="flex items-center gap-1">
+              <span class="text-muted-foreground">Total</span>
+              <input
+                z-input
+                type="number"
+                class="w-16"
+                [value]="hd.total"
+                (change)="setHitDie(hd, 'total', $any($event.target).value)"
+                aria-label="Total hit dice"
+              />
+            </label>
+            <label class="flex items-center gap-1">
+              <span class="text-muted-foreground">Spent</span>
+              <input
+                z-input
+                type="number"
+                class="w-16"
+                [value]="hd.spent"
+                (change)="setHitDie(hd, 'spent', $any($event.target).value)"
+                aria-label="Spent hit dice"
+              />
+            </label>
+            <span class="text-muted-foreground">{{ hd.total - hd.spent }} available</span>
+            <button
+              type="button"
+              class="ml-auto text-destructive hover:underline"
+              (click)="removeHitDie(hd)"
+            >
+              Remove
+            </button>
+          </div>
+        } @empty {
+          <p class="text-xs text-muted-foreground">No hit dice — add a pool (e.g. 5 × d8).</p>
+        }
+      </div>
     </section>
 
     <div class="grid gap-6 lg:grid-cols-2">

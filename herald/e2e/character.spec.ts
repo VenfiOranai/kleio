@@ -151,4 +151,45 @@ test.describe('character sheet', () => {
     await expect(reopened.getByPlaceholder('Spell name')).toHaveValue('Magic Missile');
     await expect(reopened.getByLabel('Available slot')).toHaveCount(1);
   });
+
+  test('long rest restores HP, spent hit dice, and spell slots', async ({ page }) => {
+    await openFreshCampaign(page, 'Rest Campaign');
+    await newCharacter(page);
+    await page.getByPlaceholder('Character name').fill(uniqueName('Weary'));
+
+    // Combat HP fields bind [formControlName] dynamically (no reflected attribute) → target by label.
+    const combat = page.locator('section', { hasText: 'Combat' });
+    const currentHp = combat.locator('label', { hasText: 'current hp' }).getByRole('spinbutton');
+    const tempHp = combat.locator('label', { hasText: 'temp hp' }).getByRole('spinbutton');
+    await combat.locator('label', { hasText: 'max hp' }).getByRole('spinbutton').fill('20');
+    await currentHp.fill('5');
+    await tempHp.fill('4');
+
+    // Add a hit-dice pool: 5 × d8 with 3 spent → 2 available.
+    await page.getByRole('button', { name: '+ Add pool' }).click();
+    await page.getByLabel('Hit die size').fill('d8');
+    await page.getByLabel('Total hit dice').fill('5');
+    await page.getByLabel('Spent hit dice').fill('3');
+    await page.getByLabel('Spent hit dice').blur();
+    await expect(page.getByText('2 available')).toBeVisible();
+
+    // Expend a level-1 spell slot in the modal, then close it.
+    await page.getByRole('button', { name: 'Open spells' }).click();
+    const dialog = page.getByRole('dialog');
+    await dialog.getByLabel('Level 1 total slots').fill('2');
+    await dialog.getByLabel('Level 1 total slots').blur();
+    await dialog.getByLabel('Available slot').first().click();
+    await expect(dialog.getByLabel('Expended slot')).toHaveCount(1);
+    await page.keyboard.press('Escape');
+    await expect(dialog).toBeHidden();
+
+    // Long rest: full HP, temp HP cleared, spent hit dice halved (3 → 1), spell slots reset.
+    await page.getByRole('button', { name: 'Long rest' }).click();
+    await expect(currentHp).toHaveValue('20');
+    await expect(tempHp).toHaveValue('0');
+    await expect(page.getByText('4 available')).toBeVisible();
+
+    await page.getByRole('button', { name: 'Open spells' }).click();
+    await expect(page.getByRole('dialog').getByLabel('Available slot')).toHaveCount(2);
+  });
 });

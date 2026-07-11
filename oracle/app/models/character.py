@@ -49,7 +49,9 @@ class Character(Base):
     max_hp: Mapped[int] = mapped_column(Integer, default=0)
     current_hp: Mapped[int] = mapped_column(Integer, default=0)
     temp_hp: Mapped[int] = mapped_column(Integer, default=0)
-    hit_dice: Mapped[str] = mapped_column(String(50), default="")
+    # Structured hit dice: list of {die, total, spent} pools (one per die size, so
+    # multiclass characters are represented; see schemas.HitDie).
+    hit_dice: Mapped[list[dict]] = mapped_column(JSONB, default=list)
     armor_class: Mapped[int] = mapped_column(Integer, default=10)
     speed: Mapped[int] = mapped_column(Integer, default=30)
 

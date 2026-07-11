@@ -14,12 +14,7 @@
 
   <!-- Spell-slot trackers: a total stepper + clickable dots (available vs expended) per level. -->
   <section class="mb-4 rounded-lg border">
-    <div class="flex items-center gap-2 border-b px-3 py-2">
-      <span class="font-medium">Spell slots</span>
-      <button type="button" z-button zType="outline" zSize="sm" class="ml-auto" (click)="resetSlots()">
-        Long rest (reset)
-      </button>
-    </div>
+    <div class="border-b px-3 py-2 font-medium">Spell slots</div>
     <div class="flex flex-col divide-y">
       @for (level of slotLevels; track level) {
         <div class="flex flex-wrap items-center gap-3 px-3 py-2 text-sm">
@@ -89,8 +84,7 @@
       (input)="search.set($any($event.target).value)"
     />
     <select
-      z-input
-      class="w-32"
+      class="w-32 rounded-lg border bg-background px-2.5 py-1.5 text-sm"
       [value]="levelFilter()"
       (change)="levelFilter.set(+$any($event.target).value)"
       aria-label="Filter by level"
@@ -136,14 +130,14 @@
               <label class="flex items-center gap-1 text-sm">
                 <span class="text-muted-foreground">Lvl</span>
                 <select
-                  z-input
-                  class="w-16"
-                  [value]="spell.level"
+                  class="w-16 rounded-lg border bg-background px-2 py-1 text-sm"
                   (change)="setLevel(spell, $any($event.target).value)"
                   aria-label="Spell level"
                 >
                   @for (level of levels; track level) {
-                    <option [value]="level">{{ level === 0 ? 'C' : level }}</option>
+                    <option [value]="level" [selected]="level === spell.level">
+                      {{ level === 0 ? 'C' : level }}
+                    </option>
                   }
                 </select>
               </label>

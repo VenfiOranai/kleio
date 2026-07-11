@@ -19,6 +19,7 @@ import {
   ABILITIES,
   Character,
   EquipmentItem,
+  HitDie,
   OtherProficiency,
   ProficiencyCategory,
   SKILLS,
@@ -92,6 +93,8 @@ export class CharacterSheet {
   protected readonly equipmentItems = signal<EquipmentItem[]>([]);
   protected readonly spellItems = signal<Spell[]>([]);
   protected readonly spellSlots = signal<SpellSlot[]>([]);
+  /** Structured hit-dice pools (edited inline; spent restored by a long rest). */
+  protected readonly hitDice = signal<HitDie[]>([]);
 
   /** Compact spell summary for the read-only sheet: prepared count + total-slot count. */
   protected readonly preparedSpellCount = computed(
@@ -146,7 +149,6 @@ export class CharacterSheet {
     max_hp: [0],
     current_hp: [0],
     temp_hp: [0],
-    hit_dice: [''],
     armor_class: [10],
     speed: [30],
     currency: this.fb.nonNullable.group({
@@ -176,6 +178,7 @@ export class CharacterSheet {
         this.equipmentItems.set([...c.equipment]);
         this.spellItems.set([...c.spells]);
         this.spellSlots.set([...c.spell_slots]);
+        this.hitDice.set([...c.hit_dice]);
       });
     });
   }
@@ -214,6 +217,41 @@ export class CharacterSheet {
     this.spellsModal().open();
   }
 
+  // --- Hit dice ------------------------------------------------------------
+
+  protected addHitDie(): void {
+    this.hitDice.update((list) => [...list, { die: 'd8', total: 1, spent: 0 }]);
+  }
+
+  protected removeHitDie(hd: HitDie): void {
+    this.hitDice.update((list) => list.filter((h) => h !== hd));
+  }
+
+  protected setHitDie(hd: HitDie, field: 'die' | 'total' | 'spent', value: string): void {
+    if (field === 'die') {
+      hd.die = value;
+    } else {
+      const n = Math.max(0, Math.floor(Number(value) || 0));
+      if (field === 'total') {
+        hd.total = n;
+        hd.spent = Math.min(hd.spent, n); // can't have spent more than the pool holds
+      } else {
+        hd.spent = Math.min(n, hd.total);
+      }
+    }
+    this.hitDice.update((list) => [...list]);
+  }
+
+  /** Long rest: full HP, drop temp HP, reset expended spell slots, and recover spent hit
+   * dice up to half each pool (5E). Local edit — persisted on the next Save. */
+  protected longRest(): void {
+    this.form.patchValue({ current_hp: this.form.controls.max_hp.value, temp_hp: 0 });
+    this.hitDice.update((list) =>
+      list.map((h) => ({ ...h, spent: Math.max(0, h.spent - Math.floor(h.total / 2)) })),
+    );
+    this.spellSlots.update((slots) => slots.map((s) => ({ ...s, expended: 0 })));
+  }
+
   protected toggleEquipmentCollapsed(): void {
     this.equipmentCollapsed.update((v) => !v);
     if (this.equipmentCollapsed()) this.itemTooltip.set(null);
@@ -248,6 +286,7 @@ export class CharacterSheet {
         equipment: this.equipmentItems(),
         spells: this.spellItems(),
         spell_slots: this.spellSlots(),
+        hit_dice: this.hitDice(),
       })
       .subscribe((c) => {
         this.character.set(c);

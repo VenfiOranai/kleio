@@ -207,6 +207,38 @@ def test_spell_level_out_of_range_rejected(db_client: TestClient, campaign_id: i
     assert resp.status_code == 422
 
 
+def test_hit_dice_round_trip_and_default_empty(db_client: TestClient, campaign_id: int):
+    # Defaults to an empty list of pools.
+    blank = db_client.post(
+        f"/api/campaigns/{campaign_id}/characters", json={"name": "Blank"}
+    ).json()
+    assert blank["hit_dice"] == []
+
+    # Multiclass pools (with spent tracking) round-trip; defaults fill in.
+    payload = {
+        "name": "Multiclass",
+        "hit_dice": [
+            {"die": "d8", "total": 3, "spent": 1},
+            {"die": "d10", "total": 2},  # spent defaults to 0
+        ],
+    }
+    character_id = db_client.post(
+        f"/api/campaigns/{campaign_id}/characters", json=payload
+    ).json()["id"]
+    fetched = db_client.get(f"/api/characters/{character_id}").json()
+    assert fetched["hit_dice"] == [
+        {"die": "d8", "total": 3, "spent": 1},
+        {"die": "d10", "total": 2, "spent": 0},
+    ]
+
+    # Spending / restoring hit dice is client-side state that persists on save.
+    body = db_client.put(
+        f"/api/characters/{character_id}",
+        json={"hit_dice": [{"die": "d8", "total": 3, "spent": 0}]},
+    ).json()
+    assert body["hit_dice"] == [{"die": "d8", "total": 3, "spent": 0}]
+
+
 def test_list_and_delete_character(db_client: TestClient, campaign_id: int):
     character_id = db_client.post(
         f"/api/campaigns/{campaign_id}/characters", json={"name": "Cora"}

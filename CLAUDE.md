@@ -304,6 +304,24 @@ chips) and an **"Open spells"** button; `spells` + `spell_slots` ride along in t
 survives reload) (**4 specs green**); the two existing modal tests were rescoped for the second
 `<dialog>` (`getByRole('dialog')` / `:visible`). `ng build` clean (bundle-budget warning only).
 
+**Long rest + structured hit dice** (pending review/commit): the spells modal's "Long rest
+(reset)" button moved to the **character sheet** as a single **Long rest** action (in the Combat
+section) that now also restores health — and `characters.hit_dice` became **structured**. Oracle —
+`hit_dice` moves from freeform `String(50)` to a **JSONB list** of pools `{die, total, spent}`
+(one per die size, so multiclass survives) via migration `3c8e2f1a9b4d` (best-effort parse of every
+`<n>d<m>` occurrence in the old text; unparseable → empty list). Schema `HitDie` (`die` free-form);
+`CharacterBase.hit_dice`/`CharacterUpdate.hit_dice` become `list[HitDie]`. No `character_calc`
+change (hit dice aren't derived). Test: integration `test_characters.py` hit-dice round-trip +
+empty default + spend-persists. Herald — `models.ts` gains `HitDie` and `Character.hit_dice: HitDie[]`;
+the sheet drops the freeform `hit_dice` control for an inline **pools editor** (`hitDice` signal:
+die/total/spent + available readout, add/remove) and a `longRest()` that sets `current_hp → max_hp`,
+`temp_hp → 0`, restores spent hit dice **up to half each pool** (`spent → max(0, spent − ⌊total/2⌋)`),
+and resets every spell slot's `expended → 0` (local edit, persisted on the next Save). The spells
+modal loses its `resetSlots()` + button. **Bug fix:** the per-spell **level `<select>`** now uses
+`[selected]` per option instead of `[value]` on the select (the latter didn't reliably reflect the
+bound level as spells re-group by level). e2e `character.spec.ts` gains a long-rest test (HP + hit
+dice 3→1 + slot reset) (**5 specs green**); backend + `ng build` clean.
+
 Next up: **Phase 11 — Structured features** (reuses the Phase 9/10 modal + structured-list
 pattern), **Phase 12 — Attacks panel** (needs 8/9/10), or **Phase 6 — Polish & hardening**
 (backups) — see `docs/roadmap.md`.

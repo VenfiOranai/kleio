@@ -215,12 +215,6 @@ export class SpellsModal {
     if (slot.expended > 0) this.updateSlot(level, { expended: slot.expended - 1 });
   }
 
-  /** Long rest: reset every level's expended slots to 0. */
-  protected resetSlots(): void {
-    this.slots.update((rows) => rows.map((s) => ({ ...s, expended: 0 })));
-    this.emitSlots();
-  }
-
   /** Whether a level has any un-expended slot to cast from (drives per-spell "Cast" enablement). */
   protected canCast(level: number): boolean {
     if (level < 1 || level > 9) return false;
