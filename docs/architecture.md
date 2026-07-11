@@ -109,8 +109,12 @@ section-level `notes`. Planned columns/shapes:
 - **`currency`** (JSONB) `{cp, sp, ep, gp, pp}` — money tracking *(feat. 7)*.
 - **`other_proficiencies`** (JSONB) — list of `{category, name}`, category ∈
   `language|weapon|armor|tool|other`, rendered split by category *(feat. 6)*.
-- **`spellcasting_ability`** (str, one of the six or none) → new derived **spell attack bonus**
-  (`mod + prof`) and **spell save DC** (`8 + mod + prof`) *(feat. 8)*.
+- **Spellcasting ability** — **derived from class, not stored**: a pure
+  `character_calc.spellcasting_ability_for_class(class_name, subclass)` maps each 5E class to its
+  fixed ability (Wizard/Artificer→INT, Cleric/Druid/Ranger→WIS, Bard/Paladin/Sorcerer/Warlock→CHA,
+  Fighter/Rogue→INT via Eldritch Knight / Arcane Trickster, else none). Feeds new derived **spell
+  attack bonus** (`mod + prof`) and **spell save DC** (`8 + mod + prof`), all in the `derived`
+  block *(feat. 8)*.
 - **`equipment`** (JSONB) — items `{name, quantity, category, weight?, equipped?, attuned?,
   description(md)}`; optional derived total weight / attunement count *(feat. 1)*.
 - **`spells`** (JSONB) — `{name, level, school, prepared, always_prepared, ritual, concentration,

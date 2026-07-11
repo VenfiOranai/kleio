@@ -14,7 +14,13 @@ import { RouterLink } from '@angular/router';
 import { ZardButtonComponent } from '@/components/button/button.component';
 import { ZardInputDirective } from '@/components/input/input.directive';
 import { CharacterService } from '@/core/api/character.service';
-import { ABILITIES, Character, SKILLS } from '@/core/api/models';
+import {
+  ABILITIES,
+  Character,
+  OtherProficiency,
+  ProficiencyCategory,
+  SKILLS,
+} from '@/core/api/models';
 
 function toggle(set: Set<string>, key: string): Set<string> {
   const next = new Set(set);
@@ -49,9 +55,18 @@ export class CharacterSheet {
   protected readonly abilities = ABILITIES;
   protected readonly skills = Object.keys(SKILLS);
   protected readonly skillAbility = SKILLS;
+  protected readonly profCategories: ProficiencyCategory[] = [
+    'language',
+    'weapon',
+    'armor',
+    'tool',
+    'other',
+  ];
+  protected readonly coins = ['pp', 'gp', 'ep', 'sp', 'cp'] as const;
 
   protected readonly saveProfs = signal<Set<string>>(new Set());
   protected readonly skillProfs = signal<Set<string>>(new Set());
+  protected readonly otherProfs = signal<OtherProficiency[]>([]);
 
   protected readonly form = this.fb.nonNullable.group({
     name: [''],
@@ -74,6 +89,13 @@ export class CharacterSheet {
     hit_dice: [''],
     armor_class: [10],
     speed: [30],
+    currency: this.fb.nonNullable.group({
+      pp: [0],
+      gp: [0],
+      ep: [0],
+      sp: [0],
+      cp: [0],
+    }),
     equipment: [''],
     features: [''],
     spells: [''],
@@ -92,6 +114,7 @@ export class CharacterSheet {
         this.form.patchValue(c);
         this.saveProfs.set(new Set(c.saving_throw_proficiencies));
         this.skillProfs.set(new Set(c.skill_proficiencies));
+        this.otherProfs.set([...c.other_proficiencies]);
       });
     });
   }
@@ -104,12 +127,31 @@ export class CharacterSheet {
     this.skillProfs.update((set) => toggle(set, skill));
   }
 
+  protected profsByCategory(category: ProficiencyCategory): OtherProficiency[] {
+    return this.otherProfs().filter((p) => p.category === category);
+  }
+
+  protected addProficiency(category: ProficiencyCategory, name: string): void {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    const exists = this.otherProfs().some(
+      (p) => p.category === category && p.name.toLowerCase() === trimmed.toLowerCase(),
+    );
+    if (exists) return;
+    this.otherProfs.update((list) => [...list, { category, name: trimmed }]);
+  }
+
+  protected removeProficiency(prof: OtherProficiency): void {
+    this.otherProfs.update((list) => list.filter((p) => p !== prof));
+  }
+
   protected save(): void {
     this.service
       .update(this.characterId(), {
         ...this.form.getRawValue(),
         saving_throw_proficiencies: [...this.saveProfs()],
         skill_proficiencies: [...this.skillProfs()],
+        other_proficiencies: this.otherProfs(),
       })
       .subscribe((c) => {
         this.character.set(c);

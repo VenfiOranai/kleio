@@ -4,6 +4,7 @@ from app.services.character_calc import (
     ability_modifier,
     compute_derived,
     proficiency_bonus,
+    spellcasting_ability_for_class,
 )
 
 
@@ -72,3 +73,74 @@ def test_initiative_is_dex_modifier():
         skill_proficiencies=[],
     )
     assert derived["initiative"] == 4
+
+
+@pytest.mark.parametrize(
+    "class_name,subclass,expected",
+    [
+        ("Wizard", "", "intelligence"),
+        ("Artificer", "", "intelligence"),
+        ("Cleric", "", "wisdom"),
+        ("Druid", "", "wisdom"),
+        ("Ranger", "", "wisdom"),
+        ("Bard", "", "charisma"),
+        ("Paladin", "", "charisma"),
+        ("Sorcerer", "", "charisma"),
+        ("Warlock", "", "charisma"),
+        ("Barbarian", "", ""),
+        ("Monk", "", ""),
+        # Fighter/Rogue only cast via specific INT subclasses.
+        ("Fighter", "Eldritch Knight", "intelligence"),
+        ("Rogue", "Arcane Trickster", "intelligence"),
+        ("Fighter", "Champion", ""),
+        # Normalization: case + surrounding whitespace.
+        ("WIZARD", "", "intelligence"),
+        ("  wizard  ", "", "intelligence"),
+        # Homebrew / unknown class → no spellcasting.
+        ("Blood Hunter", "", ""),
+        ("", "", ""),
+    ],
+)
+def test_spellcasting_ability_for_class(class_name: str, subclass: str, expected: str):
+    assert spellcasting_ability_for_class(class_name, subclass) == expected
+
+
+def test_non_caster_class_gives_null_spell_stats():
+    derived = compute_derived(
+        abilities=_abilities(intelligence=18),
+        level=5,
+        saving_throw_proficiencies=[],
+        skill_proficiencies=[],
+        class_name="Barbarian",
+    )
+    assert derived["spellcasting_ability"] == ""
+    assert derived["spell_attack_bonus"] is None
+    assert derived["spell_save_dc"] is None
+
+
+@pytest.mark.parametrize(
+    "class_name,ability,score,level,exp_attack,exp_dc",
+    [
+        # Wizard (INT) 18 (+4), level 5 (pb +3): attack = 4+3=7, DC = 8+4+3=15
+        ("Wizard", "intelligence", 18, 5, 7, 15),
+        # Cleric (WIS) 16 (+3), level 1 (pb +2): attack = 3+2=5, DC = 8+3+2=13
+        ("Cleric", "wisdom", 16, 1, 5, 13),
+        # Sorcerer (CHA) 20 (+5), level 17 (pb +6): attack = 5+6=11, DC = 8+5+6=19
+        ("Sorcerer", "charisma", 20, 17, 11, 19),
+        # Negative mod: Wizard (INT) 8 (-1), level 1 (pb +2): attack = -1+2=1, DC = 8-1+2=9
+        ("Wizard", "intelligence", 8, 1, 1, 9),
+    ],
+)
+def test_spell_attack_and_save_dc(
+    class_name: str, ability: str, score: int, level: int, exp_attack: int, exp_dc: int
+):
+    derived = compute_derived(
+        abilities=_abilities(**{ability: score}),
+        level=level,
+        saving_throw_proficiencies=[],
+        skill_proficiencies=[],
+        class_name=class_name,
+    )
+    assert derived["spellcasting_ability"] == ability
+    assert derived["spell_attack_bonus"] == exp_attack
+    assert derived["spell_save_dc"] == exp_dc

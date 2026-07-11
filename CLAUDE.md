@@ -226,9 +226,35 @@ editor passes `entities()` to the preview + summary views. e2e `entities.spec.ts
 (mention insert → bold render → click-to-search; Codex grouping + collapse; hover tooltip);
 unit `markdown-view.spec.ts` (render, click-nav, tooltip). `ng build` clean (bundle warning only).
 
-Next up: **Phase 6 — Polish & hardening** (backups first — see `docs/roadmap.md`).
+**Phase 8 complete** (pending review/commit): **structured basics & spellcasting stats** (first
+slice of the Character Sheet Overhaul). Oracle — `characters` gains `currency` JSONB
+`{cp,sp,ep,gp,pp}` and `other_proficiencies` JSONB (list of `{category, name}`, category ∈
+`language|weapon|armor|tool|other`) via migration `5a6d6f8fdbb3` (server-defaults preserve existing
+rows). **Spellcasting ability is derived from class, not stored** (per user feedback — matches the
+"computed, never stored" rule): a **pure** `character_calc.spellcasting_ability_for_class(class_name,
+subclass)` maps Artificer/Wizard→INT, Cleric/Druid/Ranger→WIS, Bard/Paladin/Sorcerer/Warlock→CHA,
+Fighter/Rogue→INT only via the Eldritch Knight / Arcane Trickster subclasses, else `""`
+(case/whitespace-normalized; unknown/homebrew → none). `compute_derived` takes `class_name`/
+`subclass` and adds `spellcasting_ability` (str), `spell_attack_bonus` (`mod + prof`), and
+`spell_save_dc` (`8 + mod + prof`) to `derived` — the two ints **`null`** for non-casters. Schemas:
+`Currency` + `OtherProficiency` (Literal-validated category), `DerivedStats` extended (no stored
+spellcasting field). Tests: unit `test_character_calc.py` (class→ability map incl. subclass casters
++ homebrew none + normalization; spell attack/DC across classes/levels); integration
+`test_characters.py` (currency/proficiency round-trip + class-derived spellcasting, non-caster
+null/default, EK subclass grants casting). Herald — `models.ts` gains `Currency`/`OtherProficiency`/
+`ProficiencyCategory` and `DerivedStats.spellcasting_ability`; the character sheet adds a **Money**
+row (5 coin inputs, nested `currency` form group), a read-only **Spellcasting** panel (ability + DC
++ attack from `derived`, driven by the class field — no selector), and an **Other Proficiencies**
+section split into per-category cards with add-on-Enter / removable chips (client `otherProfs`
+signal, sent on save). e2e `character.spec.ts` gains a class-derived-spellcasting +
+proficiency-chip-persistence test (**2 specs green**); `ng build` clean.
 
-**Planned — Character Sheet Overhaul (Phases 8–14)**: designed, not implemented. Turns the
+Next up: **Phase 9 — Structured equipment + item modal** (introduces the reusable modal +
+structured-list pattern for Phases 10–12), or **Phase 6 — Polish & hardening** (backups) — see
+`docs/roadmap.md`.
+
+**Planned — Character Sheet Overhaul (Phases 9–14)**: designed, not implemented (Phase 8 done —
+see above). Turns the
 character sheet's freeform `equipment`/`spells`/`features` text into **structured JSONB** on the
 `characters` table (money, misc proficiencies, spellcasting DC/attack; equipment/spells/features
 in modals; an attacks panel; **5etools** autocomplete-import then auto-populate-by-class). Derived

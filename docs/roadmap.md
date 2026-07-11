@@ -104,17 +104,21 @@ panel, and **5etools** reference auto-import. (Maps the eight requested items �
     schema (items must be assembled from `items` + `items-base` + `magicvariants`). Exhaustively
     unit-tested against sample fixtures.
 
-### Phase 8 — Structured basics & spellcasting stats  (feat. 6, 7, 8)
+### Phase 8 — Structured basics & spellcasting stats  (feat. 6, 7, 8) ✅ done
 Small, high-value additions that need no big refactor; they establish patterns for later phases.
-- **Oracle:** add `spellcasting_ability` (one of the six, or none); `character_calc` gains
-  **spell attack bonus** = mod(spellcasting) + prof, and **spell save DC** = 8 + mod + prof
-  (both `null` when no spellcasting ability), surfaced in `derived` *(feat. 8)*. Add `currency`
-  JSONB `{cp,sp,ep,gp,pp}` *(feat. 7)* and `other_proficiencies` JSONB — a categorized list
-  (`language` / `weapon` / `armor` / `tool` / `other`) *(feat. 6)*. Migration + schema + unit
+- **Oracle:** **spellcasting ability is derived from class, not stored** (keeps the "computed,
+  never stored" rule). A **pure** `character_calc.spellcasting_ability_for_class(class_name,
+  subclass)` returns the fixed 5E ability — Artificer/Wizard→INT, Cleric/Druid/Ranger→WIS,
+  Bard/Paladin/Sorcerer/Warlock→CHA, Fighter/Rogue→INT only via Eldritch Knight / Arcane Trickster,
+  else none (unknown/homebrew → none). `character_calc` gains **spell attack bonus** =
+  mod(spellcasting) + prof and **spell save DC** = 8 + mod + prof (both `null` when the class isn't
+  a caster), plus the resolved `spellcasting_ability`, surfaced in `derived` *(feat. 8)*. Add
+  `currency` JSONB `{cp,sp,ep,gp,pp}` *(feat. 7)* and `other_proficiencies` JSONB — a categorized
+  list (`language` / `weapon` / `armor` / `tool` / `other`) *(feat. 6)*. Migration + schema + unit
   tests for the new math.
-- **Herald:** a money row (5 coin inputs), a spellcasting-ability selector with the derived
-  **DC / attack** shown read-only, and a misc-proficiencies section **split by category** (chips
-  you add/remove per category).
+- **Herald:** a money row (5 coin inputs) and a misc-proficiencies section **split by category**
+  (chips you add/remove per category). The **Spellcasting** panel is fully read-only — ability +
+  **DC / attack** come from `derived` and update from the class field (no selector).
 
 ### Phase 9 — Structured equipment + item modal  (feat. 1)
 Introduces the reusable **structured-list section** + a **modal** used by Phases 10–12.

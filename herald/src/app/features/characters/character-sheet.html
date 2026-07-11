@@ -118,6 +118,76 @@
 
     <p class="text-xs text-muted-foreground">Derived values refresh after saving.</p>
 
+    <!-- Spellcasting (ability is determined by class; refreshes after saving) -->
+    @if (derived(); as d) {
+      <section class="flex flex-col gap-2">
+        <h2 class="text-lg font-semibold">Spellcasting</h2>
+        @if (d.spellcasting_ability) {
+          <div class="flex flex-wrap gap-4 rounded-lg border p-3 text-sm">
+            <span>Ability <strong class="capitalize">{{ d.spellcasting_ability }}</strong></span>
+            <span>Spell save DC <strong>{{ d.spell_save_dc }}</strong></span>
+            <span>Spell attack <strong>{{ fmt(d.spell_attack_bonus ?? 0) }}</strong></span>
+          </div>
+        } @else {
+          <p class="text-sm text-muted-foreground">
+            No spellcasting — set a caster class (e.g. Wizard, Cleric, Bard) to compute a spell
+            save DC and attack bonus.
+          </p>
+        }
+      </section>
+    }
+
+    <!-- Other proficiencies -->
+    <section class="flex flex-col gap-3">
+      <h2 class="text-lg font-semibold">Other Proficiencies</h2>
+      <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        @for (cat of profCategories; track cat) {
+          <div class="flex flex-col gap-2 rounded-lg border p-3">
+            <span class="text-sm font-medium capitalize">{{ cat }}</span>
+            <div class="flex flex-wrap gap-2">
+              @for (p of profsByCategory(cat); track p) {
+                <span
+                  class="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs"
+                >
+                  {{ p.name }}
+                  <button
+                    type="button"
+                    class="text-muted-foreground hover:text-foreground"
+                    (click)="removeProficiency(p)"
+                    aria-label="Remove"
+                  >
+                    ×
+                  </button>
+                </span>
+              } @empty {
+                <span class="text-xs text-muted-foreground">None</span>
+              }
+            </div>
+            <input
+              z-input
+              class="text-sm"
+              placeholder="Add…"
+              #profInput
+              (keydown.enter)="$event.preventDefault(); addProficiency(cat, profInput.value); profInput.value = ''"
+            />
+          </div>
+        }
+      </div>
+    </section>
+
+    <!-- Money -->
+    <section class="flex flex-col gap-2">
+      <h2 class="text-lg font-semibold">Money</h2>
+      <div class="grid grid-cols-5 gap-3" formGroupName="currency">
+        @for (coin of coins; track coin) {
+          <label class="flex flex-col gap-1 text-sm">
+            <span class="uppercase text-muted-foreground">{{ coin }}</span>
+            <input z-input type="number" [formControlName]="coin" />
+          </label>
+        }
+      </div>
+    </section>
+
     <!-- Freeform -->
     <section class="grid gap-4 md:grid-cols-2">
       @for (field of ['equipment', 'features', 'spells', 'notes']; track field) {

@@ -1,8 +1,28 @@
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, computed_field
 
 from app.services.character_calc import ABILITIES, compute_derived
+
+ProficiencyCategory = Literal["language", "weapon", "armor", "tool", "other"]
+
+
+class Currency(BaseModel):
+    """Coin purse. All 5E coin denominations."""
+
+    cp: int = 0
+    sp: int = 0
+    ep: int = 0
+    gp: int = 0
+    pp: int = 0
+
+
+class OtherProficiency(BaseModel):
+    """A misc proficiency (language, weapon, armor, tool, or other)."""
+
+    category: ProficiencyCategory
+    name: str
 
 
 class CharacterBase(BaseModel):
@@ -36,6 +56,10 @@ class CharacterBase(BaseModel):
     # Proficiency selections
     saving_throw_proficiencies: list[str] = Field(default_factory=list)
     skill_proficiencies: list[str] = Field(default_factory=list)
+
+    # Money + misc proficiencies
+    currency: Currency = Field(default_factory=Currency)
+    other_proficiencies: list[OtherProficiency] = Field(default_factory=list)
 
     # Freeform (markdown)
     equipment: str = ""
@@ -71,6 +95,8 @@ class CharacterUpdate(BaseModel):
     speed: int | None = None
     saving_throw_proficiencies: list[str] | None = None
     skill_proficiencies: list[str] | None = None
+    currency: Currency | None = None
+    other_proficiencies: list[OtherProficiency] | None = None
     equipment: str | None = None
     features: str | None = None
     spells: str | None = None
@@ -84,6 +110,10 @@ class DerivedStats(BaseModel):
     skills: dict[str, int]
     passive_perception: int
     initiative: int
+    # Spellcasting ability derived from class ("" for non-casters); spell stats null then.
+    spellcasting_ability: str
+    spell_attack_bonus: int | None
+    spell_save_dc: int | None
 
 
 class CharacterRead(CharacterBase):
@@ -102,5 +132,7 @@ class CharacterRead(CharacterBase):
             level=self.level,
             saving_throw_proficiencies=self.saving_throw_proficiencies,
             skill_proficiencies=self.skill_proficiencies,
+            class_name=self.class_name,
+            subclass=self.subclass,
         )
         return DerivedStats(**stats)
