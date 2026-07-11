@@ -1,5 +1,6 @@
 import {
   Component,
+  ElementRef,
   computed,
   effect,
   inject,
@@ -17,6 +18,7 @@ import { ZardInputDirective } from '@/components/input/input.directive';
 import { CharacterService } from '@/core/api/character.service';
 import {
   ABILITIES,
+  Attack,
   Character,
   EquipmentItem,
   Feature,
@@ -28,6 +30,7 @@ import {
   SpellSlot,
 } from '@/core/api/models';
 import { MarkdownView } from '@/shared/markdown-view/markdown-view';
+import { AttacksModal } from './attacks-modal/attacks-modal';
 import { EquipmentModal } from './equipment-modal/equipment-modal';
 import { FeaturesModal } from './features-modal/features-modal';
 import { SpellsModal } from './spells-modal/spells-modal';
@@ -35,6 +38,13 @@ import { SpellsModal } from './spells-modal/spells-modal';
 /** A hover tooltip anchored to an equipment chip in the read-only sheet preview. */
 interface ItemTooltip {
   item: EquipmentItem;
+  top: number;
+  left: number;
+}
+
+/** A hover tooltip anchored to a row in the read-only attacks table. */
+interface AttackTooltip {
+  attack: Attack;
   top: number;
   left: number;
 }
@@ -59,6 +69,7 @@ function toggle(set: Set<string>, key: string): Set<string> {
     EquipmentModal,
     SpellsModal,
     FeaturesModal,
+    AttacksModal,
     MarkdownView,
   ],
   templateUrl: './character-sheet.html',
@@ -97,8 +108,19 @@ export class CharacterSheet {
   protected readonly spellItems = signal<Spell[]>([]);
   protected readonly spellSlots = signal<SpellSlot[]>([]);
   protected readonly featureItems = signal<Feature[]>([]);
+  protected readonly attackItems = signal<Attack[]>([]);
   /** Structured hit-dice pools (edited inline; spent restored by a long rest). */
   protected readonly hitDice = signal<HitDie[]>([]);
+
+  /** Attacks zipped with their server-computed to-hit/damage (by index; refresh on save). */
+  protected readonly attackRows = computed(() => {
+    const derived = this.derived()?.attacks ?? [];
+    return this.attackItems().map((attack, i) => ({
+      attack,
+      toHit: derived[i]?.to_hit ?? null,
+      damage: derived[i]?.damage ?? '',
+    }));
+  });
 
   /** Compact spell summary for the read-only sheet: prepared count + total-slot count. */
   protected readonly preparedSpellCount = computed(
@@ -140,6 +162,7 @@ export class CharacterSheet {
   private readonly equipmentModal = viewChild.required(EquipmentModal);
   private readonly spellsModal = viewChild.required(SpellsModal);
   private readonly featuresModal = viewChild.required(FeaturesModal);
+  private readonly attacksModal = viewChild.required(AttacksModal);
 
   protected readonly form = this.fb.nonNullable.group({
     name: [''],
@@ -188,6 +211,7 @@ export class CharacterSheet {
         this.spellItems.set([...c.spells]);
         this.spellSlots.set([...c.spell_slots]);
         this.featureItems.set([...c.features]);
+        this.attackItems.set([...c.attacks]);
         this.hitDice.set([...c.hit_dice]);
       });
     });
@@ -229,6 +253,48 @@ export class CharacterSheet {
 
   protected openFeatures(): void {
     this.featuresModal().open();
+  }
+
+  protected openAttacks(): void {
+    this.attacksModal().open();
+  }
+
+  /** An attack's Markdown description, shown on hover anchored at the attack's name. */
+  protected readonly attackTooltip = signal<AttackTooltip | null>(null);
+  private readonly attackTooltipEl = viewChild<ElementRef<HTMLDivElement>>('attackTip');
+
+  protected showAttackDescription(event: MouseEvent, attack: Attack): void {
+    if (!attack.description?.trim()) return;
+    // Anchor at the name (row's left edge) and open toward the bottom-right; clamp once the
+    // tooltip has rendered so its real size keeps it fully on screen.
+    const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+    this.attackTooltip.set({ attack, top: rect.bottom + 6, left: rect.left });
+    requestAnimationFrame(() => this.clampAttackTooltip());
+  }
+
+  private clampAttackTooltip(): void {
+    const el = this.attackTooltipEl()?.nativeElement;
+    const current = this.attackTooltip();
+    if (!el || !current) return;
+    const margin = 8;
+    const { width, height } = el.getBoundingClientRect();
+    const left = Math.max(margin, Math.min(current.left, window.innerWidth - width - margin));
+    const top = Math.max(margin, Math.min(current.top, window.innerHeight - height - margin));
+    if (left !== current.left || top !== current.top) {
+      this.attackTooltip.set({ ...current, top, left });
+    }
+  }
+
+  protected hideAttackDescription(): void {
+    this.attackTooltip.set(null);
+  }
+
+  /** Whole-section collapse for the read-only attacks preview. */
+  protected readonly attacksCollapsed = signal(false);
+
+  protected toggleAttacksCollapsed(): void {
+    this.attacksCollapsed.update((v) => !v);
+    if (this.attacksCollapsed()) this.attackTooltip.set(null);
   }
 
   // --- Hit dice ------------------------------------------------------------
@@ -309,6 +375,7 @@ export class CharacterSheet {
         spells: this.spellItems(),
         spell_slots: this.spellSlots(),
         features: this.featureItems(),
+        attacks: this.attackItems(),
         hit_dice: this.hitDice(),
       })
       .subscribe((c) => {

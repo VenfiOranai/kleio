@@ -295,6 +295,64 @@ def test_feature_invalid_source_rejected(db_client: TestClient, campaign_id: int
     assert resp.status_code == 422
 
 
+def test_attacks_round_trip_and_derive_to_hit(db_client: TestClient, campaign_id: int):
+    # Defaults to an empty list, with an empty derived attacks block.
+    blank = db_client.post(
+        f"/api/campaigns/{campaign_id}/characters", json={"name": "Blank"}
+    ).json()
+    assert blank["attacks"] == []
+    assert blank["derived"]["attacks"] == []
+
+    payload = {
+        "name": "Fighter",
+        "level": 5,  # proficiency +3
+        "strength": 16,  # +3
+        "attacks": [
+            {
+                "name": "Greatsword",
+                "ability": "str",
+                "proficient": True,
+                "damage_dice": "2d6",
+                "damage_type": "slashing",
+                "bonus": 1,
+                "range": "5 ft",
+                "notes": "heavy, two-handed",
+                "description": "A **greatsword** deals brutal damage.",
+                "source": "weapon",
+            },
+            {"name": "Unarmed", "damage_dice": "1"},  # terse: defaults fill in
+        ],
+    }
+    character_id = db_client.post(
+        f"/api/campaigns/{campaign_id}/characters", json=payload
+    ).json()["id"]
+    fetched = db_client.get(f"/api/characters/{character_id}").json()
+
+    assert len(fetched["attacks"]) == 2
+    assert fetched["attacks"][0]["source"] == "weapon"
+    # Short table note and longer hover description are separate fields.
+    assert fetched["attacks"][0]["notes"] == "heavy, two-handed"
+    assert fetched["attacks"][0]["description"] == "A **greatsword** deals brutal damage."
+    # Terse second attack picks up the schema defaults.
+    assert fetched["attacks"][1]["ability"] == "str"
+    assert fetched["attacks"][1]["proficient"] is True
+    assert fetched["attacks"][1]["description"] == ""
+    assert fetched["attacks"][1]["source"] == "manual"
+
+    # Derived: STR +3 + prof +3 + bonus +1 = +7 to-hit; damage 2d6 + 3 (bonus is to-hit only).
+    derived = fetched["derived"]["attacks"]
+    assert derived[0] == {"name": "Greatsword", "to_hit": 7, "damage": "2d6 + 3"}
+    assert derived[1] == {"name": "Unarmed", "to_hit": 6, "damage": "1 + 3"}
+
+
+def test_attack_invalid_ability_rejected(db_client: TestClient, campaign_id: int):
+    resp = db_client.post(
+        f"/api/campaigns/{campaign_id}/characters",
+        json={"name": "Bad", "attacks": [{"name": "Nope", "ability": "wisdom"}]},
+    )
+    assert resp.status_code == 422
+
+
 def test_list_and_delete_character(db_client: TestClient, campaign_id: int):
     character_id = db_client.post(
         f"/api/campaigns/{campaign_id}/characters", json={"name": "Cora"}

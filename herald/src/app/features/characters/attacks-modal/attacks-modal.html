@@ -1,0 +1,165 @@
+<app-modal title="Attacks & Spellcasting">
+  <!-- Toolbar: count + add + add-from helpers -->
+  <div class="mb-4 flex flex-wrap items-center gap-3">
+    <div class="text-sm text-muted-foreground">
+      Attacks <strong class="text-foreground">{{ working().length }}</strong>
+    </div>
+    <div class="ml-auto flex flex-wrap items-center gap-2">
+      @if (weapons().length) {
+        <select
+          class="w-40 rounded-lg border bg-background px-2.5 py-1.5 text-sm"
+          (change)="addFromWeapon($any($event.target).value); $any($event.target).value = ''"
+          aria-label="Add from weapon"
+        >
+          <option value="">Add from weapon…</option>
+          @for (item of weapons(); track $index) {
+            <option [value]="item.name">{{ item.name }}</option>
+          }
+        </select>
+      }
+      @if (namedSpells().length) {
+        <select
+          class="w-40 rounded-lg border bg-background px-2.5 py-1.5 text-sm"
+          (change)="addFromSpell($any($event.target).value); $any($event.target).value = ''"
+          aria-label="Add from spell"
+        >
+          <option value="">Add from spell…</option>
+          @for (spell of namedSpells(); track $index) {
+            <option [value]="spell.name">{{ spell.name }}</option>
+          }
+        </select>
+      }
+      <button z-button zSize="sm" (click)="addAttack()">+ Add attack</button>
+    </div>
+  </div>
+
+  <div class="mb-4">
+    <input
+      z-input
+      class="max-w-xs"
+      placeholder="Search attacks…"
+      [value]="search()"
+      (input)="search.set($any($event.target).value)"
+    />
+  </div>
+
+  <div class="flex flex-col divide-y rounded-lg border">
+    @for (attack of filtered(); track attack._id) {
+      <div class="flex flex-col gap-2 p-3">
+        <div class="flex flex-wrap items-center gap-2">
+          <input
+            z-input
+            class="min-w-40 flex-1"
+            placeholder="Attack name"
+            [value]="attack.name"
+            (change)="setText(attack, 'name', $any($event.target).value)"
+          />
+          <label class="flex items-center gap-1 text-sm">
+            <span class="text-muted-foreground">Ability</span>
+            <select
+              class="w-24 rounded-lg border bg-background px-2 py-1 text-sm"
+              (change)="setAbility(attack, $any($event.target).value)"
+              aria-label="Attack ability"
+            >
+              @for (ability of abilities; track ability) {
+                <option [value]="ability" [selected]="ability === attack.ability">
+                  {{ abilityLabels[ability] }}
+                </option>
+              }
+            </select>
+          </label>
+          <label class="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              [checked]="attack.proficient"
+              (change)="toggleProficient(attack)"
+            />
+            Proficient
+          </label>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2 text-sm">
+          <label class="flex items-center gap-1">
+            <span class="text-muted-foreground">Damage</span>
+            <input
+              z-input
+              class="w-20"
+              placeholder="1d8"
+              [value]="attack.damage_dice"
+              (change)="setText(attack, 'damage_dice', $any($event.target).value)"
+              [attr.aria-label]="attack.name + ' damage dice'"
+            />
+          </label>
+          <input
+            z-input
+            class="w-28"
+            placeholder="Type (slashing…)"
+            [value]="attack.damage_type"
+            (change)="setText(attack, 'damage_type', $any($event.target).value)"
+            aria-label="Damage type"
+          />
+          <label class="flex items-center gap-1">
+            <span class="text-muted-foreground">Bonus</span>
+            <input
+              z-input
+              type="number"
+              class="w-16"
+              placeholder="—"
+              [value]="attack.bonus"
+              (change)="setBonus(attack, $any($event.target).value)"
+              [attr.aria-label]="attack.name + ' to-hit bonus'"
+            />
+          </label>
+          <label class="flex items-center gap-1">
+            <span class="text-muted-foreground">Range</span>
+            <input
+              z-input
+              class="w-24"
+              placeholder="5 ft"
+              [value]="attack.range"
+              (change)="setText(attack, 'range', $any($event.target).value)"
+              aria-label="Attack range"
+            />
+          </label>
+        </div>
+
+        <label class="flex items-center gap-1 text-sm">
+          <span class="w-20 shrink-0 text-muted-foreground">Note</span>
+          <input
+            z-input
+            class="max-w-xs"
+            placeholder="Short, shown in the table (e.g. finesse)"
+            [value]="attack.notes"
+            (change)="setText(attack, 'notes', $any($event.target).value)"
+            [attr.aria-label]="attack.name + ' short note'"
+          />
+        </label>
+
+        <label class="flex flex-col gap-1 text-sm">
+          <span class="text-muted-foreground">Description <span class="text-xs">(markdown, shown on hover)</span></span>
+          <textarea
+            z-input
+            rows="3"
+            placeholder="Longer detail — abilities, special effects, rules text…"
+            [value]="attack.description"
+            (change)="setText(attack, 'description', $any($event.target).value)"
+            [attr.aria-label]="attack.name + ' description'"
+          ></textarea>
+        </label>
+
+        <div class="flex flex-wrap items-center gap-4 text-sm">
+          <button type="button" class="text-muted-foreground hover:underline" (click)="duplicate(attack)">
+            Duplicate
+          </button>
+          <button type="button" class="ml-auto text-destructive hover:underline" (click)="remove(attack)">
+            Remove
+          </button>
+        </div>
+      </div>
+    } @empty {
+      <p class="py-8 text-center text-sm text-muted-foreground">
+        No attacks yet. Use <strong>+ Add attack</strong>, or pull one in from a weapon or spell.
+      </p>
+    }
+  </div>
+</app-modal>

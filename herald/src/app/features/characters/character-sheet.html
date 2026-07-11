@@ -202,6 +202,90 @@
       </section>
     }
 
+    <!-- Attacks (structured; edited in a modal). To-hit + damage are server-derived and
+         refresh after saving. -->
+    <section class="flex flex-col gap-2">
+      <div class="flex items-center justify-between">
+        <button
+          type="button"
+          class="flex items-center gap-2 text-lg font-semibold"
+          (click)="toggleAttacksCollapsed()"
+        >
+          <span class="text-muted-foreground">{{ attacksCollapsed() ? '▸' : '▾' }}</span>
+          Attacks &amp; Spellcasting
+        </button>
+        <button z-button zType="outline" zSize="sm" (click)="openAttacks()">Open attacks</button>
+      </div>
+      @if (!attacksCollapsed()) {
+      <div class="rounded-lg border p-3 text-sm">
+        @if (attackRows().length) {
+          <div class="overflow-x-auto">
+            <table class="w-full text-left">
+              <thead class="text-xs uppercase tracking-wide text-muted-foreground">
+                <tr>
+                  <th class="py-1 pr-4 font-medium">Name</th>
+                  <th class="py-1 pr-4 font-medium">To hit</th>
+                  <th class="py-1 pr-4 font-medium">Damage</th>
+                  <th class="py-1 pr-4 font-medium">Range</th>
+                  <th class="py-1 font-medium">Notes</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y">
+                @for (row of attackRows(); track $index) {
+                  <tr
+                    [class.cursor-help]="row.attack.description?.trim()"
+                    (mouseenter)="showAttackDescription($event, row.attack)"
+                    (mouseleave)="hideAttackDescription()"
+                  >
+                    <td class="py-1.5 pr-4 font-medium">{{ row.attack.name || 'Unnamed' }}</td>
+                    <td class="py-1.5 pr-4 whitespace-nowrap">
+                      {{ row.toHit === null ? '—' : fmt(row.toHit) }}
+                    </td>
+                    <td class="py-1.5 pr-4 whitespace-nowrap">
+                      {{ row.damage || '—' }}
+                      @if (row.attack.damage_type) {
+                        <span class="text-muted-foreground">{{ row.attack.damage_type }}</span>
+                      }
+                    </td>
+                    <td class="py-1.5 pr-4 whitespace-nowrap text-muted-foreground">
+                      {{ row.attack.range || '—' }}
+                    </td>
+                    <td class="py-1.5 text-muted-foreground">{{ row.attack.notes }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        } @else {
+          <p class="text-muted-foreground">
+            No attacks yet — open the modal to add weapon and spell attacks.
+          </p>
+        }
+      </div>
+      }
+    </section>
+
+    <!-- Hover tooltip: the hovered attack's Markdown description, anchored at its name and
+         opening toward the bottom-right; clamped in TS so it never runs off screen. -->
+    @if (attackTooltip(); as tip) {
+      <div
+        #attackTip
+        class="pointer-events-none fixed z-50 max-h-[60vh] max-w-xs overflow-y-auto rounded-lg border bg-background p-3 text-sm shadow-xl"
+        [style.top.px]="tip.top"
+        [style.left.px]="tip.left"
+      >
+        <div class="mb-1 border-b pb-1 font-semibold">{{ tip.attack.name || 'Unnamed' }}</div>
+        <app-markdown-view [source]="tip.attack.description" />
+      </div>
+    }
+
+    <app-attacks-modal
+      [attacks]="attackItems()"
+      [equipment]="equipmentItems()"
+      [spells]="spellItems()"
+      (attacksChange)="attackItems.set($event)"
+    />
+
     <!-- Other proficiencies -->
     <section class="flex flex-col gap-3">
       <h2 class="text-lg font-semibold">Other Proficiencies</h2>

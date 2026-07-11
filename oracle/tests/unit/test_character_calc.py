@@ -2,6 +2,7 @@ import pytest
 
 from app.services.character_calc import (
     ability_modifier,
+    attack_stats,
     compute_derived,
     equipment_totals,
     proficiency_bonus,
@@ -189,3 +190,89 @@ def test_derived_defaults_to_no_equipment():
     assert derived["carrying_capacity"] == 180
     assert derived["encumbered"] is False
     assert derived["attunement_count"] == 0
+    assert derived["attacks"] == []
+
+
+# --- Attacks -----------------------------------------------------------------
+
+
+def _mods(**overrides: int) -> dict[str, int]:
+    base = {name: 0 for name in ("strength", "dexterity", "constitution", "intelligence",
+                                 "wisdom", "charisma")}
+    base.update(overrides)
+    return base
+
+
+def test_attack_stats_proficient_str_weapon():
+    # STR +3, proficiency +3, +1 magic bonus → to-hit +7; damage 1d8 + 3 (bonus not on damage).
+    result = attack_stats(
+        [{"name": "Longsword +1", "ability": "str", "proficient": True,
+          "damage_dice": "1d8", "damage_type": "slashing", "bonus": 1}],
+        mods=_mods(strength=3),
+        proficiency=3,
+        spellcasting_ability="",
+    )
+    assert result == [{"name": "Longsword +1", "to_hit": 7, "damage": "1d8 + 3"}]
+
+
+def test_attack_stats_non_proficient_and_dex_finesse():
+    # DEX +4 finesse dagger, NOT proficient → to-hit = 4 + 0 + 0; damage 1d4 + 4.
+    result = attack_stats(
+        [{"name": "Dagger", "ability": "dex", "proficient": False, "damage_dice": "1d4"}],
+        mods=_mods(dexterity=4),
+        proficiency=2,
+        spellcasting_ability="",
+    )
+    assert result == [{"name": "Dagger", "to_hit": 4, "damage": "1d4 + 4"}]
+
+
+def test_attack_stats_spellcasting_ability_and_negative_mod():
+    # Spell attack uses the caster's ability (INT -1 here), proficient → to-hit = -1 + 2 = 1;
+    # damage 1d10 - 1 (negative mod formats with a minus). A non-caster falls back to +0.
+    caster = attack_stats(
+        [{"name": "Fire Bolt", "ability": "spellcasting", "proficient": True,
+          "damage_dice": "1d10"}],
+        mods=_mods(intelligence=-1),
+        proficiency=2,
+        spellcasting_ability="intelligence",
+    )
+    assert caster == [{"name": "Fire Bolt", "to_hit": 1, "damage": "1d10 - 1"}]
+
+    non_caster = attack_stats(
+        [{"name": "Eldritch Blast", "ability": "spellcasting", "proficient": True}],
+        mods=_mods(charisma=5),
+        proficiency=3,
+        spellcasting_ability="",  # class isn't a caster
+    )
+    assert non_caster == [{"name": "Eldritch Blast", "to_hit": 3, "damage": ""}]
+
+
+def test_attack_stats_zero_mod_omits_damage_modifier():
+    result = attack_stats(
+        [{"name": "Club", "ability": "str", "proficient": True, "damage_dice": "1d4"}],
+        mods=_mods(strength=0),
+        proficiency=2,
+        spellcasting_ability="",
+    )
+    assert result == [{"name": "Club", "to_hit": 2, "damage": "1d4"}]
+
+
+def test_derived_includes_attack_to_hit_and_damage():
+    # Wizard (INT caster) so a "spellcasting" attack resolves; STR 16 (+3), level 5 (pb +3).
+    derived = compute_derived(
+        abilities=_abilities(strength=16, intelligence=18),
+        level=5,
+        saving_throw_proficiencies=[],
+        skill_proficiencies=[],
+        class_name="Wizard",
+        attacks=[
+            {"name": "Quarterstaff", "ability": "str", "proficient": True, "damage_dice": "1d6"},
+            {"name": "Fire Bolt", "ability": "spellcasting", "proficient": True,
+             "damage_dice": "2d10"},
+        ],
+    )
+    # STR +3 + pb +3 = +6; INT +4 + pb +3 = +7.
+    assert derived["attacks"] == [
+        {"name": "Quarterstaff", "to_hit": 6, "damage": "1d6 + 3"},
+        {"name": "Fire Bolt", "to_hit": 7, "damage": "2d10 + 4"},
+    ]

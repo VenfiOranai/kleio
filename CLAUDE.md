@@ -123,7 +123,7 @@ one-liners below are the map.
 - **Character Sheet Overhaul (8–14)** — freeform text → structured JSONB (derived stays in
   `character_calc`). Done: **8** basics/spellcasting stats + currency + proficiencies; **9**
   equipment + modal; **10** spells + slot tracking; **long rest + structured hit dice**; **11**
-  features & traits.
+  features & traits; **12** attacks panel (JSONB `attacks` + derived to-hit/damage + modal).
 
-**Next up:** Phase 12 (Attacks panel), Phase 13/14 (5etools import), or Phase 6 (polish/hardening,
-backups) — see `docs/roadmap.md`.
+**Next up:** Phase 13/14 (5etools import), or Phase 6 (polish/hardening, backups) — see
+`docs/roadmap.md`.

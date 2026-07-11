@@ -151,7 +151,7 @@ Introduces the reusable **structured-list section** + a **modal** used by Phases
 - **Herald:** a **Features modal** grouped by source, with **limited-use trackers** (e.g. Rage
   3/long rest as dots/steppers), collapse, and filter. Compact summary on the sheet.
 
-### Phase 12 — Attacks panel  (feat. 4)
+### Phase 12 — Attacks panel  (feat. 4) ✅ done
 A combat "Attacks & Spellcasting" panel like a standard sheet.
 - **Oracle:** `attacks` JSONB list `{name, ability (str|dex|spellcasting), proficient,
   damage_dice, damage_type, bonus?, range, notes, source (weapon|spell|manual)}`. `character_calc`
