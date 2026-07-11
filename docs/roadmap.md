@@ -134,7 +134,7 @@ Introduces the reusable **structured-list section** + a **modal** used by Phases
   `<dialog>` — not Zard `dialog`, which pulls in CDK Overlay/Portal that the project reserves for
   layout only.)*
 
-### Phase 10 — Spell tracking (slots & prepared)  (feat. 2)
+### Phase 10 — Spell tracking (slots & prepared)  (feat. 2) ✅ done
 - **Oracle:** `spells` → JSONB list `{name, level 0–9, school, prepared, always_prepared, ritual,
   concentration, casting_time, range, components, duration, description(md)}`; `spell_slots`
   JSONB per level `{total, expended}` (manual now, auto-from-class in Phase 14). Migration

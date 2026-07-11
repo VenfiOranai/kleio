@@ -41,17 +41,82 @@
     </section>
 
     <!-- Combat -->
-    <section class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-      @for (field of ['max_hp', 'current_hp', 'temp_hp', 'armor_class', 'speed']; track field) {
-        <label class="flex flex-col gap-1 text-sm">
-          <span class="capitalize text-muted-foreground">{{ label(field) }}</span>
-          <input z-input type="number" [formControlName]="field" />
-        </label>
-      }
-      <label class="flex flex-col gap-1 text-sm">
-        <span class="text-muted-foreground">Hit dice</span>
-        <input z-input formControlName="hit_dice" />
-      </label>
+    <section class="flex flex-col gap-3">
+      <div class="flex items-center justify-between">
+        <h2 class="text-lg font-semibold">Combat</h2>
+        <button z-button zType="outline" zSize="sm" type="button" (click)="longRest()">
+          Long rest
+        </button>
+      </div>
+      <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+        @for (field of ['max_hp', 'current_hp', 'temp_hp', 'armor_class', 'speed']; track field) {
+          <label class="flex flex-col gap-1 text-sm">
+            <span class="capitalize text-muted-foreground">{{ label(field) }}</span>
+            <input z-input type="number" [formControlName]="field" />
+          </label>
+        }
+      </div>
+
+      <!-- Hit dice: structured pools (one per die size); a long rest restores half of each. -->
+      <div class="flex flex-col gap-2 rounded-lg border p-3">
+        <div class="flex items-center gap-2">
+          <span class="text-sm font-medium">Hit dice</span>
+          <button
+            z-button
+            zType="outline"
+            zSize="sm"
+            type="button"
+            class="ml-auto"
+            (click)="addHitDie()"
+          >
+            + Add pool
+          </button>
+        </div>
+        @for (hd of hitDice(); track $index) {
+          <div class="flex flex-wrap items-center gap-2 text-sm">
+            <input
+              z-input
+              class="w-20"
+              placeholder="d8"
+              [value]="hd.die"
+              (change)="setHitDie(hd, 'die', $any($event.target).value)"
+              aria-label="Hit die size"
+            />
+            <label class="flex items-center gap-1">
+              <span class="text-muted-foreground">Total</span>
+              <input
+                z-input
+                type="number"
+                class="w-16"
+                [value]="hd.total"
+                (change)="setHitDie(hd, 'total', $any($event.target).value)"
+                aria-label="Total hit dice"
+              />
+            </label>
+            <label class="flex items-center gap-1">
+              <span class="text-muted-foreground">Spent</span>
+              <input
+                z-input
+                type="number"
+                class="w-16"
+                [value]="hd.spent"
+                (change)="setHitDie(hd, 'spent', $any($event.target).value)"
+                aria-label="Spent hit dice"
+              />
+            </label>
+            <span class="text-muted-foreground">{{ hd.total - hd.spent }} available</span>
+            <button
+              type="button"
+              class="ml-auto text-destructive hover:underline"
+              (click)="removeHitDie(hd)"
+            >
+              Remove
+            </button>
+          </div>
+        } @empty {
+          <p class="text-xs text-muted-foreground">No hit dice — add a pool (e.g. 5 × d8).</p>
+        }
+      </div>
     </section>
 
     <div class="grid gap-6 lg:grid-cols-2">
@@ -277,9 +342,48 @@
       (itemsChange)="equipmentItems.set($event)"
     />
 
+    <!-- Spells (structured; edited in a modal). Compact summary + "Open spells". -->
+    <section class="flex flex-col gap-2">
+      <div class="flex items-center justify-between">
+        <h2 class="text-lg font-semibold">Spells</h2>
+        <button z-button zType="outline" zSize="sm" (click)="openSpells()">Open spells</button>
+      </div>
+      <div class="rounded-lg border p-3 text-sm">
+        @if (spellItems().length || totalSlots()) {
+          <div class="flex flex-wrap gap-x-4 gap-y-1 text-muted-foreground">
+            <span>Spells <strong class="text-foreground">{{ spellItems().length }}</strong></span>
+            <span>Prepared <strong class="text-foreground">{{ preparedSpellCount() }}</strong></span>
+            <span>Total slots <strong class="text-foreground">{{ totalSlots() }}</strong></span>
+          </div>
+          @if (spellSlots().length) {
+            <div class="mt-2 flex flex-wrap gap-2">
+              @for (slot of spellSlots(); track slot.level) {
+                <span class="rounded-full bg-muted px-2 py-0.5 text-xs">
+                  Lvl {{ slot.level }}:
+                  <strong>{{ slot.total - slot.expended }}</strong>/{{ slot.total }}
+                </span>
+              }
+            </div>
+          }
+        } @else {
+          <p class="text-muted-foreground">No spells yet — open the modal to add spells and slots.</p>
+        }
+      </div>
+    </section>
+
+    <app-spells-modal
+      [spells]="spellItems()"
+      [spellSlots]="spellSlots()"
+      [spellcastingAbility]="derived()?.spellcasting_ability ?? ''"
+      [spellSaveDc]="derived()?.spell_save_dc ?? null"
+      [spellAttackBonus]="derived()?.spell_attack_bonus ?? null"
+      (spellsChange)="spellItems.set($event)"
+      (spellSlotsChange)="spellSlots.set($event)"
+    />
+
     <!-- Freeform -->
     <section class="grid gap-4 md:grid-cols-2">
-      @for (field of ['features', 'spells', 'notes']; track field) {
+      @for (field of ['features', 'notes']; track field) {
         <label class="flex flex-col gap-1 text-sm">
           <span class="capitalize text-muted-foreground">{{ field }}</span>
           <textarea z-input rows="4" [formControlName]="field"></textarea>

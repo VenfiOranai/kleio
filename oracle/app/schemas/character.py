@@ -38,6 +38,42 @@ class EquipmentItem(BaseModel):
     description: str = ""  # markdown
 
 
+class Spell(BaseModel):
+    """A known/prepared spell. ``level`` 0 is a cantrip. ``school`` is free-form (the UI
+    offers the eight standard schools); all descriptive fields are optional strings."""
+
+    name: str = ""
+    level: int = Field(default=0, ge=0, le=9)
+    school: str = ""
+    prepared: bool = False
+    always_prepared: bool = False  # e.g. domain/racial spells that don't count against prepared
+    ritual: bool = False
+    concentration: bool = False
+    casting_time: str = ""
+    range: str = ""
+    components: str = ""
+    duration: str = ""
+    description: str = ""  # markdown
+
+
+class SpellSlot(BaseModel):
+    """Per-level spell-slot tracker. Manual for now (auto-from-class in Phase 14)."""
+
+    level: int = Field(ge=1, le=9)
+    total: int = 0
+    expended: int = 0
+
+
+class HitDie(BaseModel):
+    """A pool of hit dice of one size (e.g. ``die="d8"``). ``spent`` are expended; a long
+    rest restores up to half the pool (handled client-side). Multiclass characters have one
+    entry per die size."""
+
+    die: str = "d8"
+    total: int = 0
+    spent: int = 0
+
+
 class CharacterBase(BaseModel):
     name: str
 
@@ -62,7 +98,7 @@ class CharacterBase(BaseModel):
     max_hp: int = 0
     current_hp: int = 0
     temp_hp: int = 0
-    hit_dice: str = ""
+    hit_dice: list[HitDie] = Field(default_factory=list)
     armor_class: int = 10
     speed: int = 30
 
@@ -77,9 +113,12 @@ class CharacterBase(BaseModel):
     # Structured equipment
     equipment: list[EquipmentItem] = Field(default_factory=list)
 
+    # Structured spells + per-level slot trackers
+    spells: list[Spell] = Field(default_factory=list)
+    spell_slots: list[SpellSlot] = Field(default_factory=list)
+
     # Freeform (markdown)
     features: str = ""
-    spells: str = ""
     notes: str = ""
 
 
@@ -105,7 +144,7 @@ class CharacterUpdate(BaseModel):
     max_hp: int | None = None
     current_hp: int | None = None
     temp_hp: int | None = None
-    hit_dice: str | None = None
+    hit_dice: list[HitDie] | None = None
     armor_class: int | None = None
     speed: int | None = None
     saving_throw_proficiencies: list[str] | None = None
@@ -113,8 +152,9 @@ class CharacterUpdate(BaseModel):
     currency: Currency | None = None
     other_proficiencies: list[OtherProficiency] | None = None
     equipment: list[EquipmentItem] | None = None
+    spells: list[Spell] | None = None
+    spell_slots: list[SpellSlot] | None = None
     features: str | None = None
-    spells: str | None = None
     notes: str | None = None
 
 
