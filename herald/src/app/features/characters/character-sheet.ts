@@ -22,9 +22,12 @@ import {
   OtherProficiency,
   ProficiencyCategory,
   SKILLS,
+  Spell,
+  SpellSlot,
 } from '@/core/api/models';
 import { MarkdownView } from '@/shared/markdown-view/markdown-view';
 import { EquipmentModal } from './equipment-modal/equipment-modal';
+import { SpellsModal } from './spells-modal/spells-modal';
 
 /** A hover tooltip anchored to an equipment chip in the read-only sheet preview. */
 interface ItemTooltip {
@@ -51,6 +54,7 @@ function toggle(set: Set<string>, key: string): Set<string> {
     ZardButtonComponent,
     ZardInputDirective,
     EquipmentModal,
+    SpellsModal,
     MarkdownView,
   ],
   templateUrl: './character-sheet.html',
@@ -86,6 +90,16 @@ export class CharacterSheet {
   protected readonly skillProfs = signal<Set<string>>(new Set());
   protected readonly otherProfs = signal<OtherProficiency[]>([]);
   protected readonly equipmentItems = signal<EquipmentItem[]>([]);
+  protected readonly spellItems = signal<Spell[]>([]);
+  protected readonly spellSlots = signal<SpellSlot[]>([]);
+
+  /** Compact spell summary for the read-only sheet: prepared count + total-slot count. */
+  protected readonly preparedSpellCount = computed(
+    () => this.spellItems().filter((s) => s.prepared || s.always_prepared).length,
+  );
+  protected readonly totalSlots = computed(() =>
+    this.spellSlots().reduce((sum, s) => sum + (s.total || 0), 0),
+  );
 
   /** Read-only equipment preview: whole-section + per-category collapse, and a hover tooltip. */
   protected readonly equipmentCollapsed = signal(false);
@@ -112,6 +126,7 @@ export class CharacterSheet {
   });
 
   private readonly equipmentModal = viewChild.required(EquipmentModal);
+  private readonly spellsModal = viewChild.required(SpellsModal);
 
   protected readonly form = this.fb.nonNullable.group({
     name: [''],
@@ -142,7 +157,6 @@ export class CharacterSheet {
       cp: [0],
     }),
     features: [''],
-    spells: [''],
     notes: [''],
   });
 
@@ -160,6 +174,8 @@ export class CharacterSheet {
         this.skillProfs.set(new Set(c.skill_proficiencies));
         this.otherProfs.set([...c.other_proficiencies]);
         this.equipmentItems.set([...c.equipment]);
+        this.spellItems.set([...c.spells]);
+        this.spellSlots.set([...c.spell_slots]);
       });
     });
   }
@@ -194,6 +210,10 @@ export class CharacterSheet {
     this.equipmentModal().open();
   }
 
+  protected openSpells(): void {
+    this.spellsModal().open();
+  }
+
   protected toggleEquipmentCollapsed(): void {
     this.equipmentCollapsed.update((v) => !v);
     if (this.equipmentCollapsed()) this.itemTooltip.set(null);
@@ -226,6 +246,8 @@ export class CharacterSheet {
         skill_proficiencies: [...this.skillProfs()],
         other_proficiencies: this.otherProfs(),
         equipment: this.equipmentItems(),
+        spells: this.spellItems(),
+        spell_slots: this.spellSlots(),
       })
       .subscribe((c) => {
         this.character.set(c);

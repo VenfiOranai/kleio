@@ -1,0 +1,219 @@
+<app-modal title="Spells">
+  <!-- Spellcasting header (read-only; mirrors the sheet's server-computed derived stats). -->
+  @if (spellcastingAbility()) {
+    <div class="mb-4 flex flex-wrap gap-4 rounded-lg border p-3 text-sm">
+      <span>Ability <strong class="capitalize">{{ spellcastingAbility() }}</strong></span>
+      <span>Spell save DC <strong>{{ spellSaveDc() }}</strong></span>
+      <span>Spell attack <strong>{{ (spellAttackBonus() ?? 0) >= 0 ? '+' : '' }}{{ spellAttackBonus() }}</strong></span>
+    </div>
+  } @else {
+    <p class="mb-4 text-sm text-muted-foreground">
+      No spellcasting class set — spell save DC / attack appear once the character has a caster class.
+    </p>
+  }
+
+  <!-- Spell-slot trackers: a total stepper + clickable dots (available vs expended) per level. -->
+  <section class="mb-4 rounded-lg border">
+    <div class="flex items-center gap-2 border-b px-3 py-2">
+      <span class="font-medium">Spell slots</span>
+      <button type="button" z-button zType="outline" zSize="sm" class="ml-auto" (click)="resetSlots()">
+        Long rest (reset)
+      </button>
+    </div>
+    <div class="flex flex-col divide-y">
+      @for (level of slotLevels; track level) {
+        <div class="flex flex-wrap items-center gap-3 px-3 py-2 text-sm">
+          <span class="w-16 text-muted-foreground">Level {{ level }}</span>
+          <div class="flex items-center gap-1">
+            <button type="button" z-button zType="outline" zSize="sm" (click)="adjustSlotTotal(level, -1)">−</button>
+            <input
+              z-input
+              type="number"
+              class="w-14 text-center"
+              [value]="slotFor(level).total"
+              (change)="setSlotTotal(level, $any($event.target).value)"
+              [attr.aria-label]="'Level ' + level + ' total slots'"
+            />
+            <button type="button" z-button zType="outline" zSize="sm" (click)="adjustSlotTotal(level, 1)">+</button>
+          </div>
+          @if (slotFor(level).total > 0) {
+            <div class="flex flex-wrap items-center gap-1">
+              @for (available of slotDots(slotFor(level)); track $index) {
+                <button
+                  type="button"
+                  class="h-4 w-4 rounded-full border border-primary transition-colors"
+                  [class.bg-primary]="available"
+                  (click)="toggleDot(level, $index)"
+                  [attr.aria-label]="available ? 'Available slot' : 'Expended slot'"
+                ></button>
+              }
+              <span class="ml-1 text-xs text-muted-foreground">
+                {{ slotFor(level).total - slotFor(level).expended }}/{{ slotFor(level).total }}
+              </span>
+              <button
+                type="button"
+                class="ml-2 text-xs text-muted-foreground hover:underline"
+                (click)="cast(level)"
+              >
+                Cast
+              </button>
+              <button
+                type="button"
+                class="text-xs text-muted-foreground hover:underline"
+                (click)="restore(level)"
+              >
+                Restore
+              </button>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  </section>
+
+  <!-- Toolbar: counts + add + filters -->
+  <div class="mb-4 flex flex-wrap items-center gap-3">
+    <div class="flex flex-wrap gap-3 text-sm text-muted-foreground">
+      <span>Spells <strong class="text-foreground">{{ working().length }}</strong></span>
+      <span>Prepared <strong class="text-foreground">{{ preparedCount() }}</strong></span>
+    </div>
+    <button z-button zSize="sm" class="ml-auto" (click)="addSpell()">+ Add spell</button>
+  </div>
+
+  <div class="mb-4 flex flex-wrap items-center gap-3">
+    <input
+      z-input
+      class="max-w-xs"
+      placeholder="Search spells…"
+      [value]="search()"
+      (input)="search.set($any($event.target).value)"
+    />
+    <select
+      z-input
+      class="w-32"
+      [value]="levelFilter()"
+      (change)="levelFilter.set(+$any($event.target).value)"
+      aria-label="Filter by level"
+    >
+      <option [value]="-1">All levels</option>
+      @for (level of levels; track level) {
+        <option [value]="level">{{ level === 0 ? 'Cantrips' : 'Level ' + level }}</option>
+      }
+    </select>
+    <label class="flex items-center gap-2 text-sm">
+      <input type="checkbox" [checked]="preparedOnly()" (change)="preparedOnly.set($any($event.target).checked)" />
+      Prepared only
+    </label>
+    <label class="flex items-center gap-2 text-sm">
+      <input type="checkbox" [checked]="ritualOnly()" (change)="ritualOnly.set($any($event.target).checked)" />
+      Ritual only
+    </label>
+  </div>
+
+  <datalist id="spell-schools">
+    @for (school of schools; track school) {
+      <option [value]="school"></option>
+    }
+  </datalist>
+
+  @for (group of groups(); track group.level) {
+    <section class="mb-4 rounded-lg border">
+      <div class="border-b px-3 py-2 font-medium">
+        {{ group.label }}
+        <span class="text-sm text-muted-foreground">({{ group.spells.length }})</span>
+      </div>
+      <div class="flex flex-col divide-y">
+        @for (spell of group.spells; track spell._id) {
+          <div class="flex flex-col gap-2 p-3">
+            <div class="flex flex-wrap items-center gap-2">
+              <input
+                z-input
+                class="min-w-40 flex-1"
+                placeholder="Spell name"
+                [value]="spell.name"
+                (change)="setText(spell, 'name', $any($event.target).value)"
+              />
+              <label class="flex items-center gap-1 text-sm">
+                <span class="text-muted-foreground">Lvl</span>
+                <select
+                  z-input
+                  class="w-16"
+                  [value]="spell.level"
+                  (change)="setLevel(spell, $any($event.target).value)"
+                  aria-label="Spell level"
+                >
+                  @for (level of levels; track level) {
+                    <option [value]="level">{{ level === 0 ? 'C' : level }}</option>
+                  }
+                </select>
+              </label>
+              <input
+                z-input
+                list="spell-schools"
+                class="w-32"
+                placeholder="School"
+                [value]="spell.school"
+                (change)="setText(spell, 'school', $any($event.target).value)"
+              />
+            </div>
+
+            <div class="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              <input z-input placeholder="Casting time" [value]="spell.casting_time" (change)="setText(spell, 'casting_time', $any($event.target).value)" />
+              <input z-input placeholder="Range" [value]="spell.range" (change)="setText(spell, 'range', $any($event.target).value)" />
+              <input z-input placeholder="Components" [value]="spell.components" (change)="setText(spell, 'components', $any($event.target).value)" />
+              <input z-input placeholder="Duration" [value]="spell.duration" (change)="setText(spell, 'duration', $any($event.target).value)" />
+            </div>
+
+            <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+              <label class="flex items-center gap-2">
+                <input type="checkbox" [checked]="spell.prepared" (change)="toggle(spell, 'prepared')" />
+                Prepared
+              </label>
+              <label class="flex items-center gap-2">
+                <input type="checkbox" [checked]="spell.always_prepared" (change)="toggle(spell, 'always_prepared')" />
+                Always prepared
+              </label>
+              <label class="flex items-center gap-2">
+                <input type="checkbox" [checked]="spell.ritual" (change)="toggle(spell, 'ritual')" />
+                Ritual
+              </label>
+              <label class="flex items-center gap-2">
+                <input type="checkbox" [checked]="spell.concentration" (change)="toggle(spell, 'concentration')" />
+                Concentration
+              </label>
+              @if (spell.level >= 1) {
+                <button
+                  type="button"
+                  class="text-muted-foreground hover:underline disabled:opacity-40 disabled:no-underline"
+                  [disabled]="!canCast(spell.level)"
+                  (click)="cast(spell.level)"
+                  [title]="canCast(spell.level) ? 'Expend a level ' + spell.level + ' slot' : 'No level ' + spell.level + ' slots left'"
+                >
+                  Cast
+                </button>
+              }
+              <button type="button" class="text-muted-foreground hover:underline" (click)="duplicate(spell)">
+                Duplicate
+              </button>
+              <button type="button" class="ml-auto text-destructive hover:underline" (click)="remove(spell)">
+                Remove
+              </button>
+            </div>
+
+            <textarea
+              z-input
+              rows="2"
+              placeholder="Description (markdown)…"
+              [value]="spell.description"
+              (change)="setText(spell, 'description', $any($event.target).value)"
+            ></textarea>
+          </div>
+        }
+      </div>
+    </section>
+  } @empty {
+    <p class="py-8 text-center text-sm text-muted-foreground">
+      No spells yet. Use <strong>+ Add spell</strong> to build your spell list.
+    </p>
+  }
+</app-modal>

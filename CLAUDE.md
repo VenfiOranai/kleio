@@ -278,11 +278,37 @@ rides along in the sheet's Save via an `equipmentItems` signal. `models.ts` gain
 gains an equipment-modal test (add item → stepper → derived weight 6 → summary) (**3 specs green**);
 `ng build` clean (bundle-budget warning only).
 
-Next up: **Phase 10 — Spell tracking (slots & prepared)** or **Phase 11 — Structured features**
-(both reuse the Phase 9 modal + structured-list pattern), or **Phase 6 — Polish & hardening**
+**Phase 10 complete** (pending review/commit): **structured spells + slot tracking**. Oracle —
+`characters.spells` moves from freeform `Text` to a **JSONB list** of spells `{name, level 0–9,
+school, prepared, always_prepared, ritual, concentration, casting_time, range, components,
+duration, description(md)}`, plus a new `spell_slots` JSONB list `{level 1–9, total, expended}`
+(manual now; auto-from-class in Phase 14) — migration `2b9f4c1e0a3d` (preserves any existing spells
+text as a single **"Imported spells"** seed item, mirroring Phase 9's equipment downgrade). Slots
+are **manual** — no `character_calc` changes (the spell DC/attack from Phase 8 already cover the
+derived side). Schemas: `Spell` (level bounded `ge=0,le=9`) + `SpellSlot` (`ge=1,le=9`);
+`CharacterBase`/`CharacterUpdate` `spells` become `list[Spell]` and gain `spell_slots`. Tests:
+integration `test_characters.py` (spells + slots round-trip, empty defaults, cast-persists,
+out-of-range level → 422). Herald — a **`SpellsModal`** (`features/characters/spells-modal`,
+reusing the shared `<dialog>` `Modal`): a read-only **spellcasting header** (ability/DC/attack fed
+from the sheet's `derived`), **per-level slot trackers** (total steppers + clickable available/
+expended **dots**, per-level Cast/Restore, and a **Long rest (reset)**), spells grouped by level
+(Cantrips first), prepared/always-prepared/ritual/concentration toggles, a per-spell **Cast**
+(disabled when no slot of that level is left), duplicate/remove, and filters (search, level
+`<select>`, prepared-only, ritual-only). Edits a working copy keyed by a transient `_id` (like the
+equipment modal) and emits `spells`/`spell_slots` on every change. The character sheet drops the
+freeform spells textarea for a compact **summary** (spell/prepared counts + per-level remaining-slot
+chips) and an **"Open spells"** button; `spells` + `spell_slots` ride along in the sheet's Save via
+`spellItems`/`spellSlots` signals. `models.ts` gains `Spell`/`SpellSlot`/`SPELL_SCHOOLS` and
+`Character.spells: Spell[]` + `spell_slots`. e2e `character.spec.ts` gains a spells-modal test (set
+2 lvl-1 slots → add a prepared spell → expend a dot → summary shows 1 prepared + `Lvl 1: 1/2` →
+survives reload) (**4 specs green**); the two existing modal tests were rescoped for the second
+`<dialog>` (`getByRole('dialog')` / `:visible`). `ng build` clean (bundle-budget warning only).
+
+Next up: **Phase 11 — Structured features** (reuses the Phase 9/10 modal + structured-list
+pattern), **Phase 12 — Attacks panel** (needs 8/9/10), or **Phase 6 — Polish & hardening**
 (backups) — see `docs/roadmap.md`.
 
-**Planned — Character Sheet Overhaul (Phases 10–14)**: designed, not implemented (Phases 8–9 done —
+**Planned — Character Sheet Overhaul (Phases 11–14)**: designed, not implemented (Phases 8–10 done —
 see above). Turns the
 character sheet's freeform `equipment`/`spells`/`features` text into **structured JSONB** on the
 `characters` table (money, misc proficiencies, spellcasting DC/attack; equipment/spells/features

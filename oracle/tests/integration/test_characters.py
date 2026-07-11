@@ -136,6 +136,77 @@ def test_equipment_defaults_to_empty_list(db_client: TestClient, campaign_id: in
     assert body["derived"]["attunement_count"] == 0
 
 
+def test_spells_and_slots_round_trip(db_client: TestClient, campaign_id: int):
+    payload = {
+        "name": "Elora",
+        "class_name": "Wizard",
+        "spells": [
+            {"name": "Fire Bolt", "level": 0, "school": "Evocation"},
+            {
+                "name": "Shield",
+                "level": 1,
+                "school": "Abjuration",
+                "prepared": True,
+                "ritual": False,
+                "casting_time": "1 reaction",
+                "range": "Self",
+                "components": "V, S",
+                "duration": "1 round",
+                "description": "+5 AC until your next turn.",
+            },
+            {
+                "name": "Detect Magic",
+                "level": 1,
+                "ritual": True,
+                "concentration": True,
+                "always_prepared": True,
+            },
+        ],
+        "spell_slots": [
+            {"level": 1, "total": 4, "expended": 1},
+            {"level": 2, "total": 2, "expended": 0},
+        ],
+    }
+    body = db_client.post(f"/api/campaigns/{campaign_id}/characters", json=payload).json()
+
+    assert len(body["spells"]) == 3
+    # Defaults fill in for the terse cantrip.
+    assert body["spells"][0]["name"] == "Fire Bolt"
+    assert body["spells"][0]["prepared"] is False
+    assert body["spells"][1]["prepared"] is True
+    assert body["spells"][2]["ritual"] is True
+    assert body["spells"][2]["concentration"] is True
+
+    assert body["spell_slots"] == [
+        {"level": 1, "total": 4, "expended": 1},
+        {"level": 2, "total": 2, "expended": 0},
+    ]
+
+
+def test_spells_default_to_empty_and_cast_persists(db_client: TestClient, campaign_id: int):
+    character_id = db_client.post(
+        f"/api/campaigns/{campaign_id}/characters", json={"name": "Blank"}
+    ).json()["id"]
+    created = db_client.get(f"/api/characters/{character_id}").json()
+    assert created["spells"] == []
+    assert created["spell_slots"] == []
+
+    # "Casting" a spell (expending a slot) is client-side state that persists on save.
+    body = db_client.put(
+        f"/api/characters/{character_id}",
+        json={"spell_slots": [{"level": 1, "total": 3, "expended": 2}]},
+    ).json()
+    assert body["spell_slots"] == [{"level": 1, "total": 3, "expended": 2}]
+
+
+def test_spell_level_out_of_range_rejected(db_client: TestClient, campaign_id: int):
+    resp = db_client.post(
+        f"/api/campaigns/{campaign_id}/characters",
+        json={"name": "Bad", "spells": [{"name": "Wish", "level": 10}]},
+    )
+    assert resp.status_code == 422
+
+
 def test_list_and_delete_character(db_client: TestClient, campaign_id: int):
     character_id = db_client.post(
         f"/api/campaigns/{campaign_id}/characters", json={"name": "Cora"}

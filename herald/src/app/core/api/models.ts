@@ -63,6 +63,41 @@ export interface EquipmentItem {
   description: string;
 }
 
+/** A known/prepared spell. `level` 0 is a cantrip; `school` is free-form. */
+export interface Spell {
+  name: string;
+  level: number;
+  school: string;
+  prepared: boolean;
+  always_prepared: boolean;
+  ritual: boolean;
+  concentration: boolean;
+  casting_time: string;
+  range: string;
+  components: string;
+  duration: string;
+  description: string;
+}
+
+/** A per-level spell-slot tracker (manual; auto-from-class planned for Phase 14). */
+export interface SpellSlot {
+  level: number;
+  total: number;
+  expended: number;
+}
+
+/** The eight standard 5E schools of magic, offered in the spell form. */
+export const SPELL_SCHOOLS = [
+  'Abjuration',
+  'Conjuration',
+  'Divination',
+  'Enchantment',
+  'Evocation',
+  'Illusion',
+  'Necromancy',
+  'Transmutation',
+] as const;
+
 export interface Character {
   id: number;
   campaign_id: number;
@@ -91,8 +126,9 @@ export interface Character {
   currency: Currency;
   other_proficiencies: OtherProficiency[];
   equipment: EquipmentItem[];
+  spells: Spell[];
+  spell_slots: SpellSlot[];
   features: string;
-  spells: string;
   notes: string;
   created_at: string;
   updated_at: string;

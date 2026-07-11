@@ -65,9 +65,13 @@ class Character(Base):
     # Structured equipment: list of item dicts (see schemas.EquipmentItem).
     equipment: Mapped[list[dict]] = mapped_column(JSONB, default=list)
 
+    # Structured spells: list of spell dicts (see schemas.Spell), plus per-level slot
+    # trackers (list of {level, total, expended} — manual now, auto-from-class in Phase 14).
+    spells: Mapped[list[dict]] = mapped_column(JSONB, default=list)
+    spell_slots: Mapped[list[dict]] = mapped_column(JSONB, default=list)
+
     # Freeform notes (markdown)
     features: Mapped[str] = mapped_column(Text, default="")
-    spells: Mapped[str] = mapped_column(Text, default="")
     notes: Mapped[str] = mapped_column(Text, default="")
 
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
