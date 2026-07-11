@@ -120,16 +120,19 @@ Small, high-value additions that need no big refactor; they establish patterns f
   (chips you add/remove per category). The **Spellcasting** panel is fully read-only — ability +
   **DC / attack** come from `derived` and update from the class field (no selector).
 
-### Phase 9 — Structured equipment + item modal  (feat. 1)
+### Phase 9 — Structured equipment + item modal  (feat. 1) ✅ done
 Introduces the reusable **structured-list section** + a **modal** used by Phases 10–12.
 - **Oracle:** `equipment` → JSONB list of items `{name, quantity, category, weight?, equipped?,
   attuned?, description(md)}`. Preset categories (Weapons, Armor, Gear, Consumables, Treasure,
-  Other) plus custom. Optional derived **total weight / encumbrance** and **attunement count**
-  (max 3). Migration preserves the old text.
-- **Herald:** an **Equipment modal** (add Zard `dialog`) — a roomy, full view of items **grouped
-  by category**, with add/edit/remove, quantity steppers, equipped/attuned toggles, collapsible
-  categories, and in-modal search/filter/sort. The sheet shows a compact summary + "Open
-  equipment". QoL: duplicate item, attunement readout, drag-reorder *(stretch)*.
+  Other) plus custom. Derived **total weight**, **carrying capacity** (STR × 15), an **encumbered**
+  flag, and **attunement count** (max 3) in the pure `character_calc`. Migration preserves the old
+  text as a single seed item.
+- **Herald:** an **Equipment modal** — a roomy, full view of items **grouped by category**, with
+  add/edit/remove, quantity steppers, equipped/attuned toggles, collapsible categories, and
+  in-modal search + equipped-only filter. The sheet shows a compact summary + "Open equipment".
+  QoL: duplicate item, attunement readout. *(Built on a dependency-free `shared/modal` native
+  `<dialog>` — not Zard `dialog`, which pulls in CDK Overlay/Portal that the project reserves for
+  layout only.)*
 
 ### Phase 10 — Spell tracking (slots & prepared)  (feat. 2)
 - **Oracle:** `spells` → JSONB list `{name, level 0–9, school, prepared, always_prepared, ritual,

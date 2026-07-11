@@ -62,8 +62,10 @@ class Character(Base):
     # Misc proficiencies: list of {category, name}, category in language|weapon|armor|tool|other
     other_proficiencies: Mapped[list[dict[str, str]]] = mapped_column(JSONB, default=list)
 
+    # Structured equipment: list of item dicts (see schemas.EquipmentItem).
+    equipment: Mapped[list[dict]] = mapped_column(JSONB, default=list)
+
     # Freeform notes (markdown)
-    equipment: Mapped[str] = mapped_column(Text, default="")
     features: Mapped[str] = mapped_column(Text, default="")
     spells: Mapped[str] = mapped_column(Text, default="")
     notes: Mapped[str] = mapped_column(Text, default="")

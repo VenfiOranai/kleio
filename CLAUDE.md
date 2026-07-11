@@ -65,6 +65,12 @@ docs/      architecture.md, roadmap.md  (source of truth for design)
   Tailwind v4 and **plain CSS (no SCSS)** — `herald` is scaffolded with `--style=css`. Angular
   CDK is allowed for layout/`BreakpointObserver` only. Gotcha: after `zard-cli add card`, fix
   its `@/shared/core` import to `@/core` (beta CLI bug).
+- **Modals = native `<dialog>`, not Zard `dialog`.** `zard-cli add dialog` pulls in
+  `@angular/cdk/overlay` + `@angular/cdk/portal`, which violates the CDK-for-layout-only rule
+  above. Instead we have a dependency-free `shared/modal` (`app-modal`) built on the native
+  `<dialog>` element (`showModal()` gives focus-trap/Esc/backdrop for free); project content via
+  `<ng-content>` and drive it with `open()`/`close()`. The structured character-sheet sections
+  (equipment, and later spells/features/attacks) reuse it.
 - **Split component files:** template, styles, and logic live in **separate files** —
   `templateUrl`/`styleUrl`, never inline `template:`/`styles:`. `ng generate component` already
   does this by default. **Zard components from `zard-cli add` come with inline template/styles
@@ -249,11 +255,34 @@ section split into per-category cards with add-on-Enter / removable chips (clien
 signal, sent on save). e2e `character.spec.ts` gains a class-derived-spellcasting +
 proficiency-chip-persistence test (**2 specs green**); `ng build` clean.
 
-Next up: **Phase 9 — Structured equipment + item modal** (introduces the reusable modal +
-structured-list pattern for Phases 10–12), or **Phase 6 — Polish & hardening** (backups) — see
-`docs/roadmap.md`.
+**Phase 9 complete** (pending review/commit): **structured equipment + item modal**. Oracle —
+`characters.equipment` moves from freeform `Text` to a **JSONB list** of items `{name, quantity,
+category, weight?, equipped?, attuned?, description(md)}` via migration `1757898c7dd2` (which
+preserves any existing text as a single **"Imported equipment"** seed item; lossy best-effort
+downgrade). `character_calc` gains a pure `equipment_totals()` and surfaces `total_weight`,
+`carrying_capacity` (STR × 15), `encumbered` (weight > capacity), and `attunement_count` in
+`derived`. Schemas: `EquipmentItem` (category is free-form; presets are a UI convention);
+`CharacterBase.equipment`/`CharacterUpdate.equipment` become `list[EquipmentItem]`; `DerivedStats`
+extended. Tests: unit `test_character_calc.py` (weight/attunement totals, carry capacity,
+encumbrance); integration `test_characters.py` (equipment round-trip + derived, empty default). The
+migration's text→seed conversion was verified against a seeded row. Herald — a dependency-free
+**`shared/modal`** (`app-modal`, native `<dialog>` — see the modal convention above); an
+**`EquipmentModal`** (`features/characters/equipment-modal`) grouping items by category
+(preset-order then custom), collapsible, with add/edit/remove/**duplicate**, quantity steppers,
+equipped/attuned toggles, live weight + attuned/3 readout, and a search + equipped-only filter
+(edits a working copy keyed by a transient `_id` so `@for` tracking survives in-place edits, and
+emits on every change). The character sheet drops the equipment textarea for a compact **summary**
+(item chips + derived weight/capacity/attunement) and an **"Open equipment"** button; `equipment`
+rides along in the sheet's Save via an `equipmentItems` signal. `models.ts` gains `EquipmentItem`
++ `EQUIPMENT_CATEGORIES` and `DerivedStats` weight/attunement fields. e2e `character.spec.ts`
+gains an equipment-modal test (add item → stepper → derived weight 6 → summary) (**3 specs green**);
+`ng build` clean (bundle-budget warning only).
 
-**Planned — Character Sheet Overhaul (Phases 9–14)**: designed, not implemented (Phase 8 done —
+Next up: **Phase 10 — Spell tracking (slots & prepared)** or **Phase 11 — Structured features**
+(both reuse the Phase 9 modal + structured-list pattern), or **Phase 6 — Polish & hardening**
+(backups) — see `docs/roadmap.md`.
+
+**Planned — Character Sheet Overhaul (Phases 10–14)**: designed, not implemented (Phases 8–9 done —
 see above). Turns the
 character sheet's freeform `equipment`/`spells`/`features` text into **structured JSONB** on the
 `characters` table (money, misc proficiencies, spellcasting DC/attack; equipment/spells/features

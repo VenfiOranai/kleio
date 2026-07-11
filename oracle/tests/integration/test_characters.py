@@ -97,6 +97,45 @@ def test_subclass_grants_spellcasting(db_client: TestClient, campaign_id: int):
     assert body["derived"]["spell_attack_bonus"] == 6  # 3 + 3
 
 
+def test_equipment_round_trips_and_derives_weight(db_client: TestClient, campaign_id: int):
+    payload = {
+        "name": "Packmule",
+        "strength": 14,  # carrying capacity 210
+        "equipment": [
+            {"name": "Plate Armor", "quantity": 1, "category": "Armor", "weight": 65,
+             "equipped": True, "attuned": False, "description": "AC 18"},
+            {"name": "Rations", "quantity": 10, "category": "Consumables", "weight": 2},
+            {"name": "Amulet of Health", "quantity": 1, "category": "Treasure",
+             "weight": 1, "attuned": True},
+        ],
+    }
+    body = db_client.post(
+        f"/api/campaigns/{campaign_id}/characters", json=payload
+    ).json()
+
+    # List round-trips with defaults filled in (quantity/category/flags).
+    assert len(body["equipment"]) == 3
+    assert body["equipment"][0]["name"] == "Plate Armor"
+    assert body["equipment"][1]["quantity"] == 10
+    assert body["equipment"][1]["equipped"] is False  # default
+
+    # Derived: 65 + 10*2 + 1 = 86 weight; STR 14 → capacity 210 (not encumbered); 1 attuned.
+    d = body["derived"]
+    assert d["total_weight"] == 86
+    assert d["carrying_capacity"] == 210
+    assert d["encumbered"] is False
+    assert d["attunement_count"] == 1
+
+
+def test_equipment_defaults_to_empty_list(db_client: TestClient, campaign_id: int):
+    body = db_client.post(
+        f"/api/campaigns/{campaign_id}/characters", json={"name": "Naked"}
+    ).json()
+    assert body["equipment"] == []
+    assert body["derived"]["total_weight"] == 0
+    assert body["derived"]["attunement_count"] == 0
+
+
 def test_list_and_delete_character(db_client: TestClient, campaign_id: int):
     character_id = db_client.post(
         f"/api/campaigns/{campaign_id}/characters", json={"name": "Cora"}

@@ -1,0 +1,13 @@
+.app-modal {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  width: 92vw;
+  max-width: 72rem;
+  /* Centered horizontally (auto sides), pinned a little below the top rather than mid-screen. */
+  margin: 4rem auto auto;
+}
+
+.app-modal::backdrop {
+  background: rgb(0 0 0 / 0.5);
+}

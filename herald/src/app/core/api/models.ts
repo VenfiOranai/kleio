@@ -29,6 +29,10 @@ export interface DerivedStats {
   spellcasting_ability: string;
   spell_attack_bonus: number | null;
   spell_save_dc: number | null;
+  total_weight: number;
+  carrying_capacity: number;
+  encumbered: boolean;
+  attunement_count: number;
 }
 
 /** 5E coin purse. */
@@ -46,6 +50,17 @@ export type ProficiencyCategory = 'language' | 'weapon' | 'armor' | 'tool' | 'ot
 export interface OtherProficiency {
   category: ProficiencyCategory;
   name: string;
+}
+
+/** A carried item. `category` is free-form; presets are offered in the UI. */
+export interface EquipmentItem {
+  name: string;
+  quantity: number;
+  category: string;
+  weight: number | null;
+  equipped: boolean;
+  attuned: boolean;
+  description: string;
 }
 
 export interface Character {
@@ -75,7 +90,7 @@ export interface Character {
   skill_proficiencies: string[];
   currency: Currency;
   other_proficiencies: OtherProficiency[];
-  equipment: string;
+  equipment: EquipmentItem[];
   features: string;
   spells: string;
   notes: string;

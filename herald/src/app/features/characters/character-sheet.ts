@@ -7,6 +7,7 @@ import {
   numberAttribute,
   output,
   signal,
+  viewChild,
 } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -17,10 +18,20 @@ import { CharacterService } from '@/core/api/character.service';
 import {
   ABILITIES,
   Character,
+  EquipmentItem,
   OtherProficiency,
   ProficiencyCategory,
   SKILLS,
 } from '@/core/api/models';
+import { MarkdownView } from '@/shared/markdown-view/markdown-view';
+import { EquipmentModal } from './equipment-modal/equipment-modal';
+
+/** A hover tooltip anchored to an equipment chip in the read-only sheet preview. */
+interface ItemTooltip {
+  item: EquipmentItem;
+  top: number;
+  left: number;
+}
 
 function toggle(set: Set<string>, key: string): Set<string> {
   const next = new Set(set);
@@ -34,7 +45,14 @@ function toggle(set: Set<string>, key: string): Set<string> {
 
 @Component({
   selector: 'app-character-sheet',
-  imports: [ReactiveFormsModule, RouterLink, ZardButtonComponent, ZardInputDirective],
+  imports: [
+    ReactiveFormsModule,
+    RouterLink,
+    ZardButtonComponent,
+    ZardInputDirective,
+    EquipmentModal,
+    MarkdownView,
+  ],
   templateUrl: './character-sheet.html',
 })
 export class CharacterSheet {
@@ -67,6 +85,33 @@ export class CharacterSheet {
   protected readonly saveProfs = signal<Set<string>>(new Set());
   protected readonly skillProfs = signal<Set<string>>(new Set());
   protected readonly otherProfs = signal<OtherProficiency[]>([]);
+  protected readonly equipmentItems = signal<EquipmentItem[]>([]);
+
+  /** Read-only equipment preview: whole-section + per-category collapse, and a hover tooltip. */
+  protected readonly equipmentCollapsed = signal(false);
+  protected readonly equipmentGroupsCollapsed = signal<Set<string>>(new Set());
+  protected readonly itemTooltip = signal<ItemTooltip | null>(null);
+
+  /** Equipment grouped by category (custom alphabetically, then Uncategorized) for the preview. */
+  protected readonly equipmentGroups = computed(() => {
+    const byCat = new Map<string, EquipmentItem[]>();
+    for (const item of this.equipmentItems()) {
+      (byCat.get(item.category) ?? byCat.set(item.category, []).get(item.category)!).push(item);
+    }
+    return [...byCat.keys()]
+      .sort((a, b) => {
+        if (a === '') return 1; // Uncategorized last.
+        if (b === '') return -1;
+        return a.localeCompare(b);
+      })
+      .map((category) => ({
+        category,
+        label: category || 'Uncategorized',
+        items: byCat.get(category)!,
+      }));
+  });
+
+  private readonly equipmentModal = viewChild.required(EquipmentModal);
 
   protected readonly form = this.fb.nonNullable.group({
     name: [''],
@@ -96,7 +141,6 @@ export class CharacterSheet {
       sp: [0],
       cp: [0],
     }),
-    equipment: [''],
     features: [''],
     spells: [''],
     notes: [''],
@@ -115,6 +159,7 @@ export class CharacterSheet {
         this.saveProfs.set(new Set(c.saving_throw_proficiencies));
         this.skillProfs.set(new Set(c.skill_proficiencies));
         this.otherProfs.set([...c.other_proficiencies]);
+        this.equipmentItems.set([...c.equipment]);
       });
     });
   }
@@ -145,6 +190,34 @@ export class CharacterSheet {
     this.otherProfs.update((list) => list.filter((p) => p !== prof));
   }
 
+  protected openEquipment(): void {
+    this.equipmentModal().open();
+  }
+
+  protected toggleEquipmentCollapsed(): void {
+    this.equipmentCollapsed.update((v) => !v);
+    if (this.equipmentCollapsed()) this.itemTooltip.set(null);
+  }
+
+  protected isEquipmentGroupCollapsed(category: string): boolean {
+    return this.equipmentGroupsCollapsed().has(category);
+  }
+
+  protected toggleEquipmentGroup(category: string): void {
+    this.equipmentGroupsCollapsed.update((set) => toggle(set, category));
+  }
+
+  /** Show the item's description in a tooltip to the right of the hovered chip. */
+  protected showItemDescription(event: MouseEvent, item: EquipmentItem): void {
+    if (!item.description?.trim()) return;
+    const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+    this.itemTooltip.set({ item, top: rect.top, left: rect.right + 8 });
+  }
+
+  protected hideItemDescription(): void {
+    this.itemTooltip.set(null);
+  }
+
   protected save(): void {
     this.service
       .update(this.characterId(), {
@@ -152,6 +225,7 @@ export class CharacterSheet {
         saving_throw_proficiencies: [...this.saveProfs()],
         skill_proficiencies: [...this.skillProfs()],
         other_proficiencies: this.otherProfs(),
+        equipment: this.equipmentItems(),
       })
       .subscribe((c) => {
         this.character.set(c);
