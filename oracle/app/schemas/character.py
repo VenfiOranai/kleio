@@ -25,6 +25,19 @@ class OtherProficiency(BaseModel):
     name: str
 
 
+class EquipmentItem(BaseModel):
+    """A carried item. Preset categories (Weapons/Armor/Gear/Consumables/Treasure/Other)
+    are conventions the UI offers; ``category`` accepts any string for custom buckets."""
+
+    name: str = ""
+    quantity: int = 1
+    category: str = "Gear"
+    weight: float | None = None
+    equipped: bool = False
+    attuned: bool = False
+    description: str = ""  # markdown
+
+
 class CharacterBase(BaseModel):
     name: str
 
@@ -61,8 +74,10 @@ class CharacterBase(BaseModel):
     currency: Currency = Field(default_factory=Currency)
     other_proficiencies: list[OtherProficiency] = Field(default_factory=list)
 
+    # Structured equipment
+    equipment: list[EquipmentItem] = Field(default_factory=list)
+
     # Freeform (markdown)
-    equipment: str = ""
     features: str = ""
     spells: str = ""
     notes: str = ""
@@ -97,7 +112,7 @@ class CharacterUpdate(BaseModel):
     skill_proficiencies: list[str] | None = None
     currency: Currency | None = None
     other_proficiencies: list[OtherProficiency] | None = None
-    equipment: str | None = None
+    equipment: list[EquipmentItem] | None = None
     features: str | None = None
     spells: str | None = None
     notes: str | None = None
@@ -114,6 +129,11 @@ class DerivedStats(BaseModel):
     spellcasting_ability: str
     spell_attack_bonus: int | None
     spell_save_dc: int | None
+    # Equipment (Phase 9): carried weight vs STR-based carrying capacity, attuned-item count.
+    total_weight: float
+    carrying_capacity: int
+    encumbered: bool
+    attunement_count: int
 
 
 class CharacterRead(CharacterBase):
@@ -134,5 +154,6 @@ class CharacterRead(CharacterBase):
             skill_proficiencies=self.skill_proficiencies,
             class_name=self.class_name,
             subclass=self.subclass,
+            equipment=[item.model_dump() for item in self.equipment],
         )
         return DerivedStats(**stats)

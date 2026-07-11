@@ -70,6 +70,19 @@ def spellcasting_ability_for_class(class_name: str, subclass: str = "") -> str:
     return ""
 
 
+def equipment_totals(equipment: list[dict]) -> tuple[float, int]:
+    """Sum carried weight (quantity × weight) and count attuned items."""
+    total_weight = 0.0
+    attunement_count = 0
+    for item in equipment:
+        quantity = item.get("quantity") or 0
+        weight = item.get("weight") or 0
+        total_weight += quantity * weight
+        if item.get("attuned"):
+            attunement_count += 1
+    return round(total_weight, 2), attunement_count
+
+
 def ability_modifier(score: int) -> int:
     """5E ability modifier: floor((score - 10) / 2)."""
     return (score - 10) // 2
@@ -88,6 +101,7 @@ def compute_derived(
     skill_proficiencies: list[str],
     class_name: str = "",
     subclass: str = "",
+    equipment: list[dict] | None = None,
 ) -> dict:
     """Return all derived stats from the manually-entered inputs."""
     pb = proficiency_bonus(level)
@@ -109,6 +123,9 @@ def compute_derived(
     else:
         spell_attack_bonus = None
         spell_save_dc = None
+    # Carried weight + 5E carrying capacity (STR × 15) and a simple encumbrance flag.
+    total_weight, attunement_count = equipment_totals(equipment or [])
+    carrying_capacity = abilities["strength"] * 15
     return {
         "proficiency_bonus": pb,
         "ability_modifiers": mods,
@@ -119,4 +136,8 @@ def compute_derived(
         "spellcasting_ability": spellcasting_ability,
         "spell_attack_bonus": spell_attack_bonus,
         "spell_save_dc": spell_save_dc,
+        "total_weight": total_weight,
+        "carrying_capacity": carrying_capacity,
+        "encumbered": total_weight > carrying_capacity,
+        "attunement_count": attunement_count,
     }

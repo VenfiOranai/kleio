@@ -334,9 +334,11 @@ herald/src/app/
   `BreakpointObserver` detects desktop vs mobile.
 - **Responsive:** mobile-first Tailwind utilities; on phones the split view degrades to
   tabbed/stacked navigation (notes and character as separate full-width screens).
-- **Character overhaul UI (planned Ph8–14):** the sheet shows compact per-section summaries;
-  each structured section (equipment, spells, features, attacks) opens a roomy **modal** (Zard
-  `dialog`) via a shared "structured-list section" component — grouped/collapsible entries,
+- **Character overhaul UI (Ph8–14):** the sheet shows compact per-section summaries; each
+  structured section (equipment, spells, features, attacks) opens a roomy **modal** via the shared
+  `shared/modal` component — a **native `<dialog>`** (focus-trap/Esc/backdrop for free, **no CDK
+  Overlay**; Zard's `dialog` was rejected because it pulls in CDK Overlay/Portal) — with
+  grouped/collapsible entries,
   add/edit/remove, in-modal search, and quantity/use/slot trackers. Structured-entry forms get
   a **5etools name autocomplete** (`/api/reference/search`, backed by a user-mounted 5etools JSON
   dataset) that imports full data; a "Populate from class" action reviews level-appropriate

@@ -69,4 +69,37 @@ test.describe('character sheet', () => {
       page.locator('div.rounded-lg.border', { hasText: 'language' }).first().getByText('Draconic'),
     ).toBeVisible();
   });
+
+  test('adds structured equipment in the modal and derives carried weight', async ({ page }) => {
+    await openFreshCampaign(page, 'Equipment Campaign');
+    await newCharacter(page);
+    await page.getByPlaceholder('Character name').fill(uniqueName('Packmule'));
+
+    // Open the equipment modal (native <dialog>) and add an item.
+    await page.getByRole('button', { name: 'Open equipment' }).click();
+    const dialog = page.locator('dialog.app-modal');
+    await expect(dialog).toBeVisible();
+
+    await dialog.getByRole('button', { name: '+ Add item' }).click();
+    await dialog.getByPlaceholder('Item name').fill('Longsword');
+    await dialog.getByLabel('Weight').fill('3');
+    await dialog.getByLabel('Weight').blur();
+    // Bump quantity to 2 via the stepper → carried weight 2 × 3 = 6.
+    await dialog.getByRole('button', { name: '+', exact: true }).click();
+
+    await expect(dialog.getByText('Items').locator('strong')).toHaveText('1');
+    await expect(dialog.getByText('Weight', { exact: false }).first().locator('strong')).toHaveText(
+      '6',
+    );
+
+    // Close the modal, save the sheet, and confirm the derived weight + item summary.
+    await page.keyboard.press('Escape');
+    await expect(dialog).toBeHidden();
+    await page.getByRole('button', { name: 'Save' }).click();
+
+    const summary = page.locator('section', { hasText: 'Equipment' }).locator('div.rounded-lg.border');
+    await expect(summary.getByText('Longsword')).toBeVisible();
+    await expect(summary.getByText('×2')).toBeVisible();
+    await expect(summary.getByText(/Weight/).locator('strong')).toHaveText('6');
+  });
 });

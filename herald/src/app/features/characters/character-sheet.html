@@ -188,9 +188,98 @@
       </div>
     </section>
 
+    <!-- Equipment (structured; edited in a modal). Read-only preview: collapsible, grouped by
+         category, with a hover tooltip showing each item's description. -->
+    <section class="flex flex-col gap-2">
+      <div class="flex items-center justify-between">
+        <button
+          type="button"
+          class="flex items-center gap-2 text-lg font-semibold"
+          (click)="toggleEquipmentCollapsed()"
+        >
+          <span class="text-muted-foreground">{{ equipmentCollapsed() ? '▸' : '▾' }}</span>
+          Equipment
+        </button>
+        <button z-button zType="outline" zSize="sm" (click)="openEquipment()">Open equipment</button>
+      </div>
+      @if (!equipmentCollapsed()) {
+        <div class="rounded-lg border p-3 text-sm">
+          @if (equipmentItems().length) {
+            @if (derived(); as d) {
+              <div class="flex flex-wrap gap-x-4 gap-y-1 text-muted-foreground">
+                <span>Items <strong class="text-foreground">{{ equipmentItems().length }}</strong></span>
+                <span>
+                  Weight <strong class="text-foreground">{{ d.total_weight }}</strong> /
+                  {{ d.carrying_capacity }}
+                  @if (d.encumbered) {
+                    <span class="text-destructive">(encumbered)</span>
+                  }
+                </span>
+                <span>Attuned <strong class="text-foreground">{{ d.attunement_count }}/3</strong></span>
+              </div>
+            }
+            <div class="mt-3 flex flex-col gap-3">
+              @for (group of equipmentGroups(); track group.category) {
+                <div>
+                  <button
+                    type="button"
+                    class="flex w-full items-center gap-1.5 text-left text-xs font-medium uppercase tracking-wide text-muted-foreground"
+                    (click)="toggleEquipmentGroup(group.category)"
+                  >
+                    <span>{{ isEquipmentGroupCollapsed(group.category) ? '▸' : '▾' }}</span>
+                    {{ group.label }}
+                    <span class="normal-case">({{ group.items.length }})</span>
+                  </button>
+                  @if (!isEquipmentGroupCollapsed(group.category)) {
+                    <ul class="mt-1 flex flex-wrap gap-2">
+                      @for (item of group.items; track $index) {
+                        <li
+                          class="rounded-full bg-muted px-2 py-0.5 text-xs"
+                          [class.cursor-help]="item.description?.trim()"
+                          (mouseenter)="showItemDescription($event, item)"
+                          (mouseleave)="hideItemDescription()"
+                        >
+                          {{ item.name || 'Unnamed' }}
+                          @if (item.quantity !== 1) {
+                            <span class="text-muted-foreground">×{{ item.quantity }}</span>
+                          }
+                          @if (item.equipped) {
+                            <span class="text-muted-foreground">· equipped</span>
+                          }
+                        </li>
+                      }
+                    </ul>
+                  }
+                </div>
+              }
+            </div>
+          } @else {
+            <p class="text-muted-foreground">No equipment yet — open the modal to add items.</p>
+          }
+        </div>
+      }
+    </section>
+
+    <!-- Hover tooltip: the hovered item's Markdown-rendered description, to the right of the chip. -->
+    @if (itemTooltip(); as tip) {
+      <div
+        class="pointer-events-none fixed z-50 max-w-xs rounded-lg border bg-background p-3 text-sm shadow-xl"
+        [style.top.px]="tip.top"
+        [style.left.px]="tip.left"
+      >
+        <div class="mb-1 border-b pb-1 font-semibold">{{ tip.item.name || 'Unnamed' }}</div>
+        <app-markdown-view [source]="tip.item.description" />
+      </div>
+    }
+
+    <app-equipment-modal
+      [items]="equipmentItems()"
+      (itemsChange)="equipmentItems.set($event)"
+    />
+
     <!-- Freeform -->
     <section class="grid gap-4 md:grid-cols-2">
-      @for (field of ['equipment', 'features', 'spells', 'notes']; track field) {
+      @for (field of ['features', 'spells', 'notes']; track field) {
         <label class="flex flex-col gap-1 text-sm">
           <span class="capitalize text-muted-foreground">{{ field }}</span>
           <textarea z-input rows="4" [formControlName]="field"></textarea>

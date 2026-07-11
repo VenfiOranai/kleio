@@ -1,0 +1,136 @@
+<app-modal title="Equipment">
+  <!-- Toolbar: totals + add + filters -->
+  <div class="mb-4 flex flex-wrap items-center gap-3">
+    <div class="flex flex-wrap gap-3 text-sm text-muted-foreground">
+      <span>Weight <strong class="text-foreground">{{ totalWeight() }}</strong></span>
+      <span>
+        Attuned
+        <strong [class.text-destructive]="attunedCount() > 3" class="text-foreground">
+          {{ attunedCount() }}/3
+        </strong>
+      </span>
+      <span>Items <strong class="text-foreground">{{ working().length }}</strong></span>
+    </div>
+    <button z-button zSize="sm" class="ml-auto" (click)="addItem()">+ Add item</button>
+  </div>
+
+  <div class="mb-4 flex flex-wrap items-center gap-3">
+    <input
+      z-input
+      class="max-w-xs"
+      placeholder="Search items…"
+      [value]="search()"
+      (input)="search.set($any($event.target).value)"
+    />
+    <label class="flex items-center gap-2 text-sm">
+      <input type="checkbox" [checked]="equippedOnly()" (change)="equippedOnly.set($any($event.target).checked)" />
+      Equipped only
+    </label>
+  </div>
+
+  <datalist id="equipment-categories">
+    @for (cat of usedCategories(); track cat) {
+      <option [value]="cat"></option>
+    }
+  </datalist>
+
+  @for (group of groups(); track group.category) {
+    <section class="mb-4 rounded-lg border">
+      <button
+        type="button"
+        class="flex w-full items-center gap-2 border-b px-3 py-2 text-left font-medium"
+        (click)="toggleCollapsed(group.category)"
+      >
+        <span class="text-muted-foreground">{{ isCollapsed(group.category) ? '▸' : '▾' }}</span>
+        {{ group.label }}
+        <span class="text-sm text-muted-foreground">({{ group.items.length }})</span>
+      </button>
+
+      @if (!isCollapsed(group.category)) {
+        <div class="flex flex-col divide-y">
+          @for (item of group.items; track item._id) {
+            <div class="flex flex-col gap-2 p-3">
+              <div class="flex flex-wrap items-center gap-2">
+                <input
+                  z-input
+                  class="min-w-40 flex-1"
+                  placeholder="Item name"
+                  [value]="item.name"
+                  (change)="setText(item, 'name', $any($event.target).value)"
+                />
+                <div class="flex items-center gap-1">
+                  <button type="button" z-button zType="outline" zSize="sm" (click)="adjustQuantity(item, -1)">−</button>
+                  <input
+                    z-input
+                    type="number"
+                    class="w-14 text-center"
+                    [value]="item.quantity"
+                    (change)="setQuantity(item, $any($event.target).value)"
+                    aria-label="Quantity"
+                  />
+                  <button type="button" z-button zType="outline" zSize="sm" (click)="adjustQuantity(item, 1)">+</button>
+                </div>
+                <label class="flex items-center gap-1 text-sm">
+                  <span class="text-muted-foreground">wt</span>
+                  <input
+                    z-input
+                    type="number"
+                    class="w-16"
+                    placeholder="—"
+                    [value]="item.weight"
+                    (change)="setWeight(item, $any($event.target).value)"
+                    aria-label="Weight"
+                  />
+                </label>
+                <!-- Kept visually empty (value '') with the current category as placeholder, so
+                     opening the list always reveals every category instead of filtering by the
+                     current value; picking or typing one commits it on change. -->
+                <input
+                  z-input
+                  list="equipment-categories"
+                  class="w-32"
+                  [placeholder]="item.category || 'Category'"
+                  [value]="''"
+                  (change)="setText(item, 'category', $any($event.target).value)"
+                />
+              </div>
+
+              <div class="flex flex-wrap items-center gap-4 text-sm">
+                <label class="flex items-center gap-2">
+                  <input type="checkbox" [checked]="item.equipped" (change)="toggle(item, 'equipped')" />
+                  Equipped
+                </label>
+                <label class="flex items-center gap-2">
+                  <input type="checkbox" [checked]="item.attuned" (change)="toggle(item, 'attuned')" />
+                  Attuned
+                </label>
+                <button type="button" class="text-muted-foreground hover:underline" (click)="duplicate(item)">
+                  Duplicate
+                </button>
+                <button
+                  type="button"
+                  class="ml-auto text-destructive hover:underline"
+                  (click)="remove(item)"
+                >
+                  Remove
+                </button>
+              </div>
+
+              <textarea
+                z-input
+                rows="2"
+                placeholder="Description (markdown)…"
+                [value]="item.description"
+                (change)="setText(item, 'description', $any($event.target).value)"
+              ></textarea>
+            </div>
+          }
+        </div>
+      }
+    </section>
+  } @empty {
+    <p class="py-8 text-center text-sm text-muted-foreground">
+      No items yet. Use <strong>+ Add item</strong> to start your inventory.
+    </p>
+  }
+</app-modal>

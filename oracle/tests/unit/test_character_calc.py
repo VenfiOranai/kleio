@@ -3,6 +3,7 @@ import pytest
 from app.services.character_calc import (
     ability_modifier,
     compute_derived,
+    equipment_totals,
     proficiency_bonus,
     spellcasting_ability_for_class,
 )
@@ -144,3 +145,47 @@ def test_spell_attack_and_save_dc(
     assert derived["spellcasting_ability"] == ability
     assert derived["spell_attack_bonus"] == exp_attack
     assert derived["spell_save_dc"] == exp_dc
+
+
+def test_equipment_totals_weight_and_attunement():
+    items = [
+        {"name": "Longsword", "quantity": 1, "weight": 3, "attuned": False},
+        {"name": "Rations", "quantity": 5, "weight": 2, "attuned": False},
+        {"name": "Cloak of Protection", "quantity": 1, "weight": 1, "attuned": True},
+        {"name": "Ring of X", "quantity": 1, "weight": None, "attuned": True},  # weightless
+        {"name": "Torch", "quantity": 3},  # no weight key
+    ]
+    total_weight, attunement_count = equipment_totals(items)
+    assert total_weight == 14  # 3 + 5*2 + 1 + 0 + 0
+    assert attunement_count == 2
+
+
+def test_equipment_totals_empty():
+    assert equipment_totals([]) == (0, 0)
+
+
+def test_derived_carry_weight_and_encumbrance():
+    derived = compute_derived(
+        abilities=_abilities(strength=10),  # carrying capacity 150
+        level=1,
+        saving_throw_proficiencies=[],
+        skill_proficiencies=[],
+        equipment=[{"name": "Anvil", "quantity": 1, "weight": 200, "attuned": True}],
+    )
+    assert derived["total_weight"] == 200
+    assert derived["carrying_capacity"] == 150  # STR 10 × 15
+    assert derived["encumbered"] is True
+    assert derived["attunement_count"] == 1
+
+
+def test_derived_defaults_to_no_equipment():
+    derived = compute_derived(
+        abilities=_abilities(strength=12),
+        level=1,
+        saving_throw_proficiencies=[],
+        skill_proficiencies=[],
+    )
+    assert derived["total_weight"] == 0
+    assert derived["carrying_capacity"] == 180
+    assert derived["encumbered"] is False
+    assert derived["attunement_count"] == 0
