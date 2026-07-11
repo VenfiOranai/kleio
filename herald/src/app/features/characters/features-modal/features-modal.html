@@ -1,0 +1,176 @@
+<app-modal title="Features & Traits">
+  <!-- Toolbar: counts + add + filters -->
+  <div class="mb-4 flex flex-wrap items-center gap-3">
+    <div class="flex flex-wrap gap-3 text-sm text-muted-foreground">
+      <span>Features <strong class="text-foreground">{{ working().length }}</strong></span>
+      <span>Limited-use <strong class="text-foreground">{{ limitedCount() }}</strong></span>
+    </div>
+    <button z-button zSize="sm" class="ml-auto" (click)="addFeature()">+ Add feature</button>
+  </div>
+
+  <div class="mb-4 flex flex-wrap items-center gap-3">
+    <input
+      z-input
+      class="max-w-xs"
+      placeholder="Search features…"
+      [value]="search()"
+      (input)="search.set($any($event.target).value)"
+    />
+    <select
+      class="w-36 rounded-lg border bg-background px-2.5 py-1.5 text-sm capitalize"
+      [value]="sourceFilter()"
+      (change)="sourceFilter.set($any($event.target).value)"
+      aria-label="Filter by source"
+    >
+      <option value="">All sources</option>
+      @for (source of sources; track source) {
+        <option [value]="source">{{ source }}</option>
+      }
+    </select>
+    <label class="flex items-center gap-2 text-sm">
+      <input type="checkbox" [checked]="limitedOnly()" (change)="limitedOnly.set($any($event.target).checked)" />
+      Limited-use only
+    </label>
+  </div>
+
+  @for (group of groups(); track group.source) {
+    <section class="mb-4 rounded-lg border">
+      <div class="border-b px-3 py-2 font-medium">
+        {{ group.label }}
+        <span class="text-sm text-muted-foreground">({{ group.features.length }})</span>
+      </div>
+      <div class="flex flex-col divide-y">
+        @for (feature of group.features; track feature._id) {
+          <div class="flex flex-col gap-2 p-3">
+            <div class="flex flex-wrap items-center gap-2">
+              <input
+                z-input
+                class="min-w-40 flex-1"
+                placeholder="Feature name"
+                [value]="feature.name"
+                (change)="setText(feature, 'name', $any($event.target).value)"
+              />
+              <label class="flex items-center gap-1 text-sm">
+                <span class="text-muted-foreground">Source</span>
+                <select
+                  class="w-28 rounded-lg border bg-background px-2 py-1 text-sm capitalize"
+                  (change)="setSource(feature, $any($event.target).value)"
+                  aria-label="Feature source"
+                >
+                  @for (source of sources; track source) {
+                    <option [value]="source" [selected]="source === feature.source">
+                      {{ source }}
+                    </option>
+                  }
+                </select>
+              </label>
+              <label class="flex items-center gap-1 text-sm">
+                <span class="text-muted-foreground">Lvl</span>
+                <input
+                  z-input
+                  type="number"
+                  class="w-16"
+                  placeholder="—"
+                  [value]="feature.level"
+                  (change)="setLevel(feature, $any($event.target).value)"
+                  aria-label="Feature level"
+                />
+              </label>
+            </div>
+
+            <!-- Limited-use tracker: opt-in per feature. -->
+            <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+              <label class="flex items-center gap-2">
+                <input type="checkbox" [checked]="!!feature.uses" (change)="toggleLimited(feature)" />
+                Limited use
+              </label>
+
+              @if (feature.uses; as uses) {
+                <div class="flex items-center gap-1">
+                  <span class="text-muted-foreground">Max</span>
+                  <button type="button" z-button zType="outline" zSize="sm" (click)="adjustMax(feature, -1)">−</button>
+                  <input
+                    z-input
+                    type="number"
+                    class="w-14 text-center"
+                    [value]="uses.max"
+                    (change)="setMax(feature, $any($event.target).value)"
+                    [attr.aria-label]="feature.name + ' max uses'"
+                  />
+                  <button type="button" z-button zType="outline" zSize="sm" (click)="adjustMax(feature, 1)">+</button>
+                </div>
+
+                <label class="flex items-center gap-1">
+                  <span class="text-muted-foreground">Recharge</span>
+                  <select
+                    class="w-24 rounded-lg border bg-background px-2 py-1 text-sm capitalize"
+                    (change)="setRecharge(feature, $any($event.target).value)"
+                    aria-label="Recharge"
+                  >
+                    @for (r of recharges; track r) {
+                      <option [value]="r" [selected]="r === uses.recharge">{{ r }}</option>
+                    }
+                  </select>
+                </label>
+
+                @if (uses.max > 0) {
+                  <div class="flex flex-wrap items-center gap-1">
+                    @for (available of useDots(feature); track $index) {
+                      <button
+                        type="button"
+                        class="h-4 w-4 rounded-full border border-primary transition-colors"
+                        [class.bg-primary]="available"
+                        (click)="toggleDot(feature, $index)"
+                        [attr.aria-label]="available ? 'Available use' : 'Expended use'"
+                      ></button>
+                    }
+                    <span class="ml-1 text-xs text-muted-foreground">
+                      {{ uses.max - uses.expended }}/{{ uses.max }}
+                    </span>
+                    <button
+                      type="button"
+                      class="ml-2 text-xs text-muted-foreground hover:underline disabled:opacity-40 disabled:no-underline"
+                      [disabled]="!canUse(feature)"
+                      (click)="use(feature)"
+                    >
+                      Use
+                    </button>
+                    <button
+                      type="button"
+                      class="text-xs text-muted-foreground hover:underline"
+                      (click)="restore(feature)"
+                    >
+                      Restore
+                    </button>
+                  </div>
+                }
+              }
+            </div>
+
+            <div class="flex flex-wrap items-center gap-4 text-sm">
+              <button type="button" class="text-muted-foreground hover:underline" (click)="duplicate(feature)">
+                Duplicate
+              </button>
+              <button type="button" class="ml-auto text-destructive hover:underline" (click)="remove(feature)">
+                Remove
+              </button>
+            </div>
+
+            <textarea
+              z-input
+              rows="2"
+              placeholder="Description (markdown)…"
+              [value]="feature.description"
+              (change)="setText(feature, 'description', $any($event.target).value)"
+            ></textarea>
+          </div>
+        }
+      </div>
+    </section>
+  } @empty {
+    <p class="py-8 text-center text-sm text-muted-foreground">
+      No features yet. Use <strong>+ Add feature</strong> to record class features, racial traits,
+      feats, and more.
+    </p>
+  }
+</app-modal>

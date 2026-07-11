@@ -381,14 +381,47 @@
       (spellSlotsChange)="spellSlots.set($event)"
     />
 
+    <!-- Features & traits (structured; edited in a modal). Compact summary + "Open features". -->
+    <section class="flex flex-col gap-2">
+      <div class="flex items-center justify-between">
+        <h2 class="text-lg font-semibold">Features &amp; Traits</h2>
+        <button z-button zType="outline" zSize="sm" (click)="openFeatures()">Open features</button>
+      </div>
+      <div class="rounded-lg border p-3 text-sm">
+        @if (featureItems().length) {
+          <div class="flex flex-wrap gap-x-4 gap-y-1 text-muted-foreground">
+            <span>Features <strong class="text-foreground">{{ featureItems().length }}</strong></span>
+            <span>Limited-use <strong class="text-foreground">{{ limitedFeatureCount() }}</strong></span>
+          </div>
+          <ul class="mt-2 flex flex-wrap gap-2">
+            @for (feature of featureItems(); track $index) {
+              <li class="rounded-full bg-muted px-2 py-0.5 text-xs">
+                {{ feature.name || 'Unnamed' }}
+                @if (feature.uses) {
+                  <span class="text-muted-foreground">
+                    · {{ feature.uses.max - feature.uses.expended }}/{{ feature.uses.max }}
+                  </span>
+                }
+              </li>
+            }
+          </ul>
+        } @else {
+          <p class="text-muted-foreground">No features yet — open the modal to add class features and traits.</p>
+        }
+      </div>
+    </section>
+
+    <app-features-modal
+      [features]="featureItems()"
+      (featuresChange)="featureItems.set($event)"
+    />
+
     <!-- Freeform -->
     <section class="grid gap-4 md:grid-cols-2">
-      @for (field of ['features', 'notes']; track field) {
-        <label class="flex flex-col gap-1 text-sm">
-          <span class="capitalize text-muted-foreground">{{ field }}</span>
-          <textarea z-input rows="4" [formControlName]="field"></textarea>
-        </label>
-      }
+      <label class="flex flex-col gap-1 text-sm">
+        <span class="capitalize text-muted-foreground">Notes</span>
+        <textarea z-input rows="4" formControlName="notes"></textarea>
+      </label>
     </section>
   </div>
 }

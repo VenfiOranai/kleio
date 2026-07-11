@@ -64,6 +64,30 @@ class SpellSlot(BaseModel):
     expended: int = 0
 
 
+FeatureSource = Literal["class", "subclass", "race", "background", "feat", "other"]
+Recharge = Literal["short", "long", "other"]
+
+
+class FeatureUses(BaseModel):
+    """A limited-use tracker for a feature (e.g. Rage 3/long rest). ``recharge`` says when
+    ``expended`` resets (a long rest also restores ``short`` features)."""
+
+    max: int = 0
+    expended: int = 0
+    recharge: Recharge = "long"
+
+
+class Feature(BaseModel):
+    """A class/racial/background/feat feature or trait. ``uses`` is null for passive traits
+    with no limited uses; ``level`` is the character level it was gained at (optional)."""
+
+    name: str = ""
+    source: FeatureSource = "other"
+    level: int | None = None
+    uses: FeatureUses | None = None
+    description: str = ""  # markdown
+
+
 class HitDie(BaseModel):
     """A pool of hit dice of one size (e.g. ``die="d8"``). ``spent`` are expended; a long
     rest restores up to half the pool (handled client-side). Multiclass characters have one
@@ -117,8 +141,10 @@ class CharacterBase(BaseModel):
     spells: list[Spell] = Field(default_factory=list)
     spell_slots: list[SpellSlot] = Field(default_factory=list)
 
+    # Structured features & traits
+    features: list[Feature] = Field(default_factory=list)
+
     # Freeform (markdown)
-    features: str = ""
     notes: str = ""
 
 
@@ -154,7 +180,7 @@ class CharacterUpdate(BaseModel):
     equipment: list[EquipmentItem] | None = None
     spells: list[Spell] | None = None
     spell_slots: list[SpellSlot] | None = None
-    features: str | None = None
+    features: list[Feature] | None = None
     notes: str | None = None
 
 

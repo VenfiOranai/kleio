@@ -19,6 +19,7 @@ import {
   ABILITIES,
   Character,
   EquipmentItem,
+  Feature,
   HitDie,
   OtherProficiency,
   ProficiencyCategory,
@@ -28,6 +29,7 @@ import {
 } from '@/core/api/models';
 import { MarkdownView } from '@/shared/markdown-view/markdown-view';
 import { EquipmentModal } from './equipment-modal/equipment-modal';
+import { FeaturesModal } from './features-modal/features-modal';
 import { SpellsModal } from './spells-modal/spells-modal';
 
 /** A hover tooltip anchored to an equipment chip in the read-only sheet preview. */
@@ -56,6 +58,7 @@ function toggle(set: Set<string>, key: string): Set<string> {
     ZardInputDirective,
     EquipmentModal,
     SpellsModal,
+    FeaturesModal,
     MarkdownView,
   ],
   templateUrl: './character-sheet.html',
@@ -93,6 +96,7 @@ export class CharacterSheet {
   protected readonly equipmentItems = signal<EquipmentItem[]>([]);
   protected readonly spellItems = signal<Spell[]>([]);
   protected readonly spellSlots = signal<SpellSlot[]>([]);
+  protected readonly featureItems = signal<Feature[]>([]);
   /** Structured hit-dice pools (edited inline; spent restored by a long rest). */
   protected readonly hitDice = signal<HitDie[]>([]);
 
@@ -102,6 +106,11 @@ export class CharacterSheet {
   );
   protected readonly totalSlots = computed(() =>
     this.spellSlots().reduce((sum, s) => sum + (s.total || 0), 0),
+  );
+
+  /** Compact features summary: total count + how many carry a limited-use tracker. */
+  protected readonly limitedFeatureCount = computed(
+    () => this.featureItems().filter((f) => f.uses).length,
   );
 
   /** Read-only equipment preview: whole-section + per-category collapse, and a hover tooltip. */
@@ -130,6 +139,7 @@ export class CharacterSheet {
 
   private readonly equipmentModal = viewChild.required(EquipmentModal);
   private readonly spellsModal = viewChild.required(SpellsModal);
+  private readonly featuresModal = viewChild.required(FeaturesModal);
 
   protected readonly form = this.fb.nonNullable.group({
     name: [''],
@@ -158,7 +168,6 @@ export class CharacterSheet {
       sp: [0],
       cp: [0],
     }),
-    features: [''],
     notes: [''],
   });
 
@@ -178,6 +187,7 @@ export class CharacterSheet {
         this.equipmentItems.set([...c.equipment]);
         this.spellItems.set([...c.spells]);
         this.spellSlots.set([...c.spell_slots]);
+        this.featureItems.set([...c.features]);
         this.hitDice.set([...c.hit_dice]);
       });
     });
@@ -217,6 +227,10 @@ export class CharacterSheet {
     this.spellsModal().open();
   }
 
+  protected openFeatures(): void {
+    this.featuresModal().open();
+  }
+
   // --- Hit dice ------------------------------------------------------------
 
   protected addHitDie(): void {
@@ -242,14 +256,22 @@ export class CharacterSheet {
     this.hitDice.update((list) => [...list]);
   }
 
-  /** Long rest: full HP, drop temp HP, reset expended spell slots, and recover spent hit
-   * dice up to half each pool (5E). Local edit — persisted on the next Save. */
+  /** Long rest: full HP, drop temp HP, reset expended spell slots, recover spent hit dice up
+   * to half each pool (5E), and reset limited-use features that recharge on a short or long
+   * rest (a long rest includes a short rest). Local edit — persisted on the next Save. */
   protected longRest(): void {
     this.form.patchValue({ current_hp: this.form.controls.max_hp.value, temp_hp: 0 });
     this.hitDice.update((list) =>
       list.map((h) => ({ ...h, spent: Math.max(0, h.spent - Math.floor(h.total / 2)) })),
     );
     this.spellSlots.update((slots) => slots.map((s) => ({ ...s, expended: 0 })));
+    this.featureItems.update((features) =>
+      features.map((f) =>
+        f.uses && f.uses.recharge !== 'other'
+          ? { ...f, uses: { ...f.uses, expended: 0 } }
+          : f,
+      ),
+    );
   }
 
   protected toggleEquipmentCollapsed(): void {
@@ -286,6 +308,7 @@ export class CharacterSheet {
         equipment: this.equipmentItems(),
         spells: this.spellItems(),
         spell_slots: this.spellSlots(),
+        features: this.featureItems(),
         hit_dice: this.hitDice(),
       })
       .subscribe((c) => {

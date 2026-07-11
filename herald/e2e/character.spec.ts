@@ -192,4 +192,54 @@ test.describe('character sheet', () => {
     await page.getByRole('button', { name: 'Open spells' }).click();
     await expect(page.getByRole('dialog').getByLabel('Available slot')).toHaveCount(2);
   });
+
+  test('tracks limited-use features in the modal and resets them on a long rest', async ({
+    page,
+  }) => {
+    await openFreshCampaign(page, 'Features Campaign');
+    await newCharacter(page);
+    await page.getByPlaceholder('Character name').fill(uniqueName('Grog'));
+
+    // Open the features modal (native <dialog>; only the open one is exposed as role=dialog).
+    await page.getByRole('button', { name: 'Open features' }).click();
+    const dialog = page.getByRole('dialog');
+    await expect(dialog).toBeVisible();
+
+    // Add a limited-use class feature: Rage, 3 uses / long rest.
+    await dialog.getByRole('button', { name: '+ Add feature' }).click();
+    await dialog.getByPlaceholder('Feature name').fill('Rage');
+    await dialog.getByLabel('Feature source').selectOption('class');
+    await dialog.getByRole('checkbox', { name: 'Limited use' }).check();
+    await dialog.getByLabel('Rage max uses').fill('3');
+    await dialog.getByLabel('Rage max uses').blur();
+    await expect(dialog.getByLabel('Available use')).toHaveCount(3);
+
+    // Dots are "click the dot for how many remain": clicking the 2nd of 3 leaves 2 available.
+    await dialog.getByLabel('Available use').nth(1).click();
+    await expect(dialog.getByLabel('Available use')).toHaveCount(2);
+    await expect(dialog.getByLabel('Expended use')).toHaveCount(1);
+
+    // Close and save; the summary reflects the limited-use count + remaining uses.
+    await page.keyboard.press('Escape');
+    await expect(dialog).toBeHidden();
+    await page.getByRole('button', { name: 'Save' }).click();
+
+    const summary = page
+      .locator('section', { hasText: 'Features & Traits' })
+      .locator('div.rounded-lg.border');
+    await expect(summary.getByText('Limited-use').locator('strong')).toHaveText('1');
+    await expect(summary.getByText('Rage')).toContainText('2/3');
+
+    // A long rest resets the feature's expended uses back to full.
+    await page.getByRole('button', { name: 'Long rest' }).click();
+    await expect(summary.getByText('Rage')).toContainText('3/3');
+
+    // Persists across a reload (structured features came back from the server).
+    await page.getByRole('button', { name: 'Save' }).click();
+    await page.reload();
+    await page.getByRole('button', { name: 'Open features' }).click();
+    const reopened = page.getByRole('dialog');
+    await expect(reopened.getByPlaceholder('Feature name')).toHaveValue('Rage');
+    await expect(reopened.getByLabel('Available use')).toHaveCount(3);
+  });
 });
