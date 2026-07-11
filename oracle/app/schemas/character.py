@@ -88,6 +88,29 @@ class Feature(BaseModel):
     description: str = ""  # markdown
 
 
+AttackAbility = Literal["str", "dex", "spellcasting"]
+AttackSource = Literal["weapon", "spell", "manual"]
+
+
+class Attack(BaseModel):
+    """An entry in the "Attacks & Spellcasting" panel. To-hit and the damage string are
+    **derived** in ``character_calc`` (never stored): to-hit = ability mod +
+    (proficiency if ``proficient``) + ``bonus``; ability is STR, DEX, or the class's
+    spellcasting ability. ``source`` records how the row was created (an equipment weapon,
+    a spell, or hand-entered) for the "add from weapon/spell" helper."""
+
+    name: str = ""
+    ability: AttackAbility = "str"
+    proficient: bool = True
+    damage_dice: str = ""
+    damage_type: str = ""
+    bonus: int | None = None  # flat to-hit modifier (e.g. a +1 weapon)
+    range: str = ""
+    notes: str = ""  # short note shown inline in the attacks table
+    description: str = ""  # longer markdown detail, shown on hover
+    source: AttackSource = "manual"
+
+
 class HitDie(BaseModel):
     """A pool of hit dice of one size (e.g. ``die="d8"``). ``spent`` are expended; a long
     rest restores up to half the pool (handled client-side). Multiclass characters have one
@@ -144,6 +167,9 @@ class CharacterBase(BaseModel):
     # Structured features & traits
     features: list[Feature] = Field(default_factory=list)
 
+    # Structured attacks (to-hit + damage derived in character_calc)
+    attacks: list[Attack] = Field(default_factory=list)
+
     # Freeform (markdown)
     notes: str = ""
 
@@ -181,7 +207,16 @@ class CharacterUpdate(BaseModel):
     spells: list[Spell] | None = None
     spell_slots: list[SpellSlot] | None = None
     features: list[Feature] | None = None
+    attacks: list[Attack] | None = None
     notes: str | None = None
+
+
+class AttackDerived(BaseModel):
+    """Computed to-hit + damage for one attack row (parallel to ``attacks`` by index)."""
+
+    name: str
+    to_hit: int
+    damage: str
 
 
 class DerivedStats(BaseModel):
@@ -200,6 +235,8 @@ class DerivedStats(BaseModel):
     carrying_capacity: int
     encumbered: bool
     attunement_count: int
+    # Attacks (Phase 12): per-attack to-hit + damage string, in the same order as `attacks`.
+    attacks: list[AttackDerived]
 
 
 class CharacterRead(CharacterBase):
@@ -221,5 +258,6 @@ class CharacterRead(CharacterBase):
             class_name=self.class_name,
             subclass=self.subclass,
             equipment=[item.model_dump() for item in self.equipment],
+            attacks=[attack.model_dump() for attack in self.attacks],
         )
         return DerivedStats(**stats)

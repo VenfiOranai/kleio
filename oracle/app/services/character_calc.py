@@ -83,6 +83,42 @@ def equipment_totals(equipment: list[dict]) -> tuple[float, int]:
     return round(total_weight, 2), attunement_count
 
 
+def attack_stats(
+    attacks: list[dict],
+    *,
+    mods: dict[str, int],
+    proficiency: int,
+    spellcasting_ability: str,
+) -> list[dict]:
+    """Compute each attack's to-hit bonus and damage string.
+
+    ``to_hit`` = ability mod + (proficiency if proficient) + flat ``bonus``. The governing
+    ability is STR, DEX, or the class's spellcasting ability (0 for a non-caster). The damage
+    string is the dice plus the ability mod (e.g. ``"1d8 + 3"``); the flat ``bonus`` only
+    affects to-hit, per the standard sheet. Results parallel ``attacks`` by index.
+    """
+    results = []
+    for atk in attacks:
+        ability = atk.get("ability", "str")
+        if ability == "dex":
+            mod = mods["dexterity"]
+        elif ability == "spellcasting":
+            mod = mods[spellcasting_ability] if spellcasting_ability in ABILITIES else 0
+        else:  # "str" (default)
+            mod = mods["strength"]
+        bonus = atk.get("bonus") or 0
+        to_hit = mod + (proficiency if atk.get("proficient") else 0) + bonus
+        dice = (atk.get("damage_dice") or "").strip()
+        if dice and mod > 0:
+            damage = f"{dice} + {mod}"
+        elif dice and mod < 0:
+            damage = f"{dice} - {abs(mod)}"
+        else:
+            damage = dice
+        results.append({"name": atk.get("name", ""), "to_hit": to_hit, "damage": damage})
+    return results
+
+
 def ability_modifier(score: int) -> int:
     """5E ability modifier: floor((score - 10) / 2)."""
     return (score - 10) // 2
@@ -102,6 +138,7 @@ def compute_derived(
     class_name: str = "",
     subclass: str = "",
     equipment: list[dict] | None = None,
+    attacks: list[dict] | None = None,
 ) -> dict:
     """Return all derived stats from the manually-entered inputs."""
     pb = proficiency_bonus(level)
@@ -126,6 +163,13 @@ def compute_derived(
     # Carried weight + 5E carrying capacity (STR × 15) and a simple encumbrance flag.
     total_weight, attunement_count = equipment_totals(equipment or [])
     carrying_capacity = abilities["strength"] * 15
+    # Per-attack to-hit + damage string (see attack_stats).
+    computed_attacks = attack_stats(
+        attacks or [],
+        mods=mods,
+        proficiency=pb,
+        spellcasting_ability=spellcasting_ability,
+    )
     return {
         "proficiency_bonus": pb,
         "ability_modifiers": mods,
@@ -140,4 +184,5 @@ def compute_derived(
         "carrying_capacity": carrying_capacity,
         "encumbered": total_weight > carrying_capacity,
         "attunement_count": attunement_count,
+        "attacks": computed_attacks,
     }

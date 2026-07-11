@@ -242,4 +242,51 @@ test.describe('character sheet', () => {
     await expect(reopened.getByPlaceholder('Feature name')).toHaveValue('Rage');
     await expect(reopened.getByLabel('Available use')).toHaveCount(3);
   });
+
+  test('adds attacks in the modal and derives to-hit / damage on the sheet', async ({ page }) => {
+    await openFreshCampaign(page, 'Attacks Campaign');
+    await newCharacter(page);
+    await page.getByPlaceholder('Character name').fill(uniqueName('Fighter'));
+
+    // Level 5 → proficiency +3; STR 16 → +3 modifier.
+    await page.locator('input[formcontrolname="level"]').fill('5');
+    await page
+      .locator('div.flex.items-center.gap-3', { hasText: 'strength' })
+      .getByRole('spinbutton')
+      .fill('16');
+
+    // Add a proficient STR weapon in the attacks modal (ability + proficient default).
+    await page.getByRole('button', { name: 'Open attacks' }).click();
+    const dialog = page.getByRole('dialog');
+    await expect(dialog).toBeVisible();
+    await dialog.getByRole('button', { name: '+ Add attack' }).click();
+    await dialog.getByPlaceholder('Attack name').fill('Longsword');
+    await dialog.getByPlaceholder('1d8').fill('1d8');
+    // Short note shows in the table; the longer description shows on hover.
+    await dialog.getByPlaceholder(/shown in the table/).fill('versatile');
+    await dialog.getByPlaceholder(/Longer detail/).fill('A trusty **blade**.');
+    await dialog.getByPlaceholder(/Longer detail/).blur();
+
+    await page.keyboard.press('Escape');
+    await expect(dialog).toBeHidden();
+
+    // Derived to-hit + damage refresh after saving (backend is authoritative).
+    await page.getByRole('button', { name: 'Save' }).click();
+
+    const attacks = page.locator('section', { hasText: 'Attacks & Spellcasting' });
+    const row = attacks.locator('tr', { hasText: 'Longsword' });
+    // STR +3 + proficiency +3 = +6 to hit; damage 1d8 + 3 (ability mod on damage).
+    await expect(row).toContainText('+6');
+    await expect(row).toContainText('1d8 + 3');
+    await expect(row).toContainText('versatile'); // short note inline
+
+    // Hovering the row reveals the longer Markdown description in a tooltip.
+    await row.hover();
+    await expect(page.getByText('A trusty', { exact: false })).toBeVisible();
+
+    // Persists across a reload (structured attacks came back from the server).
+    await page.reload();
+    await page.getByRole('button', { name: 'Open attacks' }).click();
+    await expect(page.getByRole('dialog').getByPlaceholder('Attack name')).toHaveValue('Longsword');
+  });
 });

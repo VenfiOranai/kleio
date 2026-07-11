@@ -33,6 +33,15 @@ export interface DerivedStats {
   carrying_capacity: number;
   encumbered: boolean;
   attunement_count: number;
+  /** Per-attack to-hit + damage string, in the same order as `attacks`. */
+  attacks: AttackDerived[];
+}
+
+/** Server-computed to-hit + damage for one attack row (parallel to `attacks` by index). */
+export interface AttackDerived {
+  name: string;
+  to_hit: number;
+  damage: string;
 }
 
 /** 5E coin purse. */
@@ -115,6 +124,29 @@ export interface Feature {
   description: string;
 }
 
+export type AttackAbility = 'str' | 'dex' | 'spellcasting';
+export type AttackSource = 'weapon' | 'spell' | 'manual';
+
+/** An "Attacks & Spellcasting" row. `to_hit` + a damage string are derived server-side
+ * (see `DerivedStats.attacks`); `bonus` is a flat to-hit modifier (e.g. a +1 weapon). */
+export interface Attack {
+  name: string;
+  ability: AttackAbility;
+  proficient: boolean;
+  damage_dice: string;
+  damage_type: string;
+  bonus: number | null;
+  range: string;
+  /** Short note shown inline in the attacks table. */
+  notes: string;
+  /** Longer markdown detail, shown on hover. */
+  description: string;
+  source: AttackSource;
+}
+
+/** Attack abilities offered in the modal. */
+export const ATTACK_ABILITIES: AttackAbility[] = ['str', 'dex', 'spellcasting'];
+
 /** Feature sources, offered as buckets in the features modal. */
 export const FEATURE_SOURCES: FeatureSource[] = [
   'class',
@@ -168,6 +200,7 @@ export interface Character {
   spells: Spell[];
   spell_slots: SpellSlot[];
   features: Feature[];
+  attacks: Attack[];
   notes: string;
   created_at: string;
   updated_at: string;

@@ -76,6 +76,10 @@ class Character(Base):
     # optional limited-use tracker (uses.{max, expended, recharge}).
     features: Mapped[list[dict]] = mapped_column(JSONB, default=list)
 
+    # Structured attacks: list of attack dicts (see schemas.Attack). To-hit + damage strings
+    # are derived in character_calc, never stored.
+    attacks: Mapped[list[dict]] = mapped_column(JSONB, default=list)
+
     # Freeform notes (markdown)
     notes: Mapped[str] = mapped_column(Text, default="")
 

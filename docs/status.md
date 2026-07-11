@@ -214,3 +214,25 @@ change. The sheet drops the freeform `features` textarea (only `notes` remains) 
 'other'` → `expended → 0`). **Bug fix:** the spells modal's `slots` signal is now seeded with all nine
 levels up front (the always-rendered `<dialog>` content called `slotFor(level).total` on an empty list
 before `open()`, throwing during unrelated CD cycles). e2e features test (6 specs green).
+
+### Phase 12 — attacks panel
+**Oracle:** `characters` gains a brand-new `attacks` JSONB list `{name, ability (str|dex|spellcasting),
+proficient, damage_dice, damage_type, bonus?, range, notes, source (weapon|spell|manual)}` via the
+purely-additive migration `5e1f2a3b4c6d` (no prior freeform field to preserve). `character_calc` gains a
+**pure** `attack_stats()` that computes each attack's **to-hit** (ability mod + prof-if-proficient +
+flat `bonus`) and **damage string** (dice + ability mod, e.g. `1d8 + 3` — the flat `bonus` is to-hit
+only, per a standard sheet); the governing ability is STR, DEX, or the class's derived spellcasting
+ability (0 for a non-caster). `compute_derived` takes `attacks` and returns a parallel `attacks` list of
+`{name, to_hit, damage}` in the `derived` block. Schemas: `Attack` (Literal-validated `ability`/`source`,
+`bonus` nullable) + `AttackDerived`; `DerivedStats.attacks`. Unit tests (proficient/non-proficient,
+finesse DEX, spellcasting + negative mod, zero-mod damage, derived round-trip) + integration round-trip
+(to-hit +7 for a proficient +1 weapon; invalid ability → 422).
+
+**Herald:** an **`AttacksModal`** (`features/characters/attacks-modal`): a flat editable list with
+add/duplicate/remove, ability `<select>` (STR/DEX/Spell), proficient toggle, damage-dice/type, flat
+to-hit `bonus`, range, notes, a name search, and **"Add from weapon/spell"** `<select>`s that pre-fill a
+row from a Phase 9 weapon (equipment whose category mentions "weapon") or a Phase 10 spell (spellcasting
+ability, spell source). Working copy keyed by transient `_id`, emits `attacks` on every change. The sheet
+shows an **attacks table** (name · to-hit · damage · range · notes) whose to-hit/damage come from the
+server `derived` (zipped by index; refresh on save) plus an "Open attacks" button; `attacks` rides along
+in Save. e2e attacks test (7 specs green).
