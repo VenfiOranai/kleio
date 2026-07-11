@@ -94,6 +94,37 @@ export interface HitDie {
   spent: number;
 }
 
+export type FeatureSource = 'class' | 'subclass' | 'race' | 'background' | 'feat' | 'other';
+export type Recharge = 'short' | 'long' | 'other';
+
+/** A limited-use tracker for a feature (e.g. Rage 3/long rest). `recharge` says when
+ * `expended` resets; a long rest also restores `short` features. */
+export interface FeatureUses {
+  max: number;
+  expended: number;
+  recharge: Recharge;
+}
+
+/** A class/racial/background/feat feature or trait. `uses` is null for passive traits;
+ * `level` is the character level it was gained at (optional). */
+export interface Feature {
+  name: string;
+  source: FeatureSource;
+  level: number | null;
+  uses: FeatureUses | null;
+  description: string;
+}
+
+/** Feature sources, offered as buckets in the features modal. */
+export const FEATURE_SOURCES: FeatureSource[] = [
+  'class',
+  'subclass',
+  'race',
+  'background',
+  'feat',
+  'other',
+];
+
 /** The eight standard 5E schools of magic, offered in the spell form. */
 export const SPELL_SCHOOLS = [
   'Abjuration',
@@ -136,7 +167,7 @@ export interface Character {
   equipment: EquipmentItem[];
   spells: Spell[];
   spell_slots: SpellSlot[];
-  features: string;
+  features: Feature[];
   notes: string;
   created_at: string;
   updated_at: string;

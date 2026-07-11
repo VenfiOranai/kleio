@@ -62,8 +62,12 @@ export class SpellsModal {
   protected readonly slotLevels = SLOT_LEVELS;
 
   protected readonly working = signal<WorkSpell[]>([]);
-  /** Full levels 1–9 working slot rows (missing input levels default to zero). */
-  protected readonly slots = signal<SpellSlot[]>([]);
+  /** Full levels 1–9 working slot rows (missing input levels default to zero). Seeded with
+   * every level up front so the always-rendered `<dialog>` content (change-detected even while
+   * closed) never hits an undefined row via `slotFor` before `open()` populates it. */
+  protected readonly slots = signal<SpellSlot[]>(
+    SLOT_LEVELS.map((level) => ({ level, total: 0, expended: 0 })),
+  );
 
   protected readonly search = signal('');
   protected readonly preparedOnly = signal(false);

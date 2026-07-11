@@ -322,9 +322,33 @@ modal loses its `resetSlots()` + button. **Bug fix:** the per-spell **level `<se
 bound level as spells re-group by level). e2e `character.spec.ts` gains a long-rest test (HP + hit
 dice 3→1 + slot reset) (**5 specs green**); backend + `ng build` clean.
 
-Next up: **Phase 11 — Structured features** (reuses the Phase 9/10 modal + structured-list
-pattern), **Phase 12 — Attacks panel** (needs 8/9/10), or **Phase 6 — Polish & hardening**
-(backups) — see `docs/roadmap.md`.
+**Phase 11 complete** (pending review/commit): **structured features & traits**. Oracle —
+`characters.features` moves from freeform `Text` to a **JSONB list** of features `{name,
+source (class|subclass|race|background|feat|other), level?, uses?{max, expended, recharge
+(short|long|other)}, description(md)}` via migration `4d9f0a2b1c5e` (preserves any existing text
+as a single **"Imported features"** seed item, mirroring Phase 9/10's downgrade). `uses` is
+**null** for passive traits. Features aren't derived — no `character_calc` change. Schemas:
+`Feature` + `FeatureUses` (both `source` and `recharge` Literal-validated). Tests: integration
+`test_characters.py` (round-trip + defaults + expend-persists; invalid `source` → 422). Herald —
+a **`FeaturesModal`** (`features/characters/features-modal`, reusing the shared `<dialog>` `Modal`):
+features grouped by source (canonical order), each with an **opt-in limited-use tracker** (Max
+stepper + recharge `<select>` + clickable available/expended **dots** with Use/Restore, matching
+the spells modal's "click the dot for how many remain" UX), plus filters (search, source
+`<select>`, limited-use-only) and duplicate/remove. Edits a working copy keyed by a transient
+`_id` and emits `features` on every change. The character sheet drops the freeform `features`
+textarea (only `notes` remains) for a compact **summary** (feature/limited-use counts + per-feature
+remaining-use chips) and an **"Open features"** button; `features` rides along in the sheet's Save
+via a `featureItems` signal. The sheet's **Long rest** now also resets limited-use features that
+recharge on a short/long rest (`recharge !== 'other'` → `expended → 0`). `models.ts` gains
+`Feature`/`FeatureUses`/`FeatureSource`/`Recharge` + `FEATURE_SOURCES` and `Character.features:
+Feature[]`. **Bug fix:** the spells modal's `slots` signal is now seeded with all nine levels up
+front — the always-rendered (change-detected even while closed) `<dialog>` content called
+`slotFor(level).total` on an empty list before `open()`, throwing during unrelated CD cycles. e2e
+`character.spec.ts` gains a features test (add Rage 3/long rest → expend a use → summary shows
+`2/3` → long rest restores `3/3` → survives reload) (**6 specs green**); backend + `ng build` clean.
+
+Next up: **Phase 12 — Attacks panel** (needs 8/9/10), **Phase 13/14 — 5etools import**, or
+**Phase 6 — Polish & hardening** (backups) — see `docs/roadmap.md`.
 
 **Planned — Character Sheet Overhaul (Phases 11–14)**: designed, not implemented (Phases 8–10 done —
 see above). Turns the

@@ -239,6 +239,62 @@ def test_hit_dice_round_trip_and_default_empty(db_client: TestClient, campaign_i
     assert body["hit_dice"] == [{"die": "d8", "total": 3, "spent": 0}]
 
 
+def test_features_round_trip_and_default_empty(db_client: TestClient, campaign_id: int):
+    # Defaults to an empty list.
+    blank = db_client.post(
+        f"/api/campaigns/{campaign_id}/characters", json={"name": "Blank"}
+    ).json()
+    assert blank["features"] == []
+
+    payload = {
+        "name": "Grog",
+        "features": [
+            {
+                "name": "Rage",
+                "source": "class",
+                "level": 1,
+                "uses": {"max": 3, "expended": 1, "recharge": "long"},
+                "description": "Advantage on STR checks and saves.",
+            },
+            {"name": "Darkvision", "source": "race"},  # passive: no uses
+        ],
+    }
+    character_id = db_client.post(
+        f"/api/campaigns/{campaign_id}/characters", json=payload
+    ).json()["id"]
+    fetched = db_client.get(f"/api/characters/{character_id}").json()
+
+    assert len(fetched["features"]) == 2
+    assert fetched["features"][0]["uses"] == {"max": 3, "expended": 1, "recharge": "long"}
+    # Defaults fill in for the terse passive trait.
+    assert fetched["features"][1]["source"] == "race"
+    assert fetched["features"][1]["level"] is None
+    assert fetched["features"][1]["uses"] is None
+
+    # Expending a use is client-side state that persists on save.
+    body = db_client.put(
+        f"/api/characters/{character_id}",
+        json={
+            "features": [
+                {
+                    "name": "Rage",
+                    "source": "class",
+                    "uses": {"max": 3, "expended": 3, "recharge": "long"},
+                }
+            ]
+        },
+    ).json()
+    assert body["features"][0]["uses"]["expended"] == 3
+
+
+def test_feature_invalid_source_rejected(db_client: TestClient, campaign_id: int):
+    resp = db_client.post(
+        f"/api/campaigns/{campaign_id}/characters",
+        json={"name": "Bad", "features": [{"name": "Nope", "source": "deity"}]},
+    )
+    assert resp.status_code == 422
+
+
 def test_list_and_delete_character(db_client: TestClient, campaign_id: int):
     character_id = db_client.post(
         f"/api/campaigns/{campaign_id}/characters", json={"name": "Cora"}

@@ -72,8 +72,11 @@ class Character(Base):
     spells: Mapped[list[dict]] = mapped_column(JSONB, default=list)
     spell_slots: Mapped[list[dict]] = mapped_column(JSONB, default=list)
 
+    # Structured features & traits: list of feature dicts (see schemas.Feature), each with an
+    # optional limited-use tracker (uses.{max, expended, recharge}).
+    features: Mapped[list[dict]] = mapped_column(JSONB, default=list)
+
     # Freeform notes (markdown)
-    features: Mapped[str] = mapped_column(Text, default="")
     notes: Mapped[str] = mapped_column(Text, default="")
 
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
