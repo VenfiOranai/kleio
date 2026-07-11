@@ -38,6 +38,65 @@ def test_update_character_recomputes_derived(db_client: TestClient, campaign_id:
     assert derived["initiative"] == 5
 
 
+def test_currency_proficiencies_and_class_derived_spellcasting(
+    db_client: TestClient, campaign_id: int
+):
+    payload = {
+        "name": "Elora",
+        "class_name": "Wizard",  # → spellcasting ability INT
+        "level": 5,  # proficiency bonus 3
+        "intelligence": 18,  # +4
+        "currency": {"cp": 5, "sp": 0, "ep": 0, "gp": 42, "pp": 1},
+        "other_proficiencies": [
+            {"category": "language", "name": "Draconic"},
+            {"category": "tool", "name": "Thieves' Tools"},
+        ],
+    }
+    resp = db_client.post(f"/api/campaigns/{campaign_id}/characters", json=payload)
+    assert resp.status_code == 201
+    body = resp.json()
+
+    # Stored fields round-trip.
+    assert body["currency"] == {"cp": 5, "sp": 0, "ep": 0, "gp": 42, "pp": 1}
+    assert body["other_proficiencies"] == payload["other_proficiencies"]
+
+    # Spellcasting ability comes from the class; INT +4, pb +3 -> attack 7, DC 15.
+    assert body["derived"]["spellcasting_ability"] == "intelligence"
+    assert body["derived"]["spell_attack_bonus"] == 7
+    assert body["derived"]["spell_save_dc"] == 15
+
+
+def test_non_caster_class_has_null_spell_stats_and_default_currency(
+    db_client: TestClient, campaign_id: int
+):
+    body = db_client.post(
+        f"/api/campaigns/{campaign_id}/characters",
+        json={"name": "Grunk", "class_name": "Barbarian"},
+    ).json()
+    assert body["derived"]["spellcasting_ability"] == ""
+    assert body["derived"]["spell_attack_bonus"] is None
+    assert body["derived"]["spell_save_dc"] is None
+    assert body["currency"] == {"cp": 0, "sp": 0, "ep": 0, "gp": 0, "pp": 0}
+    assert body["other_proficiencies"] == []
+
+
+def test_subclass_grants_spellcasting(db_client: TestClient, campaign_id: int):
+    # An Eldritch Knight fighter casts with INT even though the base class doesn't.
+    body = db_client.post(
+        f"/api/campaigns/{campaign_id}/characters",
+        json={
+            "name": "Kael",
+            "class_name": "Fighter",
+            "subclass": "Eldritch Knight",
+            "level": 8,  # pb +3
+            "intelligence": 16,  # +3
+        },
+    ).json()
+    assert body["derived"]["spellcasting_ability"] == "intelligence"
+    assert body["derived"]["spell_save_dc"] == 14  # 8 + 3 + 3
+    assert body["derived"]["spell_attack_bonus"] == 6  # 3 + 3
+
+
 def test_list_and_delete_character(db_client: TestClient, campaign_id: int):
     character_id = db_client.post(
         f"/api/campaigns/{campaign_id}/characters", json={"name": "Cora"}

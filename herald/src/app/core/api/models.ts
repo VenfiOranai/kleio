@@ -25,6 +25,27 @@ export interface DerivedStats {
   skills: Record<string, number>;
   passive_perception: number;
   initiative: number;
+  /** Spellcasting ability derived from class ('' for non-casters); spell stats null then. */
+  spellcasting_ability: string;
+  spell_attack_bonus: number | null;
+  spell_save_dc: number | null;
+}
+
+/** 5E coin purse. */
+export interface Currency {
+  cp: number;
+  sp: number;
+  ep: number;
+  gp: number;
+  pp: number;
+}
+
+export type ProficiencyCategory = 'language' | 'weapon' | 'armor' | 'tool' | 'other';
+
+/** A misc proficiency, split by category on the sheet. */
+export interface OtherProficiency {
+  category: ProficiencyCategory;
+  name: string;
 }
 
 export interface Character {
@@ -52,6 +73,8 @@ export interface Character {
   speed: number;
   saving_throw_proficiencies: string[];
   skill_proficiencies: string[];
+  currency: Currency;
+  other_proficiencies: OtherProficiency[];
   equipment: string;
   features: string;
   spells: string;

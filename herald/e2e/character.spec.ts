@@ -28,4 +28,45 @@ test.describe('character sheet', () => {
     await expect(page.getByText('Passive Perception').locator('strong')).toHaveText('10');
     await expect(page.getByText('Initiative').locator('strong')).toHaveText('+0');
   });
+
+  test('derives spell save DC / attack from class and tracks misc proficiencies', async ({
+    page,
+  }) => {
+    await openFreshCampaign(page, 'Spellcaster Campaign');
+    await newCharacter(page);
+
+    await page.getByPlaceholder('Character name').fill(uniqueName('Elora'));
+    await page.locator('input[formcontrolname="level"]').fill('5'); // proficiency +3
+    await page
+      .locator('div.flex.items-center.gap-3', { hasText: 'intelligence' })
+      .getByRole('spinbutton')
+      .fill('18'); // INT +4
+
+    // Spellcasting ability is derived from the class (Wizard → INT), not picked manually.
+    // The class_name input binds [formControlName] dynamically (not reflected to an attribute),
+    // so target it via its label.
+    await page.locator('label', { hasText: 'class name' }).getByRole('textbox').fill('Wizard');
+
+    // Add a misc proficiency chip (pure client state) in the "language" category.
+    const langCard = page.locator('div.rounded-lg.border', { hasText: 'language' }).first();
+    await langCard.getByPlaceholder(/Add/).fill('Draconic');
+    await langCard.getByPlaceholder(/Add/).press('Enter');
+    await expect(langCard.getByText('Draconic')).toBeVisible();
+
+    await page.getByRole('button', { name: 'Save' }).click();
+
+    // Wizard → INT; INT +4, proficiency +3 → save DC = 8 + 4 + 3 = 15; attack = 4 + 3 = +7.
+    const spellBox = page.locator('div.rounded-lg.border', { hasText: 'Spell save DC' });
+    await expect(spellBox.locator('span', { hasText: 'Ability' }).locator('strong')).toHaveText(
+      /intelligence/i,
+    );
+    await expect(spellBox.getByText('Spell save DC').locator('strong')).toHaveText('15');
+    await expect(spellBox.getByText('Spell attack').locator('strong')).toHaveText('+7');
+
+    // The proficiency chip persists across a reload (round-trips through the backend).
+    await page.reload();
+    await expect(
+      page.locator('div.rounded-lg.border', { hasText: 'language' }).first().getByText('Draconic'),
+    ).toBeVisible();
+  });
 });

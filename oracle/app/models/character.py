@@ -11,6 +11,10 @@ if TYPE_CHECKING:
     from app.models.campaign import Campaign
 
 
+def _default_currency() -> dict[str, int]:
+    return {"cp": 0, "sp": 0, "ep": 0, "gp": 0, "pp": 0}
+
+
 class Character(Base):
     """A 5E-style character sheet. Only manually-entered fields are stored here;
     derived values (modifiers, saves, skills, ...) are computed in
@@ -52,6 +56,11 @@ class Character(Base):
     # Proficiency selections (lists of ability/skill keys)
     saving_throw_proficiencies: Mapped[list[str]] = mapped_column(JSONB, default=list)
     skill_proficiencies: Mapped[list[str]] = mapped_column(JSONB, default=list)
+
+    # Money: {cp, sp, ep, gp, pp}
+    currency: Mapped[dict[str, int]] = mapped_column(JSONB, default=_default_currency)
+    # Misc proficiencies: list of {category, name}, category in language|weapon|armor|tool|other
+    other_proficiencies: Mapped[list[dict[str, str]]] = mapped_column(JSONB, default=list)
 
     # Freeform notes (markdown)
     equipment: Mapped[str] = mapped_column(Text, default="")
