@@ -52,6 +52,8 @@ export class SessionEditor {
   readonly embedded = input(false);
   /** Emitted (with the deleted id) after the session is removed, so the host can reselect. */
   readonly deleted = output<number>();
+  /** Emitted with the saved session, so the host can refresh its title/date-ordered list. */
+  readonly updated = output<Session>();
 
   protected readonly session = signal<Session | null>(null);
   /** Campaign entities, for the @-mention autocomplete in the notes editor. */
@@ -123,6 +125,7 @@ export class SessionEditor {
     this.form.patchValue({ summary: s.summary ?? '' });
     this.saved.set(true);
     setTimeout(() => this.saved.set(false), 2000);
+    this.updated.emit(s);
     // The server backfills entities from @[Name] mentions on save; pick up any new ones.
     this.reloadEntities();
   }

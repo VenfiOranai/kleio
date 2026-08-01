@@ -23,6 +23,22 @@ def test_list_sessions_for_campaign(db_client: TestClient, campaign_id: int):
     assert len(resp.json()) == 2
 
 
+def test_list_sessions_sorted_by_date_desc(db_client: TestClient, campaign_id: int):
+    for title, session_date in [
+        ("middle", "2024-06-01"),
+        ("undated", None),
+        ("newest", "2024-09-15"),
+        ("oldest", "2024-01-20"),
+    ]:
+        db_client.post(
+            f"/api/campaigns/{campaign_id}/sessions",
+            json={"title": title, "session_date": session_date},
+        )
+
+    titles = [s["title"] for s in db_client.get(f"/api/campaigns/{campaign_id}/sessions").json()]
+    assert titles == ["newest", "middle", "oldest", "undated"]
+
+
 def test_update_session_preserves_raw_notes(db_client: TestClient, campaign_id: int):
     session_id = db_client.post(
         f"/api/campaigns/{campaign_id}/sessions",

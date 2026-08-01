@@ -13,10 +13,12 @@ router = APIRouter(tags=["sessions"], dependencies=[Depends(get_current_user)])
 @router.get("/campaigns/{campaign_id}/sessions", response_model=list[SessionRead])
 def list_sessions(campaign_id: int, db: Db):
     get_or_404(db, Campaign, campaign_id, "Campaign")
+    # Newest play session first; undated ones sink to the bottom. `created_at` breaks ties
+    # (several sessions on one day). Herald mirrors this ordering client-side after edits.
     return db.scalars(
         select(Session)
         .where(Session.campaign_id == campaign_id)
-        .order_by(Session.order_index, Session.created_at)
+        .order_by(Session.session_date.desc().nulls_last(), Session.created_at.desc())
     ).all()
 
 
