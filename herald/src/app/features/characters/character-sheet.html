@@ -15,11 +15,48 @@
         @if (saved()) {
           <span class="text-sm text-muted-foreground">Saved</span>
         }
+        <button
+          z-button
+          [zType]="jsonMode() ? 'secondary' : 'ghost'"
+          zSize="sm"
+          type="button"
+          [attr.aria-pressed]="jsonMode()"
+          (click)="toggleJson()"
+        >
+          JSON
+        </button>
         <button z-button zType="ghost" zSize="sm" (click)="promptDelete()">Delete</button>
         <button z-button zSize="sm" (click)="save()">Save</button>
       </div>
     </div>
 
+    <!-- JSON view: the whole editable sheet as one document, so a character can be copied
+         between environments. Applied back to the sheet in memory on toggle-off or Save. -->
+    @if (jsonMode()) {
+      <section class="flex flex-col gap-2">
+        <p class="text-sm text-muted-foreground">
+          Paste a character exported from another environment, then Save. Server-owned fields
+          (id, timestamps, derived stats) are left out here and ignored if pasted in.
+        </p>
+        <textarea
+          z-input
+          rows="28"
+          class="font-mono text-xs"
+          spellcheck="false"
+          [value]="jsonText()"
+          (input)="jsonText.set($any($event.target).value)"
+          aria-label="Character JSON"
+        ></textarea>
+        @if (jsonError(); as error) {
+          <p class="text-sm text-destructive">{{ error }}</p>
+        }
+      </section>
+    }
+
+    <!-- The sheet itself. Hidden (not destroyed) behind the JSON view so collapse state,
+         scroll position and the section modals survive toggling; `contents` keeps the
+         wrapper transparent to the parent flex column when visible. -->
+    <div [class.contents]="!jsonMode()" [class.hidden]="jsonMode()">
     <input z-input class="text-lg font-semibold" placeholder="Character name" formControlName="name" />
 
     <!-- Identity -->
@@ -507,6 +544,7 @@
         <textarea z-input rows="4" formControlName="notes"></textarea>
       </label>
     </section>
+    </div>
   </div>
 
   <app-confirm-delete-modal
