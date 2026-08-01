@@ -1,6 +1,15 @@
 import { NgTemplateOutlet } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, effect, inject, input, numberAttribute, output, signal } from '@angular/core';
+import {
+  Component,
+  effect,
+  inject,
+  input,
+  numberAttribute,
+  output,
+  signal,
+  viewChild,
+} from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -12,6 +21,7 @@ import { EntityService } from '@/core/api/entity.service';
 import { Entity, Session } from '@/core/api/models';
 import { SessionService } from '@/core/api/session.service';
 import { Ask } from '@/features/ask/ask';
+import { ConfirmDeleteModal } from '@/shared/confirm-delete-modal/confirm-delete-modal';
 import { MarkdownView } from '@/shared/markdown-view/markdown-view';
 import { MentionTextarea } from '@/shared/mention-textarea/mention-textarea';
 
@@ -26,6 +36,7 @@ import { MentionTextarea } from '@/shared/mention-textarea/mention-textarea';
     MarkdownView,
     MentionTextarea,
     Ask,
+    ConfirmDeleteModal,
   ],
   templateUrl: './session-editor.html',
 })
@@ -137,6 +148,12 @@ export class SessionEditor {
           this.summarizeError.set(err.error?.detail ?? 'Summarization failed. Please try again.');
         },
       });
+  }
+
+  private readonly confirmDelete = viewChild.required(ConfirmDeleteModal);
+
+  protected promptDelete(): void {
+    this.confirmDelete().open();
   }
 
   protected remove(): void {

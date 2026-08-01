@@ -29,6 +29,7 @@ import {
   Spell,
   SpellSlot,
 } from '@/core/api/models';
+import { ConfirmDeleteModal } from '@/shared/confirm-delete-modal/confirm-delete-modal';
 import { MarkdownView } from '@/shared/markdown-view/markdown-view';
 import { AttacksModal } from './attacks-modal/attacks-modal';
 import { EquipmentModal } from './equipment-modal/equipment-modal';
@@ -71,6 +72,7 @@ function toggle(set: Set<string>, key: string): Set<string> {
     FeaturesModal,
     AttacksModal,
     MarkdownView,
+    ConfirmDeleteModal,
   ],
   templateUrl: './character-sheet.html',
 })
@@ -383,6 +385,12 @@ export class CharacterSheet {
         this.saved.set(true);
         setTimeout(() => this.saved.set(false), 2000);
       });
+  }
+
+  private readonly confirmDelete = viewChild.required(ConfirmDeleteModal);
+
+  protected promptDelete(): void {
+    this.confirmDelete().open();
   }
 
   protected remove(): void {
