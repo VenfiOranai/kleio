@@ -336,6 +336,7 @@ def test_attacks_round_trip_and_derive_to_hit(db_client: TestClient, campaign_id
     # Terse second attack picks up the schema defaults.
     assert fetched["attacks"][1]["ability"] == "str"
     assert fetched["attacks"][1]["proficient"] is True
+    assert fetched["attacks"][1]["spell_mod_damage"] is False
     assert fetched["attacks"][1]["description"] == ""
     assert fetched["attacks"][1]["source"] == "manual"
 
@@ -343,6 +344,56 @@ def test_attacks_round_trip_and_derive_to_hit(db_client: TestClient, campaign_id
     derived = fetched["derived"]["attacks"]
     assert derived[0] == {"name": "Greatsword", "to_hit": 7, "damage": "2d6 + 3"}
     assert derived[1] == {"name": "Unarmed", "to_hit": 6, "damage": "1 + 3"}
+
+
+def test_spell_attack_damage_follows_spell_mod_damage_flag(
+    db_client: TestClient, campaign_id: int
+):
+    # Wizard, level 5 (pb +3), INT 18 (+4). Both attacks hit at +7; only the opted-in one
+    # carries the casting mod on damage.
+    payload = {
+        "name": "Evoker",
+        "class_name": "Wizard",
+        "level": 5,
+        "intelligence": 18,
+        "attacks": [
+            {"name": "Fire Bolt", "ability": "spellcasting", "damage_dice": "2d10"},
+            {
+                "name": "Agonizing Blast",
+                "ability": "spellcasting",
+                "damage_dice": "1d10",
+                "spell_mod_damage": True,
+            },
+        ],
+    }
+    character_id = db_client.post(
+        f"/api/campaigns/{campaign_id}/characters", json=payload
+    ).json()["id"]
+    fetched = db_client.get(f"/api/characters/{character_id}").json()
+
+    assert fetched["attacks"][1]["spell_mod_damage"] is True
+    assert fetched["derived"]["attacks"] == [
+        {"name": "Fire Bolt", "to_hit": 7, "damage": "2d10"},
+        {"name": "Agonizing Blast", "to_hit": 7, "damage": "1d10 + 4"},
+    ]
+
+    # Turning the flag off through an update drops the mod again.
+    updated = db_client.put(
+        f"/api/characters/{character_id}",
+        json={
+            "attacks": [
+                {
+                    "name": "Agonizing Blast",
+                    "ability": "spellcasting",
+                    "damage_dice": "1d10",
+                    "spell_mod_damage": False,
+                }
+            ]
+        },
+    ).json()
+    assert updated["derived"]["attacks"] == [
+        {"name": "Agonizing Blast", "to_hit": 7, "damage": "1d10"}
+    ]
 
 
 def test_attack_invalid_ability_rejected(db_client: TestClient, campaign_id: int):

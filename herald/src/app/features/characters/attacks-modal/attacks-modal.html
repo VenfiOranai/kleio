@@ -76,6 +76,17 @@
             />
             Proficient
           </label>
+          @if (attack.ability === 'spellcasting') {
+            <label class="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                [checked]="attack.spell_mod_damage"
+                (change)="toggleSpellModDamage(attack)"
+                [attr.aria-label]="attack.name + ' adds spell mod to damage'"
+              />
+              Spell mod to damage
+            </label>
+          }
         </div>
 
         <div class="flex flex-wrap items-center gap-2 text-sm">

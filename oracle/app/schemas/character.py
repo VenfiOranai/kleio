@@ -102,6 +102,9 @@ class Attack(BaseModel):
     name: str = ""
     ability: AttackAbility = "str"
     proficient: bool = True
+    # Spellcasting attacks only: most spells don't add the casting mod to damage, so it's
+    # opt-in. STR/DEX attacks always add theirs and ignore this flag.
+    spell_mod_damage: bool = False
     damage_dice: str = ""
     damage_type: str = ""
     bonus: int | None = None  # flat to-hit modifier (e.g. a +1 weapon)

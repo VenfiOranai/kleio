@@ -95,24 +95,29 @@ def attack_stats(
     ``to_hit`` = ability mod + (proficiency if proficient) + flat ``bonus``. The governing
     ability is STR, DEX, or the class's spellcasting ability (0 for a non-caster). The damage
     string is the dice plus the ability mod (e.g. ``"1d8 + 3"``); the flat ``bonus`` only
-    affects to-hit, per the standard sheet. Results parallel ``attacks`` by index.
+    affects to-hit, per the standard sheet. Weapon attacks (STR/DEX) always add their mod to
+    damage, but a spell's attack mod normally isn't part of its damage — so spellcasting
+    attacks only add it when ``spell_mod_damage`` is set. Results parallel ``attacks`` by index.
     """
     results = []
     for atk in attacks:
         ability = atk.get("ability", "str")
+        damage_mod_applies = True
         if ability == "dex":
             mod = mods["dexterity"]
         elif ability == "spellcasting":
             mod = mods[spellcasting_ability] if spellcasting_ability in ABILITIES else 0
+            damage_mod_applies = bool(atk.get("spell_mod_damage"))
         else:  # "str" (default)
             mod = mods["strength"]
         bonus = atk.get("bonus") or 0
         to_hit = mod + (proficiency if atk.get("proficient") else 0) + bonus
         dice = (atk.get("damage_dice") or "").strip()
-        if dice and mod > 0:
-            damage = f"{dice} + {mod}"
-        elif dice and mod < 0:
-            damage = f"{dice} - {abs(mod)}"
+        damage_mod = mod if damage_mod_applies else 0
+        if dice and damage_mod > 0:
+            damage = f"{dice} + {damage_mod}"
+        elif dice and damage_mod < 0:
+            damage = f"{dice} - {abs(damage_mod)}"
         else:
             damage = dice
         results.append({"name": atk.get("name", ""), "to_hit": to_hit, "damage": damage})

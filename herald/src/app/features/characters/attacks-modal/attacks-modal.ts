@@ -30,6 +30,7 @@ function blankAttack(): Attack {
     name: '',
     ability: 'str',
     proficient: true,
+    spell_mod_damage: false,
     damage_dice: '',
     damage_type: '',
     bonus: null,
@@ -148,6 +149,13 @@ export class AttacksModal {
 
   protected toggleProficient(attack: WorkAttack): void {
     attack.proficient = !attack.proficient;
+    this.working.update((w) => [...w]);
+    this.emit();
+  }
+
+  /** Only meaningful for spellcasting attacks — STR/DEX always add their mod to damage. */
+  protected toggleSpellModDamage(attack: WorkAttack): void {
+    attack.spell_mod_damage = !attack.spell_mod_damage;
     this.working.update((w) => [...w]);
     this.emit();
   }
