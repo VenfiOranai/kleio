@@ -15,6 +15,9 @@
         @if (saved()) {
           <span class="text-sm text-muted-foreground">Saved</span>
         }
+        @if (summarizing()) {
+          <span class="text-sm text-muted-foreground">Summarizing…</span>
+        }
         <button z-button zType="ghost" zSize="sm" (click)="promptDelete()">Delete</button>
         <button z-button zSize="sm" (click)="save()">Save</button>
       </div>
@@ -116,19 +119,12 @@
 
       <ng-template #summaryPane>
         <div class="flex flex-col gap-1">
+          <!-- No manual trigger: saving the session re-summarizes the notes automatically. -->
           <div class="flex items-center justify-between gap-2">
             <label class="text-sm font-medium">AI summary</label>
-            <button
-              z-button
-              type="button"
-              zType="outline"
-              zSize="sm"
-              [zLoading]="summarizing()"
-              [zDisabled]="summarizing()"
-              (click)="summarize()"
-            >
-              {{ summarizing() ? 'Summarizing…' : 'Summarize with AI' }}
-            </button>
+            @if (summarizing()) {
+              <span class="text-sm text-muted-foreground">Summarizing…</span>
+            }
           </div>
           @if (summary()) {
             <div class="rounded-lg border bg-muted/30 p-3">
@@ -139,7 +135,7 @@
             z-input
             rows="6"
             class="font-mono text-sm"
-            placeholder="Generate a summary from your notes, or write one yourself…"
+            placeholder="Saving regenerates this from your notes — or write one yourself…"
             formControlName="summary"
           ></textarea>
           @if (summarizeError()) {

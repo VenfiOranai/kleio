@@ -13,7 +13,7 @@ import {
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { switchMap } from 'rxjs';
+import { filter, switchMap, tap } from 'rxjs';
 
 import { ZardButtonComponent } from '@/components/button/button.component';
 import { ZardInputDirective } from '@/components/input/input.directive';
@@ -127,17 +127,23 @@ export class SessionEditor {
     this.reloadEntities();
   }
 
+  /**
+   * Persist current edits, then re-summarize the saved notes automatically.
+   *
+   * The save is what matters, so it's applied (and reported) before the AI step runs; a
+   * failing/unconfigured summarizer only surfaces an error in the summary pane. Sessions with
+   * no notes skip the call entirely (the server rejects those with a 400).
+   */
   protected save(): void {
-    this.service.update(this.sessionId(), this.payload()).subscribe((s) => this.applySaved(s));
-  }
-
-  /** Persist current edits, then ask the server to summarize the saved notes. */
-  protected summarize(): void {
-    this.summarizing.set(true);
     this.summarizeError.set(null);
     this.service
       .update(this.sessionId(), this.payload())
-      .pipe(switchMap(() => this.service.summarize(this.sessionId())))
+      .pipe(
+        tap((s) => this.applySaved(s)),
+        filter((s) => !!s.raw_notes.trim()),
+        tap(() => this.summarizing.set(true)),
+        switchMap(() => this.service.summarize(this.sessionId())),
+      )
       .subscribe({
         next: (s) => {
           this.summarizing.set(false);

@@ -63,8 +63,10 @@ summarizes the **saved** `raw_notes` (never mutated) into the editable `summary`
 (no notes) / 503 (not configured) / 502 (model error). 65 tests pass (11 new).
 
 **Herald:** `SessionService.summarize`; the session editor gains an editable `summary` textarea + live
-preview and a "Summarize with AI" button (`save-then-summarize`, `zLoading` state, graceful error
-line). e2e `ai.spec.ts` covers summary-editing/persistence and the not-configured error path.
+preview. Summarization has **no manual trigger** — `save()` persists first (so the save always lands
+and is reported), then chains `/summarize` when the notes are non-empty, showing a "Summarizing…"
+indicator and a graceful error line if the AI step fails. e2e `ai.spec.ts` covers
+summary-editing/persistence and the not-configured error path.
 
 ## UI polish — dark mode + logo
 `core/theme/theme.service.ts` toggles a `dark` class on `<html>` (the `.dark` token set already exists
