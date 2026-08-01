@@ -127,10 +127,12 @@ test.describe('character sheet', () => {
     await dialog.getByRole('button', { name: '+ Add spell' }).click();
     await dialog.getByPlaceholder('Spell name').fill('Magic Missile');
     await dialog.getByLabel('Spell level').selectOption('1');
+    await dialog.getByPlaceholder('School').fill('Evocation');
+    await dialog.getByPlaceholder('Description (markdown)…').fill('Three darts of force.');
     await dialog.getByRole('checkbox', { name: 'Prepared', exact: true }).check();
 
-    // Expend a slot by clicking an available dot → one available, one expended.
-    await dialog.getByLabel('Available slot').first().click();
+    // Expend a slot by clicking the last available dot → one available, one expended.
+    await dialog.getByLabel('Available slot').last().click();
     await expect(dialog.getByLabel('Available slot')).toHaveCount(1);
     await expect(dialog.getByLabel('Expended slot')).toHaveCount(1);
 
@@ -139,10 +141,23 @@ test.describe('character sheet', () => {
     await expect(dialog).toBeHidden();
     await page.getByRole('button', { name: 'Save' }).click();
 
-    // Summary: 1 prepared spell and a level-1 slot chip showing 1 of 2 remaining.
+    // Summary: 1 prepared spell and a level-1 tracker showing 1 of 2 slots left.
     const summary = page.locator('section', { hasText: 'Spells' }).locator('div.rounded-lg.border');
     await expect(summary.getByText('Prepared').locator('strong')).toHaveText('1');
-    await expect(summary.getByText(/Lvl 1:/)).toContainText('1/2');
+    await expect(summary.getByText('Slots').locator('strong')).toHaveText('1');
+    await expect(summary.getByLabel('Expend a level 1 slot')).toHaveCount(1);
+    await expect(summary.getByLabel('Restore a level 1 slot')).toHaveCount(1);
+
+    // The spell list: a collapsible level section showing names only, with the full data on hover.
+    const chip = summary.getByRole('listitem').filter({ hasText: 'Magic Missile' });
+    await expect(chip).toHaveText('Magic Missile');
+    await chip.hover();
+    await expect(page.getByText('Three darts of force.')).toBeVisible();
+    await expect(page.getByText('Level 1 · Evocation')).toBeVisible();
+
+    // Collapsing the level hides its spells (the summary counts stay).
+    await summary.getByRole('button', { name: /Level 1 \(1\)/ }).click();
+    await expect(chip).toHaveCount(0);
 
     // Persists across a reload (structured spells + slots came back from the server).
     await page.reload();
@@ -150,6 +165,15 @@ test.describe('character sheet', () => {
     const reopened = page.getByRole('dialog');
     await expect(reopened.getByPlaceholder('Spell name')).toHaveValue('Magic Missile');
     await expect(reopened.getByLabel('Available slot')).toHaveCount(1);
+
+    // The sheet's own tracker spends the last slot without opening the modal, and that sticks.
+    await page.keyboard.press('Escape');
+    await expect(reopened).toBeHidden();
+    await summary.getByLabel('Expend a level 1 slot').click();
+    await expect(summary.getByText('Slots').locator('strong')).toHaveText('0');
+    await page.getByRole('button', { name: 'Save' }).click();
+    await page.reload();
+    await expect(summary.getByText('Slots').locator('strong')).toHaveText('0');
   });
 
   test('long rest restores HP, spent hit dice, and spell slots', async ({ page }) => {
@@ -178,7 +202,7 @@ test.describe('character sheet', () => {
     const dialog = page.getByRole('dialog');
     await dialog.getByLabel('Level 1 total slots').fill('2');
     await dialog.getByLabel('Level 1 total slots').blur();
-    await dialog.getByLabel('Available slot').first().click();
+    await dialog.getByLabel('Available slot').last().click();
     await expect(dialog.getByLabel('Expended slot')).toHaveCount(1);
     await page.keyboard.press('Escape');
     await expect(dialog).toBeHidden();

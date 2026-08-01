@@ -4,9 +4,27 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { Character } from '@/core/api/models';
+import { Character, Spell } from '@/core/api/models';
 
 import { CharacterSheet } from './character-sheet';
+
+function makeSpell(overrides: Partial<Spell> = {}): Spell {
+  return {
+    name: 'Spell',
+    level: 0,
+    school: '',
+    prepared: false,
+    always_prepared: false,
+    ritual: false,
+    concentration: false,
+    casting_time: '',
+    range: '',
+    components: '',
+    duration: '',
+    description: '',
+    ...overrides,
+  };
+}
 
 function makeCharacter(overrides: Partial<Character> = {}): Character {
   return {
@@ -178,4 +196,119 @@ describe('CharacterSheet JSON view', () => {
   });
 
   afterEach(() => http.verify());
+});
+
+/** The read-only spells preview: slot dots, per-level sections, and the hover popover. */
+describe('CharacterSheet spells preview', () => {
+  let fixture: ComponentFixture<CharacterSheet>;
+  let http: HttpTestingController;
+
+  const el = (): HTMLElement => fixture.nativeElement;
+  const buttonWith = (text: string) =>
+    [...el().querySelectorAll('button')].find((b) => b.textContent?.replace(/\s+/g, ' ').trim() === text);
+  const slotDots = (level: number) =>
+    [...el().querySelectorAll<HTMLButtonElement>('button[aria-label]')].filter((b) =>
+      b.getAttribute('aria-label')!.endsWith(`a level ${level} slot`),
+    );
+  const spellChips = () => [...el().querySelectorAll('li')].map((li) => li.textContent!.trim());
+
+  function click(element: HTMLElement): void {
+    element.click();
+    fixture.detectChanges();
+  }
+
+  function hover(name: string): void {
+    const chip = [...el().querySelectorAll('li')].find((li) => li.textContent?.trim() === name)!;
+    chip.dispatchEvent(new MouseEvent('mouseenter'));
+    fixture.detectChanges();
+  }
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      imports: [CharacterSheet],
+      providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])],
+    });
+    http = TestBed.inject(HttpTestingController);
+
+    fixture = TestBed.createComponent(CharacterSheet);
+    fixture.componentRef.setInput('characterId', 1);
+    fixture.componentRef.setInput('campaignId', 2);
+    fixture.detectChanges();
+    http.expectOne('/api/characters/1').flush(
+      makeCharacter({
+        spells: [
+          makeSpell({ name: 'Mage Hand' }),
+          makeSpell({ name: 'Fire Bolt' }),
+          makeSpell({
+            name: 'Shield',
+            level: 1,
+            school: 'Abjuration',
+            components: 'V, S',
+            range: 'Self',
+            concentration: false,
+            prepared: true,
+            description: 'Bonus AC until your next turn.',
+          }),
+        ],
+        spell_slots: [{ level: 1, total: 3, expended: 1 }],
+      }),
+    );
+    fixture.detectChanges();
+  });
+
+  it('groups spells by level, showing names only', () => {
+    expect(buttonWith('▾ Cantrips (2)')).toBeDefined();
+    expect(buttonWith('▾ Level 1 (1)')).toBeDefined();
+    expect(spellChips()).toEqual(['Fire Bolt', 'Mage Hand', 'Shield']); // alphabetical per level
+  });
+
+  it('collapses one level without touching the others', () => {
+    click(buttonWith('▾ Cantrips (2)')!);
+
+    expect(spellChips()).toEqual(['Shield']);
+    expect(buttonWith('▸ Cantrips (2)')).toBeDefined();
+  });
+
+  it('shows a spell’s full data on hover, and drops it on leave', () => {
+    hover('Shield');
+
+    expect(el().textContent).toContain('V, S');
+    expect(el().textContent).toContain('Bonus AC until your next turn.');
+    expect(el().textContent).toContain('Abjuration');
+
+    const chip = [...el().querySelectorAll('li')].find((li) => li.textContent?.trim() === 'Shield')!;
+    chip.dispatchEvent(new MouseEvent('mouseleave'));
+    fixture.detectChanges();
+
+    expect(el().textContent).not.toContain('V, S');
+  });
+
+  it('expends a slot by clicking an available dot, and saves the new count', () => {
+    const dots = slotDots(1);
+    expect(dots.map((d) => d.getAttribute('aria-label'))).toEqual([
+      'Expend a level 1 slot',
+      'Expend a level 1 slot',
+      'Restore a level 1 slot',
+    ]);
+
+    click(dots[1]); // spend down to the first dot
+
+    expect(el().textContent).toContain('1/3');
+    click(buttonWith('Save')!);
+    expect(http.expectOne({ method: 'PUT', url: '/api/characters/1' }).request.body.spell_slots).toEqual([
+      { level: 1, total: 3, expended: 2 },
+    ]);
+  });
+
+  it('restores a slot by clicking an expended dot', () => {
+    click(slotDots(1)[2]);
+
+    expect(el().textContent).toContain('3/3');
+    expect(slotDots(1).every((d) => d.getAttribute('aria-label') === 'Expend a level 1 slot')).toBe(true);
+  });
+
+  afterEach(() => {
+    http.verify();
+    fixture.destroy();
+  });
 });

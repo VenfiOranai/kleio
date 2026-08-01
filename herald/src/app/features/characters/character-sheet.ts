@@ -36,6 +36,7 @@ import { AttacksModal } from './attacks-modal/attacks-modal';
 import { CharacterDraft, draftToJson, parseCharacterDraft } from './character-json';
 import { EquipmentModal } from './equipment-modal/equipment-modal';
 import { FeaturesModal } from './features-modal/features-modal';
+import { slotDots, toggleSlotDot } from './spell-slots';
 import { SpellsModal } from './spells-modal/spells-modal';
 
 /** A hover tooltip anchored to an equipment chip in the read-only sheet preview. */
@@ -48,6 +49,13 @@ interface ItemTooltip {
 /** A hover tooltip anchored to a row in the read-only attacks table. */
 interface AttackTooltip {
   attack: Attack;
+  top: number;
+  left: number;
+}
+
+/** A hover popover anchored to a spell chip in the read-only spells preview. */
+interface SpellTooltip {
+  spell: Spell;
   top: number;
   left: number;
 }
@@ -133,12 +141,15 @@ export class CharacterSheet {
     }));
   });
 
-  /** Compact spell summary for the read-only sheet: prepared count + total-slot count. */
+  /** Compact spell summary for the read-only sheet: prepared count + slot counts. */
   protected readonly preparedSpellCount = computed(
     () => this.spellItems().filter((s) => s.prepared || s.always_prepared).length,
   );
   protected readonly totalSlots = computed(() =>
     this.spellSlots().reduce((sum, s) => sum + (s.total || 0), 0),
+  );
+  protected readonly availableSlots = computed(() =>
+    this.spellSlots().reduce((sum, s) => sum + Math.max(0, (s.total || 0) - (s.expended || 0)), 0),
   );
 
   /** Compact features summary: total count + how many carry a limited-use tracker. */
@@ -167,6 +178,38 @@ export class CharacterSheet {
         category,
         label: category || 'Uncategorized',
         items: byCat.get(category)!,
+      }));
+  });
+
+  /** Read-only spells preview: whole-section + per-level collapse, and a hover popover. Slot
+   * usage is editable here (totals stay modal-only); edits persist on the next Save. */
+  protected readonly spellsCollapsed = signal(false);
+  protected readonly spellGroupsCollapsed = signal<Set<string>>(new Set());
+  protected readonly spellTooltip = signal<SpellTooltip | null>(null);
+  private readonly spellTooltipEl = viewChild<ElementRef<HTMLDivElement>>('spellTip');
+
+  /** Available-first dots for a slot row, shared with the modal's tracker. */
+  protected readonly slotDots = slotDots;
+
+  /** Slot rows worth a tracker (levels that carry slots), lowest level first. */
+  protected readonly slotRows = computed(() =>
+    this.spellSlots()
+      .filter((s) => s.total > 0)
+      .sort((a, b) => a.level - b.level),
+  );
+
+  /** Spells grouped by level (Cantrips first), alphabetical within a level. */
+  protected readonly spellGroups = computed(() => {
+    const byLevel = new Map<number, Spell[]>();
+    for (const spell of this.spellItems()) {
+      (byLevel.get(spell.level) ?? byLevel.set(spell.level, []).get(spell.level)!).push(spell);
+    }
+    return [...byLevel.keys()]
+      .sort((a, b) => a - b)
+      .map((level) => ({
+        level,
+        label: level === 0 ? 'Cantrips' : `Level ${level}`,
+        spells: byLevel.get(level)!.sort((a, b) => a.name.localeCompare(b.name)),
       }));
   });
 
@@ -289,16 +332,21 @@ export class CharacterSheet {
   }
 
   private clampAttackTooltip(): void {
-    const el = this.attackTooltipEl()?.nativeElement;
-    const current = this.attackTooltip();
-    if (!el || !current) return;
+    const clamped = this.clamp(this.attackTooltipEl()?.nativeElement, this.attackTooltip());
+    if (clamped) this.attackTooltip.set(clamped);
+  }
+
+  /** Nudge a rendered tooltip back on screen; null when it already fits (or isn't shown). */
+  private clamp<T extends { top: number; left: number }>(
+    el: HTMLElement | undefined,
+    tip: T | null,
+  ): T | null {
+    if (!el || !tip) return null;
     const margin = 8;
     const { width, height } = el.getBoundingClientRect();
-    const left = Math.max(margin, Math.min(current.left, window.innerWidth - width - margin));
-    const top = Math.max(margin, Math.min(current.top, window.innerHeight - height - margin));
-    if (left !== current.left || top !== current.top) {
-      this.attackTooltip.set({ ...current, top, left });
-    }
+    const left = Math.max(margin, Math.min(tip.left, window.innerWidth - width - margin));
+    const top = Math.max(margin, Math.min(tip.top, window.innerHeight - height - margin));
+    return left === tip.left && top === tip.top ? null : { ...tip, top, left };
   }
 
   protected hideAttackDescription(): void {
@@ -378,6 +426,44 @@ export class CharacterSheet {
 
   protected hideItemDescription(): void {
     this.itemTooltip.set(null);
+  }
+
+  // --- Spells preview ------------------------------------------------------
+
+  protected toggleSpellsCollapsed(): void {
+    this.spellsCollapsed.update((v) => !v);
+    if (this.spellsCollapsed()) this.spellTooltip.set(null);
+  }
+
+  protected isSpellGroupCollapsed(level: number): boolean {
+    return this.spellGroupsCollapsed().has(String(level));
+  }
+
+  protected toggleSpellGroup(level: number): void {
+    this.spellGroupsCollapsed.update((set) => toggle(set, String(level)));
+    this.spellTooltip.set(null);
+  }
+
+  /** Spend/restore one slot by clicking its dot. Totals stay editable in the modal only. */
+  protected toggleSlot(slot: SpellSlot, index: number): void {
+    const expended = toggleSlotDot(slot, index);
+    this.spellSlots.update((rows) =>
+      rows.map((s) => (s.level === slot.level ? { ...s, expended } : s)),
+    );
+  }
+
+  /** Show a spell's full data in a popover beside the hovered name. */
+  protected showSpellDetails(event: MouseEvent, spell: Spell): void {
+    const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+    this.spellTooltip.set({ spell, top: rect.top, left: rect.right + 8 });
+    requestAnimationFrame(() => {
+      const clamped = this.clamp(this.spellTooltipEl()?.nativeElement, this.spellTooltip());
+      if (clamped) this.spellTooltip.set(clamped);
+    });
+  }
+
+  protected hideSpellDetails(): void {
+    this.spellTooltip.set(null);
   }
 
   // --- JSON view -----------------------------------------------------------
