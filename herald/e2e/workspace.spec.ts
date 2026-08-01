@@ -58,9 +58,8 @@ test.describe('workspace split view', () => {
     await expect(notesTextarea).toHaveCount(0);
     await expect(page.getByRole('heading', { name: 'Heading' })).toBeVisible();
 
-    // Summary tab exposes the editable summary field + the Summarize action.
+    // Summary tab exposes the editable summary field (summarizing happens on save).
     await page.getByRole('button', { name: 'Summary', exact: true }).click();
     await expect(summaryTextarea).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Summarize with AI' })).toBeVisible();
   });
 });

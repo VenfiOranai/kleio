@@ -29,14 +29,14 @@ test.describe('AI summary', () => {
   test('surfaces a helpful error when AI is not configured', async ({ page }) => {
     await openNewSession(page);
 
-    // Notes are entered on the Write tab; the value is kept when switching tabs.
+    // Saving auto-triggers summarization — there is no manual button.
     await page.locator('app-mention-textarea textarea').fill('The party explored the crypt.');
-    await page.getByRole('button', { name: 'Summary', exact: true }).click();
-    await page.getByRole('button', { name: 'Summarize with AI' }).click();
+    await page.getByRole('button', { name: 'Save' }).click();
+    // The save itself still succeeds regardless of the AI step.
+    await expect(page.getByText('Saved')).toBeVisible();
 
-    // No API key in the e2e backend → a graceful 503 shown to the user (not a crash).
+    // No API key in the e2e backend → a graceful 503 shown in the summary pane (not a crash).
+    await page.getByRole('button', { name: 'Summary', exact: true }).click();
     await expect(page.getByText(/not configured/i)).toBeVisible();
-    // The button returns to its idle label afterward.
-    await expect(page.getByRole('button', { name: 'Summarize with AI' })).toBeEnabled();
   });
 });
