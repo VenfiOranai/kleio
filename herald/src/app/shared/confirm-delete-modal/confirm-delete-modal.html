@@ -1,0 +1,31 @@
+<app-modal title="Confirm deletion">
+  <div class="flex flex-col gap-4">
+    <p class="text-sm text-muted-foreground">
+      This will permanently delete the {{ itemLabel() }}
+      <strong class="text-foreground">{{ name() }}</strong>. This cannot be undone.
+    </p>
+    <label class="flex flex-col gap-1 text-sm">
+      <span class="text-muted-foreground">
+        Type <strong class="text-foreground">{{ name() }}</strong> to confirm.
+      </span>
+      <input
+        z-input
+        [placeholder]="name()"
+        [value]="typed()"
+        (input)="typed.set($any($event.target).value)"
+      />
+    </label>
+    <div class="flex justify-end gap-2">
+      <button z-button zType="outline" zSize="sm" (click)="cancel()">Cancel</button>
+      <button
+        z-button
+        zType="destructive"
+        zSize="sm"
+        [zDisabled]="!matches()"
+        (click)="confirm()"
+      >
+        Delete
+      </button>
+    </div>
+  </div>
+</app-modal>

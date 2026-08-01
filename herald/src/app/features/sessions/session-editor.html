@@ -18,7 +18,7 @@
         @if (summarizing()) {
           <span class="text-sm text-muted-foreground">Summarizing…</span>
         }
-        <button z-button zType="ghost" zSize="sm" (click)="remove()">Delete</button>
+        <button z-button zType="ghost" zSize="sm" (click)="promptDelete()">Delete</button>
         <button z-button zSize="sm" (click)="save()">Save</button>
       </div>
     </div>
@@ -151,4 +151,10 @@
       </ng-template>
     </form>
   </div>
+
+  <app-confirm-delete-modal
+    [name]="session()!.title"
+    itemLabel="session"
+    (confirmed)="remove()"
+  />
 }

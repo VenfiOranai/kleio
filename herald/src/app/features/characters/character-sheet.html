@@ -15,7 +15,7 @@
         @if (saved()) {
           <span class="text-sm text-muted-foreground">Saved</span>
         }
-        <button z-button zType="ghost" zSize="sm" (click)="remove()">Delete</button>
+        <button z-button zType="ghost" zSize="sm" (click)="promptDelete()">Delete</button>
         <button z-button zSize="sm" (click)="save()">Save</button>
       </div>
     </div>
@@ -508,4 +508,10 @@
       </label>
     </section>
   </div>
+
+  <app-confirm-delete-modal
+    [name]="character()!.name"
+    itemLabel="character"
+    (confirmed)="remove()"
+  />
 }
