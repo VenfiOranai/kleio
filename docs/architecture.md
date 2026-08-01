@@ -58,10 +58,11 @@ Session  1───* NoteEmbedding  (also FK campaign_id, denormalized)
 
 **campaigns**: `id`, `name`, `description`, `created_at`, `updated_at`
 
-**sessions**: `id`, `campaign_id (FK)`, `title`, `session_date`, `order_index`,
-`raw_notes` (markdown, the canonical text you write), `summary` (markdown, nullable —
-filled by Gemini later, editable), `search_vector` (tsvector, generated),
-`created_at`, `updated_at`. GIN index on `search_vector`.
+**sessions**: `id`, `campaign_id (FK)`, `title`, `session_date`, `order_index` (vestigial —
+listing sorts by date), `raw_notes` (markdown, the canonical text you write), `summary`
+(markdown, nullable — filled by Gemini later, editable), `search_vector` (tsvector, generated),
+`created_at`, `updated_at`. GIN index on `search_vector`. Listed newest-play-date first
+(`session_date DESC NULLS LAST, created_at DESC`).
 
 **note_embeddings** (Phase 5, RAG): `id`, `session_id (FK, cascade)`,
 `campaign_id (FK, cascade — denormalized from the session so retrieval filters by campaign

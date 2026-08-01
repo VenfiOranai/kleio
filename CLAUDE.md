@@ -124,6 +124,8 @@ one-liners below are the map.
   `character_calc`). Done: **8** basics/spellcasting stats + currency + proficiencies; **9**
   equipment + modal; **10** spells + slot tracking; **long rest + structured hit dice**; **11**
   features & traits; **12** attacks panel (JSONB `attacks` + derived to-hit/damage + modal).
+- **Session ordering** — sessions list newest play-date first (undated last); new sessions default to
+  today; saving re-sorts/relabels the workspace picker live via the editor's `updated` output.
 
 **Next up:** Phase 13/14 (5etools import), or Phase 6 (polish/hardening, backups) — see
 `docs/roadmap.md`.

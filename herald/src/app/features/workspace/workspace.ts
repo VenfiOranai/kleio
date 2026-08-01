@@ -60,7 +60,7 @@ export class Workspace {
       const wantCharacter = this.character();
 
       this.sessionService.list(id).subscribe((sessions) => {
-        this.sessions.set(sessions);
+        this.sessions.set(sortSessions(sessions));
         this.selectedSessionId.set(pickSelection(sessions, wantSession, this.selectedSessionId()));
         if (wantSession != null) this.revealNotes();
       });
@@ -83,11 +83,21 @@ export class Workspace {
   }
 
   protected createSession(): void {
-    this.sessionService.create(this.campaignId(), { title: 'Untitled session' }).subscribe((s) => {
-      this.sessions.update((list) => [...list, s]);
-      this.selectedSessionId.set(s.id);
-      this.revealNotes();
-    });
+    // New sessions default to today — notes are almost always written on play day.
+    this.sessionService
+      .create(this.campaignId(), { title: 'Untitled session', session_date: todayIso() })
+      .subscribe((s) => {
+        this.sessions.update((list) => sortSessions([...list, s]));
+        this.selectedSessionId.set(s.id);
+        this.revealNotes();
+      });
+  }
+
+  /** A save may have changed the title or date, so refresh the entry and re-sort the list. */
+  protected onSessionUpdated(updated: Session): void {
+    this.sessions.update((list) =>
+      sortSessions(list.map((s) => (s.id === updated.id ? updated : s))),
+    );
   }
 
   protected createCharacter(): void {
@@ -131,6 +141,29 @@ export class Workspace {
       this.mobileTab.set('character');
     }
   }
+}
+
+/** Today's date as `YYYY-MM-DD`, in the user's timezone (not UTC, unlike `toISOString()`). */
+function todayIso(): string {
+  const now = new Date();
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+}
+
+/**
+ * Newest session first, undated ones last — mirrors the ordering the oracle returns, so the
+ * dropdown stays correct after a local edit without re-fetching the list.
+ * Both dates and timestamps are ISO strings, so lexicographic compare is chronological.
+ */
+function sortSessions(sessions: Session[]): Session[] {
+  return [...sessions].sort((a, b) => {
+    if (a.session_date !== b.session_date) {
+      if (!a.session_date) return 1;
+      if (!b.session_date) return -1;
+      return b.session_date.localeCompare(a.session_date);
+    }
+    return b.created_at.localeCompare(a.created_at);
+  });
 }
 
 /** Keep a valid selection: honor the deep-link target, else the current one, else the first. */

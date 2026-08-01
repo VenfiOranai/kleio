@@ -238,3 +238,14 @@ ability, spell source). Working copy keyed by transient `_id`, emits `attacks` o
 shows an **attacks table** (name · to-hit · damage · range · notes) whose to-hit/damage come from the
 server `derived` (zipped by index; refresh on save) plus an "Open attacks" button; `attacks` rides along
 in Save. e2e attacks test (7 specs green).
+
+## Session ordering by date
+Sessions are now chronological instead of insertion-ordered. **Oracle:** `list_sessions` orders by
+`session_date DESC NULLS LAST, created_at DESC` (`order_index` is no longer used for sessions);
+integration test covers the ordering incl. undated sessions. **Herald:** the workspace stamps new
+sessions with today's **local** date on create, and mirrors the oracle's ordering client-side
+(`sortSessions` in `workspace.ts`) so an edit re-sorts the picker without a re-fetch — the embedded
+`SessionEditor` gained an `updated` output (emitted on save, alongside `deleted`) that the workspace
+folds into its list, so a renamed/re-dated session immediately changes label **and** position. The
+picker's `<option>`s bind `[selected]` as well (reordering moves the option nodes, which otherwise
+resets the browser's selection). e2e `session.spec.ts` covers today-default + re-sort on save.
