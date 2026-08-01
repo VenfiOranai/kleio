@@ -226,9 +226,10 @@ def test_attack_stats_non_proficient_and_dex_finesse():
     assert result == [{"name": "Dagger", "to_hit": 4, "damage": "1d4 + 4"}]
 
 
-def test_attack_stats_spellcasting_ability_and_negative_mod():
+def test_attack_stats_spellcasting_ability_excludes_mod_from_damage_by_default():
     # Spell attack uses the caster's ability (INT -1 here), proficient → to-hit = -1 + 2 = 1;
-    # damage 1d10 - 1 (negative mod formats with a minus). A non-caster falls back to +0.
+    # damage stays plain 1d10 — a spell's casting mod isn't part of its damage. A non-caster
+    # falls back to +0.
     caster = attack_stats(
         [{"name": "Fire Bolt", "ability": "spellcasting", "proficient": True,
           "damage_dice": "1d10"}],
@@ -236,7 +237,7 @@ def test_attack_stats_spellcasting_ability_and_negative_mod():
         proficiency=2,
         spellcasting_ability="intelligence",
     )
-    assert caster == [{"name": "Fire Bolt", "to_hit": 1, "damage": "1d10 - 1"}]
+    assert caster == [{"name": "Fire Bolt", "to_hit": 1, "damage": "1d10"}]
 
     non_caster = attack_stats(
         [{"name": "Eldritch Blast", "ability": "spellcasting", "proficient": True}],
@@ -245,6 +246,30 @@ def test_attack_stats_spellcasting_ability_and_negative_mod():
         spellcasting_ability="",  # class isn't a caster
     )
     assert non_caster == [{"name": "Eldritch Blast", "to_hit": 3, "damage": ""}]
+
+
+def test_attack_stats_spell_mod_damage_opts_the_mod_into_damage():
+    # Some spells (e.g. a warlock's agonizing blast) do add the casting mod to damage.
+    result = attack_stats(
+        [{"name": "Eldritch Blast", "ability": "spellcasting", "proficient": True,
+          "damage_dice": "1d10", "spell_mod_damage": True}],
+        mods=_mods(charisma=4),
+        proficiency=3,
+        spellcasting_ability="charisma",
+    )
+    assert result == [{"name": "Eldritch Blast", "to_hit": 7, "damage": "1d10 + 4"}]
+
+
+def test_attack_stats_spell_mod_damage_ignored_for_weapon_abilities():
+    # STR/DEX attacks always add their mod to damage; the spell-only flag doesn't remove it.
+    result = attack_stats(
+        [{"name": "Rapier", "ability": "dex", "proficient": True, "damage_dice": "1d8",
+          "spell_mod_damage": False}],
+        mods=_mods(dexterity=4),
+        proficiency=2,
+        spellcasting_ability="intelligence",
+    )
+    assert result == [{"name": "Rapier", "to_hit": 6, "damage": "1d8 + 4"}]
 
 
 def test_attack_stats_zero_mod_omits_damage_modifier():
@@ -271,8 +296,8 @@ def test_derived_includes_attack_to_hit_and_damage():
              "damage_dice": "2d10"},
         ],
     )
-    # STR +3 + pb +3 = +6; INT +4 + pb +3 = +7.
+    # STR +3 + pb +3 = +6; INT +4 + pb +3 = +7. The spell's mod stays off its damage.
     assert derived["attacks"] == [
         {"name": "Quarterstaff", "to_hit": 6, "damage": "1d6 + 3"},
-        {"name": "Fire Bolt", "to_hit": 7, "damage": "2d10 + 4"},
+        {"name": "Fire Bolt", "to_hit": 7, "damage": "2d10"},
     ]

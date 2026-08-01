@@ -133,6 +133,9 @@ export interface Attack {
   name: string;
   ability: AttackAbility;
   proficient: boolean;
+  /** Spellcasting attacks only: add the casting mod to damage too (off by default — most
+   * spells don't). STR/DEX attacks always add their mod and ignore this. */
+  spell_mod_damage: boolean;
   damage_dice: string;
   damage_type: string;
   bonus: number | null;
