@@ -253,3 +253,26 @@ sessions with today's **local** date on create, and mirrors the oracle's orderin
 folds into its list, so a renamed/re-dated session immediately changes label **and** position. The
 picker's `<option>`s bind `[selected]` as well (reordering moves the option nodes, which otherwise
 resets the browser's selection). e2e `session.spec.ts` covers today-default + re-sort on save.
+
+## Character JSON view (environment migration)
+Moving a character between environments (local → dev → prod) needed no import format: the sheet can
+now be edited as **raw JSON** and pasted anywhere. A **JSON** toggle sits next to Delete/Save (off by
+default) and swaps the sheet for a textarea holding the whole editable character.
+
+**Herald only** — no oracle change; the document is exactly the payload Save already sent. The
+serializer/parser is a **pure** module (`features/characters/character-json.ts`), unit-tested like
+`character_calc`: `draftToJson` emits the `CharacterDraft` (= `Character` minus `id`, `campaign_id`,
+timestamps and `derived`) with keys in sheet order, so two environments diff cleanly;
+`parseCharacterDraft` **merges over the current draft** (a partial paste patches rather than wipes),
+type-checks scalars, tolerates numeric strings, silently ignores the server-owned keys so a raw
+`GET /api/characters/{id}` body pastes in, and **reports** unknown keys (catching `strenght`) plus
+every type error in one message. List entries pass through — the backend stays the authority on shape.
+
+The two views stay consistent **in memory**, without a save in between: toggling on re-serializes the
+live form + section signals, toggling off parses and pushes back onto them (`applyDraft`). A parse
+error blocks the toggle (and blocks Save) with the message shown under the editor, so an edit is never
+silently dropped. Saving from the JSON view applies the text first, then re-serializes from the
+response so the document shows what was actually stored. The sheet is **hidden, not destroyed** behind
+the editor (`contents`/`hidden`), so collapse state, scroll position and the section modals survive
+toggling. Component spec drives the toggle through the DOM (both sync directions, repeated
+round-trips, bad-JSON handling, save payload); e2e `character.spec.ts` covers the same flow end to end.

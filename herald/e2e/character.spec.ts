@@ -289,4 +289,51 @@ test.describe('character sheet', () => {
     await page.getByRole('button', { name: 'Open attacks' }).click();
     await expect(page.getByRole('dialog').getByPlaceholder('Attack name')).toHaveValue('Longsword');
   });
+
+  test('edits the sheet as JSON, syncing both ways without saving', async ({ page }) => {
+    await openFreshCampaign(page, 'JSON Campaign');
+    await newCharacter(page);
+
+    const name = uniqueName('Portable');
+    await page.getByPlaceholder('Character name').fill(name);
+    await page.locator('input[formcontrolname="level"]').fill('4');
+    await page.locator('input[formcontrolname="level"]').blur();
+
+    // Toggle JSON on: the document reflects the unsaved sheet state.
+    const toggle = page.getByRole('button', { name: 'JSON' });
+    const editor = page.getByLabel('Character JSON');
+    await toggle.click();
+    await expect(page.getByPlaceholder('Character name')).toBeHidden();
+    const opened = JSON.parse(await editor.inputValue());
+    expect(opened).toMatchObject({ name, level: 4 });
+    expect(opened).not.toHaveProperty('derived'); // server-owned fields stay out
+
+    // Edit in JSON and toggle off: the change lands on the sheet, still unsaved.
+    await editor.fill(JSON.stringify({ ...opened, level: 7, strength: 18 }, null, 2));
+    await toggle.click();
+    await expect(page.locator('input[formcontrolname="level"]')).toHaveValue('7');
+    const strengthRow = page.locator('div.flex.items-center.gap-3', { hasText: 'strength' });
+    await expect(strengthRow.getByRole('spinbutton')).toHaveValue('18');
+
+    // Edit on the sheet and toggle back on: the document picks the change up, still unsaved.
+    const combat = page.locator('section', { hasText: 'Combat' });
+    await combat.locator('label', { hasText: 'armor class' }).getByRole('spinbutton').fill('17');
+    await toggle.click();
+    expect(JSON.parse(await editor.inputValue())).toMatchObject({ armor_class: 17, level: 7 });
+
+    // Malformed JSON blocks the toggle rather than dropping the edit.
+    await editor.fill('{ not json');
+    await toggle.click();
+    await expect(page.getByText(/Invalid JSON/)).toBeVisible();
+    await expect(editor).toBeVisible();
+
+    // Saving straight from the JSON view persists; derived stats catch up after a reload.
+    await editor.fill(JSON.stringify({ ...opened, level: 7, strength: 18, armor_class: 17 }, null, 2));
+    await page.getByRole('button', { name: 'Save' }).click();
+    await page.reload();
+    await expect(page.locator('input[formcontrolname="level"]')).toHaveValue('7');
+    // Level 7 → proficiency +3; STR 18 → +4 modifier.
+    await expect(strengthRow.locator('span.w-10')).toHaveText('+4');
+    await expect(page.getByText('Proficiency').locator('strong')).toHaveText('+3');
+  });
 });

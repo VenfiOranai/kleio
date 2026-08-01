@@ -126,6 +126,9 @@ one-liners below are the map.
   features & traits; **12** attacks panel (JSONB `attacks` + derived to-hit/damage + modal).
 - **Session ordering** — sessions list newest play-date first (undated last); new sessions default to
   today; saving re-sorts/relabels the workspace picker live via the editor's `updated` output.
+- **Character JSON view** — a `JSON` toggle by Delete/Save swaps the sheet for the raw editable
+  character, to migrate one between environments (copy there, paste here, Save). Serializing/parsing
+  lives in one **pure** `character-json.ts`; the two views sync in memory on every toggle.
 
 **Next up:** Phase 13/14 (5etools import), or Phase 6 (polish/hardening, backups) — see
 `docs/roadmap.md`.

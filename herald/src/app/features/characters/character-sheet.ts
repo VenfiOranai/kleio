@@ -8,6 +8,7 @@ import {
   numberAttribute,
   output,
   signal,
+  untracked,
   viewChild,
 } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
@@ -32,6 +33,7 @@ import {
 import { ConfirmDeleteModal } from '@/shared/confirm-delete-modal/confirm-delete-modal';
 import { MarkdownView } from '@/shared/markdown-view/markdown-view';
 import { AttacksModal } from './attacks-modal/attacks-modal';
+import { CharacterDraft, draftToJson, parseCharacterDraft } from './character-json';
 import { EquipmentModal } from './equipment-modal/equipment-modal';
 import { FeaturesModal } from './features-modal/features-modal';
 import { SpellsModal } from './spells-modal/spells-modal';
@@ -90,6 +92,13 @@ export class CharacterSheet {
 
   protected readonly character = signal<Character | null>(null);
   protected readonly saved = signal(false);
+
+  /** "View as JSON" mode — edits the whole sheet as one pasteable document, so a character can
+   * be moved between environments (copy there, paste here, Save). Off by default; the two
+   * views sync on every toggle, in memory, without needing a save in between. */
+  protected readonly jsonMode = signal(false);
+  protected readonly jsonText = signal('');
+  protected readonly jsonError = signal<string | null>(null);
 
   protected readonly abilities = ABILITIES;
   protected readonly skills = Object.keys(SKILLS);
@@ -215,6 +224,11 @@ export class CharacterSheet {
         this.featureItems.set([...c.features]);
         this.attackItems.set([...c.attacks]);
         this.hitDice.set([...c.hit_dice]);
+        // A different character was loaded under an open JSON view — show its document.
+        if (untracked(this.jsonMode)) {
+          this.jsonText.set(draftToJson(c));
+          this.jsonError.set(null);
+        }
       });
     });
   }
@@ -366,25 +380,72 @@ export class CharacterSheet {
     this.itemTooltip.set(null);
   }
 
+  // --- JSON view -----------------------------------------------------------
+
+  /** Everything the sheet owns, as one plain object — also the payload `save()` sends. */
+  private draft(): CharacterDraft {
+    return {
+      ...this.form.getRawValue(),
+      saving_throw_proficiencies: [...this.saveProfs()],
+      skill_proficiencies: [...this.skillProfs()],
+      other_proficiencies: this.otherProfs(),
+      equipment: this.equipmentItems(),
+      spells: this.spellItems(),
+      spell_slots: this.spellSlots(),
+      features: this.featureItems(),
+      attacks: this.attackItems(),
+      hit_dice: this.hitDice(),
+    };
+  }
+
+  /** Push a parsed draft back onto the form + section signals (in memory; Save still persists). */
+  private applyDraft(draft: CharacterDraft): void {
+    this.form.patchValue(draft); // ignores the non-form keys (equipment, spells, …)
+    this.saveProfs.set(new Set(draft.saving_throw_proficiencies));
+    this.skillProfs.set(new Set(draft.skill_proficiencies));
+    this.otherProfs.set([...draft.other_proficiencies]);
+    this.equipmentItems.set([...draft.equipment]);
+    this.spellItems.set([...draft.spells]);
+    this.spellSlots.set([...draft.spell_slots]);
+    this.featureItems.set([...draft.features]);
+    this.attackItems.set([...draft.attacks]);
+    this.hitDice.set([...draft.hit_dice]);
+  }
+
+  /** Apply the textarea back onto the sheet. Returns false (leaving `jsonError` set) when the
+   * text doesn't parse, so a bad edit is never silently dropped. */
+  private commitJson(): boolean {
+    try {
+      this.applyDraft(parseCharacterDraft(this.jsonText(), this.draft()));
+      this.jsonError.set(null);
+      return true;
+    } catch (e) {
+      this.jsonError.set((e as Error).message);
+      return false;
+    }
+  }
+
+  protected toggleJson(): void {
+    if (!this.jsonMode()) {
+      this.jsonText.set(draftToJson(this.draft()));
+      this.jsonError.set(null);
+      this.jsonMode.set(true);
+    } else if (this.commitJson()) {
+      this.jsonMode.set(false);
+    }
+  }
+
   protected save(): void {
-    this.service
-      .update(this.characterId(), {
-        ...this.form.getRawValue(),
-        saving_throw_proficiencies: [...this.saveProfs()],
-        skill_proficiencies: [...this.skillProfs()],
-        other_proficiencies: this.otherProfs(),
-        equipment: this.equipmentItems(),
-        spells: this.spellItems(),
-        spell_slots: this.spellSlots(),
-        features: this.featureItems(),
-        attacks: this.attackItems(),
-        hit_dice: this.hitDice(),
-      })
-      .subscribe((c) => {
-        this.character.set(c);
-        this.saved.set(true);
-        setTimeout(() => this.saved.set(false), 2000);
-      });
+    // Saving straight from the JSON view applies the text first; a parse error blocks the save.
+    if (this.jsonMode() && !this.commitJson()) return;
+    this.service.update(this.characterId(), this.draft()).subscribe((c) => {
+      this.character.set(c);
+      // Re-serialize from the response so the open document shows exactly what was stored
+      // (the backend fills defaults for any keys the pasted JSON left out).
+      if (this.jsonMode()) this.jsonText.set(draftToJson(c));
+      this.saved.set(true);
+      setTimeout(() => this.saved.set(false), 2000);
+    });
   }
 
   private readonly confirmDelete = viewChild.required(ConfirmDeleteModal);
