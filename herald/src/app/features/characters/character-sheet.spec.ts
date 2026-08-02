@@ -4,9 +4,13 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { Character, Spell } from '@/core/api/models';
+import { Character, Feature, Spell } from '@/core/api/models';
 
 import { CharacterSheet } from './character-sheet';
+
+function makeFeature(overrides: Partial<Feature> = {}): Feature {
+  return { name: 'Feature', source: 'class', level: null, uses: null, description: '', ...overrides };
+}
 
 function makeSpell(overrides: Partial<Spell> = {}): Spell {
   return {
@@ -305,6 +309,107 @@ describe('CharacterSheet spells preview', () => {
 
     expect(el().textContent).toContain('3/3');
     expect(slotDots(1).every((d) => d.getAttribute('aria-label') === 'Expend a level 1 slot')).toBe(true);
+  });
+
+  afterEach(() => {
+    http.verify();
+    fixture.destroy();
+  });
+});
+
+/** The read-only features preview: use dots, per-source sections, and the hover popover. */
+describe('CharacterSheet features preview', () => {
+  let fixture: ComponentFixture<CharacterSheet>;
+  let http: HttpTestingController;
+
+  const el = (): HTMLElement => fixture.nativeElement;
+  const buttonWith = (text: string) =>
+    [...el().querySelectorAll('button')].find((b) => b.textContent?.replace(/\s+/g, ' ').trim() === text);
+  const useDots = (name: string) =>
+    [...el().querySelectorAll<HTMLButtonElement>('button[aria-label]')].filter((b) =>
+      b.getAttribute('aria-label')!.endsWith(`a use of ${name}`),
+    );
+  const featureChips = () => [...el().querySelectorAll('li')].map((li) => li.textContent!.trim());
+
+  function click(element: HTMLElement): void {
+    element.click();
+    fixture.detectChanges();
+  }
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      imports: [CharacterSheet],
+      providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])],
+    });
+    http = TestBed.inject(HttpTestingController);
+
+    fixture = TestBed.createComponent(CharacterSheet);
+    fixture.componentRef.setInput('characterId', 1);
+    fixture.componentRef.setInput('campaignId', 2);
+    fixture.detectChanges();
+    http.expectOne('/api/characters/1').flush(
+      makeCharacter({
+        features: [
+          makeFeature({ name: 'Darkvision', source: 'race', description: 'See 60ft in the dark.' }),
+          makeFeature({ name: 'Extra Attack', level: 5 }),
+          makeFeature({
+            name: 'Rage',
+            level: 1,
+            uses: { max: 3, expended: 1, recharge: 'long' },
+          }),
+        ],
+      }),
+    );
+    fixture.detectChanges();
+  });
+
+  it('groups features by source, ordered by level within a group', () => {
+    expect(buttonWith('▾ Class (2)')).toBeDefined();
+    expect(buttonWith('▾ Race (1)')).toBeDefined();
+    expect(featureChips()).toEqual(['Rage', 'Extra Attack', 'Darkvision']);
+  });
+
+  it('collapses one source without touching the others', () => {
+    click(buttonWith('▾ Class (2)')!);
+
+    expect(featureChips()).toEqual(['Darkvision']);
+    expect(buttonWith('▸ Class (2)')).toBeDefined();
+  });
+
+  it('shows a feature’s full details on hover, and drops them on leave', () => {
+    const chip = [...el().querySelectorAll('li')].find((li) => li.textContent?.trim() === 'Darkvision')!;
+    chip.dispatchEvent(new MouseEvent('mouseenter'));
+    fixture.detectChanges();
+
+    expect(el().textContent).toContain('See 60ft in the dark.');
+
+    chip.dispatchEvent(new MouseEvent('mouseleave'));
+    fixture.detectChanges();
+
+    expect(el().textContent).not.toContain('See 60ft in the dark.');
+  });
+
+  it('tracks limited uses at the top, expending one on click and saving the count', () => {
+    const dots = useDots('Rage');
+    expect(dots.map((d) => d.getAttribute('aria-label'))).toEqual([
+      'Expend a use of Rage',
+      'Expend a use of Rage',
+      'Restore a use of Rage',
+    ]);
+    expect(el().textContent).toContain('2/3 · long rest');
+
+    click(dots[0]); // spend everything down to the first dot
+
+    expect(el().textContent).toContain('0/3');
+    click(buttonWith('Save')!);
+    expect(http.expectOne({ method: 'PUT', url: '/api/characters/1' }).request.body.features).toContainEqual(
+      expect.objectContaining({ name: 'Rage', uses: { max: 3, expended: 3, recharge: 'long' } }),
+    );
+  });
+
+  it('only tracks the limited-use features', () => {
+    expect(useDots('Darkvision')).toHaveLength(0);
+    expect(useDots('Extra Attack')).toHaveLength(0);
   });
 
   afterEach(() => {

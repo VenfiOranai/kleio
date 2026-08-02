@@ -4,6 +4,7 @@ import { ZardButtonComponent } from '@/components/button/button.component';
 import { ZardInputDirective } from '@/components/input/input.directive';
 import { FEATURE_SOURCES, Feature, FeatureSource, Recharge } from '@/core/api/models';
 import { Modal } from '@/shared/modal/modal';
+import { groupFeaturesBySource, toggleUseDot, useDots } from '../features';
 
 /** A feature plus a transient client id so `@for` tracking survives in-place edits. */
 interface WorkFeature extends Feature {
@@ -13,16 +14,6 @@ interface WorkFeature extends Feature {
 let nextId = 0;
 
 const RECHARGES: Recharge[] = ['short', 'long', 'other'];
-
-/** Presentation order + labels for the source buckets. */
-const SOURCE_LABELS: Record<FeatureSource, string> = {
-  class: 'Class',
-  subclass: 'Subclass',
-  race: 'Race',
-  background: 'Background',
-  feat: 'Feat',
-  other: 'Other',
-};
 
 function blankFeature(source: FeatureSource = 'other'): Feature {
   return { name: '', source, level: null, uses: null, description: '' };
@@ -52,25 +43,19 @@ export class FeaturesModal {
 
   protected readonly limitedCount = computed(() => this.working().filter((f) => f.uses).length);
 
-  /** Matching features grouped by source, in the canonical source order. */
+  /** Matching features grouped by source and ordered exactly as the sheet's preview shows them. */
   protected readonly groups = computed(() => {
     const q = this.search().trim().toLowerCase();
     const sourceFilter = this.sourceFilter();
     const limitedOnly = this.limitedOnly();
-    const bySource = new Map<FeatureSource, WorkFeature[]>();
-    for (const feature of this.working()) {
-      if (q && !feature.name.toLowerCase().includes(q)) continue;
-      if (sourceFilter && feature.source !== sourceFilter) continue;
-      if (limitedOnly && !feature.uses) continue;
-      (bySource.get(feature.source) ?? bySource.set(feature.source, []).get(feature.source)!).push(
-        feature,
-      );
-    }
-    return FEATURE_SOURCES.filter((s) => bySource.has(s)).map((source) => ({
-      source,
-      label: SOURCE_LABELS[source],
-      features: bySource.get(source)!.sort((a, b) => a.name.localeCompare(b.name)),
-    }));
+    return groupFeaturesBySource(
+      this.working().filter(
+        (feature) =>
+          (!q || feature.name.toLowerCase().includes(q)) &&
+          (!sourceFilter || feature.source === sourceFilter) &&
+          (!limitedOnly || feature.uses),
+      ),
+    );
   });
 
   open(): void {
@@ -156,18 +141,14 @@ export class FeaturesModal {
 
   /** `expended` uses as [available] booleans (available-first) for a feature's dot tracker. */
   protected useDots(feature: WorkFeature): boolean[] {
-    const uses = feature.uses;
-    if (!uses) return [];
-    return Array.from({ length: uses.max }, (_, i) => i >= uses.expended);
+    return feature.uses ? useDots(feature.uses) : [];
   }
 
   /** Clicking a dot: expend down to it if available, otherwise restore up to it. */
   protected toggleDot(feature: WorkFeature, index: number): void {
-    const uses = feature.uses;
-    if (!uses) return;
-    const available = uses.max - uses.expended;
-    const expended = index >= available ? index : index + 1;
-    this.updateUses(feature, { expended: uses.max - expended });
+    if (feature.uses) {
+      this.updateUses(feature, { expended: toggleUseDot(feature.uses, index) });
+    }
   }
 
   /** "Use": expend one use of the feature. */

@@ -296,3 +296,29 @@ Expanded, a level shows **names only**; hovering a name opens a popover with the
 Markdown description). The popover is clamped back on screen after render by a shared `clamp()` helper
 now used by the attack tooltip too. Component specs cover grouping/ordering, per-level collapse, the
 hover popover, and expend/restore incl. the saved `spell_slots` payload.
+
+## Features & traits preview (grouping + use tracking)
+The features block listed every feature as one flat run of chips; it now mirrors the spells preview.
+**Herald only** — no oracle or schema change; use edits ride along in the existing Save payload.
+
+**Grouped by source, ordered by level.** The section collapses as a whole and again per source
+(Class → Subclass → Race → Background → Feat → Other, each header showing its count); within a group
+features sort by the level they were gained at, lowest first, with unleveled ones last and ties broken
+by name. Grouping/ordering lives in a **pure**, unit-tested `features/characters/features.ts`
+(`groupFeaturesBySource`, `SOURCE_LABELS`) now shared with the features modal, so the two views list
+features in the same order. An unrecognised `source` (reachable by pasting through the JSON view)
+buckets last under its raw name rather than disappearing off the sheet.
+
+**Limited uses are trackable from the sheet.** Above the list, every feature with a `uses` pool gets
+the modal's dot tracker (clickable, available-first) plus an `available/max · recharge` readout.
+**Max and recharge stay modal-only** — the sheet spends and restores, it doesn't re-budget. The dot
+maths delegates to `spell-slots.ts` (`useDots`/`toggleUseDot` wrap `slotDots`/`toggleSlotDot`, whose
+params widened to a `{total, expended}` pool); sharing it fixed the same rendering bug the spells modal
+had — the features modal drew expended dots first while its click handler computed against
+available-first ordering, so a click moved the count the wrong way.
+
+**Names carry their details on hover.** Expanded, a group shows **names only**; hovering one opens a
+popover with source · level, the uses/recharge line, and the Markdown description, clamped back on
+screen by the shared `clamp()` helper. Specs cover the pure module (grouping, level ordering, unknown
+sources, dot maths, recharge wording) and the component (grouping/ordering, per-source collapse, the
+hover popover, and expend incl. the saved `features` payload).
