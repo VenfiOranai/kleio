@@ -132,6 +132,10 @@ one-liners below are the map.
 - **Spells preview** — the sheet's spells block now tracks slot *usage* (clickable dots; totals stay
   modal-only) and lists spells in collapsible per-level sections, names only, with a hover popover
   showing a spell's full data. Dot maths lives in one **pure** `spell-slots.ts` shared with the modal.
+- **Features preview** — same treatment for features & traits: collapsible per-*source* sections sorted
+  by level (lowest first), names only with a hover popover, and clickable use dots for limited-use
+  features (max/recharge stay modal-only). Grouping + use maths live in one **pure** `features.ts`
+  shared with the modal (its dot helpers wrap `spell-slots.ts`).
 
 **Next up:** Phase 13/14 (5etools import), or Phase 6 (polish/hardening, backups) — see
 `docs/roadmap.md`.

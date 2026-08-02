@@ -35,6 +35,13 @@ import { MarkdownView } from '@/shared/markdown-view/markdown-view';
 import { AttacksModal } from './attacks-modal/attacks-modal';
 import { CharacterDraft, draftToJson, parseCharacterDraft } from './character-json';
 import { EquipmentModal } from './equipment-modal/equipment-modal';
+import {
+  groupFeaturesBySource,
+  rechargeLabel,
+  rechargePhrase,
+  toggleUseDot,
+  useDots,
+} from './features';
 import { FeaturesModal } from './features-modal/features-modal';
 import { slotDots, toggleSlotDot } from './spell-slots';
 import { SpellsModal } from './spells-modal/spells-modal';
@@ -56,6 +63,13 @@ interface AttackTooltip {
 /** A hover popover anchored to a spell chip in the read-only spells preview. */
 interface SpellTooltip {
   spell: Spell;
+  top: number;
+  left: number;
+}
+
+/** A hover popover anchored to a feature name in the read-only features preview. */
+interface FeatureTooltip {
+  feature: Feature;
   top: number;
   left: number;
 }
@@ -155,6 +169,26 @@ export class CharacterSheet {
   /** Compact features summary: total count + how many carry a limited-use tracker. */
   protected readonly limitedFeatureCount = computed(
     () => this.featureItems().filter((f) => f.uses).length,
+  );
+
+  /** Read-only features preview: whole-section + per-source collapse, and a hover popover. Use
+   * tracking is editable here (max + recharge stay modal-only); edits persist on the next Save. */
+  protected readonly featuresCollapsed = signal(false);
+  protected readonly featureGroupsCollapsed = signal<Set<string>>(new Set());
+  protected readonly featureTooltip = signal<FeatureTooltip | null>(null);
+  private readonly featureTooltipEl = viewChild<ElementRef<HTMLDivElement>>('featureTip');
+
+  /** Available-first use dots + recharge wording, shared with the features modal. */
+  protected readonly useDots = useDots;
+  protected readonly rechargeLabel = rechargeLabel;
+  protected readonly rechargePhrase = rechargePhrase;
+
+  /** Features grouped by source, lowest level first within each group. */
+  protected readonly featureGroups = computed(() => groupFeaturesBySource(this.featureItems()));
+
+  /** Features worth a tracker (limited-use with a pool), in the grouped display order. */
+  protected readonly limitedFeatures = computed(() =>
+    this.featureGroups().flatMap((group) => group.features.filter((f) => f.uses && f.uses.max > 0)),
   );
 
   /** Read-only equipment preview: whole-section + per-category collapse, and a hover tooltip. */
@@ -464,6 +498,46 @@ export class CharacterSheet {
 
   protected hideSpellDetails(): void {
     this.spellTooltip.set(null);
+  }
+
+  // --- Features preview ----------------------------------------------------
+
+  protected toggleFeaturesCollapsed(): void {
+    this.featuresCollapsed.update((v) => !v);
+    if (this.featuresCollapsed()) this.featureTooltip.set(null);
+  }
+
+  protected isFeatureGroupCollapsed(source: string): boolean {
+    return this.featureGroupsCollapsed().has(source);
+  }
+
+  protected toggleFeatureGroup(source: string): void {
+    this.featureGroupsCollapsed.update((set) => toggle(set, source));
+    this.featureTooltip.set(null);
+  }
+
+  /** Expend/restore one use by clicking its dot. Max + recharge stay editable in the modal only. */
+  protected toggleFeatureUse(feature: Feature, index: number): void {
+    const uses = feature.uses;
+    if (!uses) return;
+    const expended = toggleUseDot(uses, index);
+    this.featureItems.update((list) =>
+      list.map((f) => (f === feature ? { ...f, uses: { ...uses, expended } } : f)),
+    );
+  }
+
+  /** Show a feature's full details in a popover beside the hovered name. */
+  protected showFeatureDetails(event: MouseEvent, feature: Feature): void {
+    const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+    this.featureTooltip.set({ feature, top: rect.top, left: rect.right + 8 });
+    requestAnimationFrame(() => {
+      const clamped = this.clamp(this.featureTooltipEl()?.nativeElement, this.featureTooltip());
+      if (clamped) this.featureTooltip.set(clamped);
+    });
+  }
+
+  protected hideFeatureDetails(): void {
+    this.featureTooltip.set(null);
   }
 
   // --- JSON view -----------------------------------------------------------

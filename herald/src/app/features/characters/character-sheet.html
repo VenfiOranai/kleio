@@ -619,35 +619,125 @@
       (spellSlotsChange)="spellSlots.set($event)"
     />
 
-    <!-- Features & traits (structured; edited in a modal). Compact summary + "Open features". -->
+    <!-- Features & traits (structured; edited in a modal). Read-only preview: collapsible,
+         grouped by source (level-ordered within a group), with clickable use dots for the
+         limited-use ones and a hover popover showing a feature's full details. -->
     <section class="flex flex-col gap-2">
       <div class="flex items-center justify-between">
-        <h2 class="text-lg font-semibold">Features &amp; Traits</h2>
+        <button
+          type="button"
+          class="flex items-center gap-2 text-lg font-semibold"
+          (click)="toggleFeaturesCollapsed()"
+        >
+          <span class="text-muted-foreground">{{ featuresCollapsed() ? '▸' : '▾' }}</span>
+          Features &amp; Traits
+        </button>
         <button z-button zType="outline" zSize="sm" (click)="openFeatures()">Open features</button>
       </div>
-      <div class="rounded-lg border p-3 text-sm">
-        @if (featureItems().length) {
-          <div class="flex flex-wrap gap-x-4 gap-y-1 text-muted-foreground">
-            <span>Features <strong class="text-foreground">{{ featureItems().length }}</strong></span>
-            <span>Limited-use <strong class="text-foreground">{{ limitedFeatureCount() }}</strong></span>
-          </div>
-          <ul class="mt-2 flex flex-wrap gap-2">
-            @for (feature of featureItems(); track $index) {
-              <li class="rounded-full bg-muted px-2 py-0.5 text-xs">
-                {{ feature.name || 'Unnamed' }}
-                @if (feature.uses) {
-                  <span class="text-muted-foreground">
-                    · {{ feature.uses.max - feature.uses.expended }}/{{ feature.uses.max }}
-                  </span>
+      @if (!featuresCollapsed()) {
+        <div class="rounded-lg border p-3 text-sm">
+          @if (featureItems().length) {
+            <div class="flex flex-wrap gap-x-4 gap-y-1 text-muted-foreground">
+              <span>Features <strong class="text-foreground">{{ featureItems().length }}</strong></span>
+              <span>Limited-use <strong class="text-foreground">{{ limitedFeatureCount() }}</strong></span>
+            </div>
+            @if (limitedFeatures().length) {
+              <div class="mt-3 flex flex-col gap-1.5">
+                @for (feature of limitedFeatures(); track $index) {
+                  @if (feature.uses; as uses) {
+                    <div class="flex items-center gap-2">
+                      <span
+                        class="w-32 shrink-0 truncate text-xs text-muted-foreground"
+                        [title]="feature.name || 'Unnamed'"
+                      >
+                        {{ feature.name || 'Unnamed' }}
+                      </span>
+                      <div class="flex flex-wrap items-center gap-1">
+                        @for (available of useDots(uses); track $index) {
+                          <button
+                            type="button"
+                            class="h-4 w-4 rounded-full border border-primary transition-colors"
+                            [class.bg-primary]="available"
+                            (click)="toggleFeatureUse(feature, $index)"
+                            [attr.aria-label]="
+                              (available ? 'Expend' : 'Restore') + ' a use of ' + (feature.name || 'Unnamed')
+                            "
+                          ></button>
+                        }
+                        <span class="ml-1 text-xs text-muted-foreground">
+                          {{ uses.max - uses.expended }}/{{ uses.max }} · {{ rechargeLabel(uses.recharge) }}
+                        </span>
+                      </div>
+                    </div>
+                  }
                 }
-              </li>
+              </div>
             }
-          </ul>
-        } @else {
-          <p class="text-muted-foreground">No features yet — open the modal to add class features and traits.</p>
+            <div class="mt-3 flex flex-col gap-3">
+              @for (group of featureGroups(); track group.source) {
+                <div>
+                  <button
+                    type="button"
+                    class="flex w-full items-center gap-1.5 text-left text-xs font-medium uppercase tracking-wide text-muted-foreground"
+                    (click)="toggleFeatureGroup(group.source)"
+                  >
+                    <span>{{ isFeatureGroupCollapsed(group.source) ? '▸' : '▾' }}</span>
+                    {{ group.label }}
+                    <span class="normal-case">({{ group.features.length }})</span>
+                  </button>
+                  @if (!isFeatureGroupCollapsed(group.source)) {
+                    <ul class="mt-1 flex flex-wrap gap-2">
+                      @for (feature of group.features; track $index) {
+                        <li
+                          class="cursor-help rounded-full bg-muted px-2 py-0.5 text-xs"
+                          (mouseenter)="showFeatureDetails($event, feature)"
+                          (mouseleave)="hideFeatureDetails()"
+                        >
+                          {{ feature.name || 'Unnamed' }}
+                        </li>
+                      }
+                    </ul>
+                  }
+                </div>
+              }
+            </div>
+          } @else {
+            <p class="text-muted-foreground">No features yet — open the modal to add class features and traits.</p>
+          }
+        </div>
+      }
+    </section>
+
+    <!-- Hover popover: the hovered feature's full details, beside its chip; clamped in TS so it
+         never runs off screen. -->
+    @if (featureTooltip(); as tip) {
+      <div
+        #featureTip
+        class="pointer-events-none fixed z-50 max-h-[60vh] w-72 overflow-y-auto rounded-lg border bg-background p-3 text-sm shadow-xl"
+        [style.top.px]="tip.top"
+        [style.left.px]="tip.left"
+      >
+        <div class="mb-2 border-b pb-1">
+          <div class="font-semibold">{{ tip.feature.name || 'Unnamed' }}</div>
+          <div class="text-xs capitalize text-muted-foreground">
+            {{ tip.feature.source }}
+            @if (tip.feature.level) {
+              <span>· Level {{ tip.feature.level }}</span>
+            }
+          </div>
+        </div>
+        @if (tip.feature.uses; as uses) {
+          <div class="text-xs text-muted-foreground">
+            Uses
+            <strong class="text-foreground">{{ uses.max - uses.expended }}/{{ uses.max }}</strong>
+            · {{ rechargePhrase(uses.recharge) }}
+          </div>
+        }
+        @if (tip.feature.description?.trim()) {
+          <app-markdown-view class="mt-2 block border-t pt-2" [source]="tip.feature.description" />
         }
       </div>
-    </section>
+    }
 
     <app-features-modal
       [features]="featureItems()"

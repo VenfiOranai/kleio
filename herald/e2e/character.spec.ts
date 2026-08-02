@@ -238,25 +238,34 @@ test.describe('character sheet', () => {
     await dialog.getByLabel('Rage max uses').blur();
     await expect(dialog.getByLabel('Available use')).toHaveCount(3);
 
-    // Dots are "click the dot for how many remain": clicking the 2nd of 3 leaves 2 available.
-    await dialog.getByLabel('Available use').nth(1).click();
+    // Dots are available-first and clicking one expends it (as spell slots do): clicking the
+    // last of 3 leaves 2 available.
+    await dialog.getByLabel('Available use').nth(2).click();
     await expect(dialog.getByLabel('Available use')).toHaveCount(2);
     await expect(dialog.getByLabel('Expended use')).toHaveCount(1);
 
-    // Close and save; the summary reflects the limited-use count + remaining uses.
+    // Close and save; the preview reflects the limited-use count + its own use tracker.
     await page.keyboard.press('Escape');
     await expect(dialog).toBeHidden();
     await page.getByRole('button', { name: 'Save' }).click();
 
-    const summary = page
+    const preview = page
       .locator('section', { hasText: 'Features & Traits' })
       .locator('div.rounded-lg.border');
-    await expect(summary.getByText('Limited-use').locator('strong')).toHaveText('1');
-    await expect(summary.getByText('Rage')).toContainText('2/3');
+    await expect(preview.getByText('Limited-use').locator('strong')).toHaveText('1');
+    await expect(preview.getByText('2/3 · long rest')).toBeVisible();
+    await expect(page.getByLabel('Expend a use of Rage')).toHaveCount(2);
+    await expect(page.getByLabel('Restore a use of Rage')).toHaveCount(1);
+
+    // The sheet's own tracker spends a use without opening the modal.
+    await page.getByLabel('Restore a use of Rage').click();
+    await expect(preview.getByText('3/3 · long rest')).toBeVisible();
+    await page.getByLabel('Expend a use of Rage').last().click();
+    await expect(preview.getByText('2/3 · long rest')).toBeVisible();
 
     // A long rest resets the feature's expended uses back to full.
     await page.getByRole('button', { name: 'Long rest' }).click();
-    await expect(summary.getByText('Rage')).toContainText('3/3');
+    await expect(preview.getByText('3/3 · long rest')).toBeVisible();
 
     // Persists across a reload (structured features came back from the server).
     await page.getByRole('button', { name: 'Save' }).click();
