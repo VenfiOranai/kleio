@@ -4,6 +4,7 @@ import { ZardButtonComponent } from '@/components/button/button.component';
 import { ZardInputDirective } from '@/components/input/input.directive';
 import { SPELL_SCHOOLS, Spell, SpellSlot } from '@/core/api/models';
 import { Modal } from '@/shared/modal/modal';
+import { clampExpended, slotDots, toggleSlotDot } from '../spell-slots';
 
 /** A spell plus a transient client id so `@for` tracking survives in-place edits. */
 interface WorkSpell extends Spell {
@@ -173,19 +174,15 @@ export class SpellsModal {
     return this.slots().find((s) => s.level === level)!;
   }
 
-  /** `expended` dots as [available, expended] booleans for a level's tracker. */
-  protected slotDots(slot: SpellSlot): boolean[] {
-    // true = still available, false = expended.
-    return Array.from({ length: slot.total }, (_, i) => i >= slot.expended);
-  }
+  /** `expended` dots as available-first booleans for a level's tracker. */
+  protected readonly slotDots = slotDots;
 
   private updateSlot(level: number, patch: Partial<SpellSlot>): void {
     this.slots.update((rows) =>
       rows.map((s) => {
         if (s.level !== level) return s;
         const total = Math.max(0, patch.total ?? s.total);
-        const expended = Math.min(total, Math.max(0, patch.expended ?? s.expended));
-        return { level, total, expended };
+        return { level, total, expended: clampExpended(total, patch.expended ?? s.expended) };
       }),
     );
     this.emitSlots();
@@ -201,11 +198,7 @@ export class SpellsModal {
 
   /** Clicking a dot: expend if available, restore if already expended. */
   protected toggleDot(level: number, index: number): void {
-    const slot = this.slotFor(level);
-    // Dots render available-first; index < available means "spend down to here + 1".
-    const available = slot.total - slot.expended;
-    const expended = index >= available ? index : index + 1;
-    this.updateSlot(level, { expended: slot.total - expended });
+    this.updateSlot(level, { expended: toggleSlotDot(this.slotFor(level), index) });
   }
 
   /** "Cast": expend one slot of the given level (used by both the tracker and per-spell buttons). */

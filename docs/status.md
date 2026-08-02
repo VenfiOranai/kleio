@@ -276,3 +276,23 @@ response so the document shows what was actually stored. The sheet is **hidden, 
 the editor (`contents`/`hidden`), so collapse state, scroll position and the section modals survive
 toggling. Component spec drives the toggle through the DOM (both sync directions, repeated
 round-trips, bad-JSON handling, save payload); e2e `character.spec.ts` covers the same flow end to end.
+
+## Spells preview (slot usage + spell list)
+The sheet's spells block was a bare count; it now mirrors the equipment preview. **Herald only** — no
+oracle or schema change; slot edits ride along in the existing Save payload.
+
+**Slot usage is editable from the sheet.** Each level that carries slots gets the modal's dot tracker
+(clickable, available-first) plus an `available/total` readout, and the summary reads
+`Slots {available}/{total}`. **Totals stay modal-only** — the sheet spends and restores, it doesn't
+re-budget. The dot maths moved into a **pure**, unit-tested `features/characters/spell-slots.ts`
+(`slotDots`, `toggleSlotDot`, `clampExpended`) shared by both trackers; extracting it fixed a
+pre-existing bug in the modal, where `slotDots` rendered expended dots first while `toggleDot` computed
+against available-first ordering, so clicking a dot moved the count the wrong way.
+
+**Spells are listed, not just counted.** The section collapses as a whole (like Equipment/Attacks) and
+again per level — Cantrips first, then 1→9, alphabetical within a level, each header showing its count.
+Expanded, a level shows **names only**; hovering a name opens a popover with the spell's full data
+(level · school, casting time, range, components, duration, prepared/ritual/concentration tags, and the
+Markdown description). The popover is clamped back on screen after render by a shared `clamp()` helper
+now used by the attack tooltip too. Component specs cover grouping/ordering, per-level collapse, the
+hover popover, and expend/restore incl. the saved `spell_slots` payload.
