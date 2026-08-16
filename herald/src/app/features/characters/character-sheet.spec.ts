@@ -215,6 +215,11 @@ describe('CharacterSheet spells preview', () => {
       b.getAttribute('aria-label')!.endsWith(`a level ${level} slot`),
     );
   const spellChips = () => [...el().querySelectorAll('li')].map((li) => li.textContent!.trim());
+  const chipFor = (name: string) =>
+    [...el().querySelectorAll<HTMLButtonElement>('button[aria-label]')].find((b) =>
+      b.getAttribute('aria-label')!.startsWith(`Details for ${name}`),
+    )!;
+  const popover = () => el().querySelector<HTMLElement>('div.fixed.z-50');
 
   function click(element: HTMLElement): void {
     element.click();
@@ -222,8 +227,7 @@ describe('CharacterSheet spells preview', () => {
   }
 
   function hover(name: string): void {
-    const chip = [...el().querySelectorAll('li')].find((li) => li.textContent?.trim() === name)!;
-    chip.dispatchEvent(new MouseEvent('mouseenter'));
+    chipFor(name).dispatchEvent(new MouseEvent('mouseenter'));
     fixture.detectChanges();
   }
 
@@ -279,12 +283,33 @@ describe('CharacterSheet spells preview', () => {
     expect(el().textContent).toContain('V, S');
     expect(el().textContent).toContain('Bonus AC until your next turn.');
     expect(el().textContent).toContain('Abjuration');
+    expect(popover()!.classList).toContain('pointer-events-none'); // unpinned: can't steal the hover
 
-    const chip = [...el().querySelectorAll('li')].find((li) => li.textContent?.trim() === 'Shield')!;
-    chip.dispatchEvent(new MouseEvent('mouseleave'));
+    chipFor('Shield').dispatchEvent(new MouseEvent('mouseleave'));
     fixture.detectChanges();
 
     expect(el().textContent).not.toContain('V, S');
+  });
+
+  it('keeps a clicked (pinned) popover open once the pointer leaves, and closes it outside', () => {
+    hover('Shield');
+    click(chipFor('Shield'));
+    chipFor('Shield').dispatchEvent(new MouseEvent('mouseleave'));
+    fixture.detectChanges();
+
+    expect(el().textContent).toContain('Bonus AC until your next turn.');
+    expect(popover()!.classList).not.toContain('pointer-events-none'); // pinned: scrollable
+
+    click(popover()!); // a click inside (e.g. its scrollbar) leaves it alone
+    expect(el().textContent).toContain('Bonus AC until your next turn.');
+
+    hover('Mage Hand'); // another chip no longer steals it
+    expect(el().textContent).toContain('Bonus AC until your next turn.');
+
+    document.body.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    fixture.detectChanges();
+
+    expect(el().textContent).not.toContain('Bonus AC until your next turn.');
   });
 
   it('expends a slot by clicking an available dot, and saves the new count', () => {
@@ -330,6 +355,11 @@ describe('CharacterSheet features preview', () => {
       b.getAttribute('aria-label')!.endsWith(`a use of ${name}`),
     );
   const featureChips = () => [...el().querySelectorAll('li')].map((li) => li.textContent!.trim());
+  const chipFor = (name: string) =>
+    [...el().querySelectorAll<HTMLButtonElement>('button[aria-label]')].find((b) =>
+      b.getAttribute('aria-label')!.startsWith(`Details for ${name}`),
+    )!;
+  const popover = () => el().querySelector<HTMLElement>('div.fixed.z-50');
 
   function click(element: HTMLElement): void {
     element.click();
@@ -377,14 +407,53 @@ describe('CharacterSheet features preview', () => {
   });
 
   it('shows a feature’s full details on hover, and drops them on leave', () => {
-    const chip = [...el().querySelectorAll('li')].find((li) => li.textContent?.trim() === 'Darkvision')!;
+    const chip = chipFor('Darkvision');
     chip.dispatchEvent(new MouseEvent('mouseenter'));
     fixture.detectChanges();
 
     expect(el().textContent).toContain('See 60ft in the dark.');
+    expect(popover()!.classList).toContain('pointer-events-none'); // unpinned: can't steal the hover
 
     chip.dispatchEvent(new MouseEvent('mouseleave'));
     fixture.detectChanges();
+
+    expect(el().textContent).not.toContain('See 60ft in the dark.');
+  });
+
+  it('keeps a clicked (pinned) popover open once the pointer leaves, and lets it be scrolled', () => {
+    const chip = chipFor('Darkvision');
+    chip.dispatchEvent(new MouseEvent('mouseenter'));
+    click(chip);
+    chip.dispatchEvent(new MouseEvent('mouseleave'));
+    fixture.detectChanges();
+
+    expect(el().textContent).toContain('See 60ft in the dark.');
+    expect(popover()!.classList).not.toContain('pointer-events-none');
+
+    // Clicking inside the popover (e.g. dragging its scrollbar) leaves it alone…
+    click(popover()!);
+    expect(el().textContent).toContain('See 60ft in the dark.');
+
+    // …and hovering another feature no longer steals it.
+    chipFor('Rage').dispatchEvent(new MouseEvent('mouseenter'));
+    fixture.detectChanges();
+    expect(el().textContent).toContain('See 60ft in the dark.');
+  });
+
+  it('closes a pinned popover on a click outside it', () => {
+    click(chipFor('Darkvision'));
+    expect(el().textContent).toContain('See 60ft in the dark.');
+
+    document.body.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    fixture.detectChanges();
+
+    expect(el().textContent).not.toContain('See 60ft in the dark.');
+  });
+
+  it('unpins when the same feature is clicked again', () => {
+    const chip = chipFor('Darkvision');
+    click(chip);
+    click(chip);
 
     expect(el().textContent).not.toContain('See 60ft in the dark.');
   });

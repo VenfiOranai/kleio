@@ -43,6 +43,7 @@ import {
   useDots,
 } from './features';
 import { FeaturesModal } from './features-modal/features-modal';
+import { PinnablePopover, clampToViewport } from './popover';
 import { slotDots, toggleSlotDot } from './spell-slots';
 import { SpellsModal } from './spells-modal/spells-modal';
 
@@ -56,20 +57,6 @@ interface ItemTooltip {
 /** A hover tooltip anchored to a row in the read-only attacks table. */
 interface AttackTooltip {
   attack: Attack;
-  top: number;
-  left: number;
-}
-
-/** A hover popover anchored to a spell chip in the read-only spells preview. */
-interface SpellTooltip {
-  spell: Spell;
-  top: number;
-  left: number;
-}
-
-/** A hover popover anchored to a feature name in the read-only features preview. */
-interface FeatureTooltip {
-  feature: Feature;
   top: number;
   left: number;
 }
@@ -99,6 +86,10 @@ function toggle(set: Set<string>, key: string): Set<string> {
     ConfirmDeleteModal,
   ],
   templateUrl: './character-sheet.html',
+  host: {
+    '(document:click)': 'onDocumentClick($event)',
+    '(document:keydown.escape)': 'unpinPopovers()',
+  },
 })
 export class CharacterSheet {
   private readonly service = inject(CharacterService);
@@ -171,12 +162,15 @@ export class CharacterSheet {
     () => this.featureItems().filter((f) => f.uses).length,
   );
 
-  /** Read-only features preview: whole-section + per-source collapse, and a hover popover. Use
-   * tracking is editable here (max + recharge stay modal-only); edits persist on the next Save. */
+  /** Read-only features preview: whole-section + per-source collapse, and a hover/pinnable
+   * popover. Use tracking is editable here (max + recharge stay modal-only); edits persist on
+   * the next Save. */
   protected readonly featuresCollapsed = signal(false);
   protected readonly featureGroupsCollapsed = signal<Set<string>>(new Set());
-  protected readonly featureTooltip = signal<FeatureTooltip | null>(null);
   private readonly featureTooltipEl = viewChild<ElementRef<HTMLDivElement>>('featureTip');
+  protected readonly featurePopover = new PinnablePopover<Feature>(
+    () => this.featureTooltipEl()?.nativeElement,
+  );
 
   /** Available-first use dots + recharge wording, shared with the features modal. */
   protected readonly useDots = useDots;
@@ -215,12 +209,14 @@ export class CharacterSheet {
       }));
   });
 
-  /** Read-only spells preview: whole-section + per-level collapse, and a hover popover. Slot
-   * usage is editable here (totals stay modal-only); edits persist on the next Save. */
+  /** Read-only spells preview: whole-section + per-level collapse, and a hover/pinnable popover.
+   * Slot usage is editable here (totals stay modal-only); edits persist on the next Save. */
   protected readonly spellsCollapsed = signal(false);
   protected readonly spellGroupsCollapsed = signal<Set<string>>(new Set());
-  protected readonly spellTooltip = signal<SpellTooltip | null>(null);
   private readonly spellTooltipEl = viewChild<ElementRef<HTMLDivElement>>('spellTip');
+  protected readonly spellPopover = new PinnablePopover<Spell>(
+    () => this.spellTooltipEl()?.nativeElement,
+  );
 
   /** Available-first dots for a slot row, shared with the modal's tracker. */
   protected readonly slotDots = slotDots;
@@ -366,21 +362,8 @@ export class CharacterSheet {
   }
 
   private clampAttackTooltip(): void {
-    const clamped = this.clamp(this.attackTooltipEl()?.nativeElement, this.attackTooltip());
+    const clamped = clampToViewport(this.attackTooltipEl()?.nativeElement, this.attackTooltip());
     if (clamped) this.attackTooltip.set(clamped);
-  }
-
-  /** Nudge a rendered tooltip back on screen; null when it already fits (or isn't shown). */
-  private clamp<T extends { top: number; left: number }>(
-    el: HTMLElement | undefined,
-    tip: T | null,
-  ): T | null {
-    if (!el || !tip) return null;
-    const margin = 8;
-    const { width, height } = el.getBoundingClientRect();
-    const left = Math.max(margin, Math.min(tip.left, window.innerWidth - width - margin));
-    const top = Math.max(margin, Math.min(tip.top, window.innerHeight - height - margin));
-    return left === tip.left && top === tip.top ? null : { ...tip, top, left };
   }
 
   protected hideAttackDescription(): void {
@@ -466,7 +449,7 @@ export class CharacterSheet {
 
   protected toggleSpellsCollapsed(): void {
     this.spellsCollapsed.update((v) => !v);
-    if (this.spellsCollapsed()) this.spellTooltip.set(null);
+    if (this.spellsCollapsed()) this.spellPopover.close();
   }
 
   protected isSpellGroupCollapsed(level: number): boolean {
@@ -475,7 +458,7 @@ export class CharacterSheet {
 
   protected toggleSpellGroup(level: number): void {
     this.spellGroupsCollapsed.update((set) => toggle(set, String(level)));
-    this.spellTooltip.set(null);
+    this.spellPopover.close();
   }
 
   /** Spend/restore one slot by clicking its dot. Totals stay editable in the modal only. */
@@ -486,25 +469,11 @@ export class CharacterSheet {
     );
   }
 
-  /** Show a spell's full data in a popover beside the hovered name. */
-  protected showSpellDetails(event: MouseEvent, spell: Spell): void {
-    const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
-    this.spellTooltip.set({ spell, top: rect.top, left: rect.right + 8 });
-    requestAnimationFrame(() => {
-      const clamped = this.clamp(this.spellTooltipEl()?.nativeElement, this.spellTooltip());
-      if (clamped) this.spellTooltip.set(clamped);
-    });
-  }
-
-  protected hideSpellDetails(): void {
-    this.spellTooltip.set(null);
-  }
-
   // --- Features preview ----------------------------------------------------
 
   protected toggleFeaturesCollapsed(): void {
     this.featuresCollapsed.update((v) => !v);
-    if (this.featuresCollapsed()) this.featureTooltip.set(null);
+    if (this.featuresCollapsed()) this.featurePopover.close();
   }
 
   protected isFeatureGroupCollapsed(source: string): boolean {
@@ -513,7 +482,7 @@ export class CharacterSheet {
 
   protected toggleFeatureGroup(source: string): void {
     this.featureGroupsCollapsed.update((set) => toggle(set, source));
-    this.featureTooltip.set(null);
+    this.featurePopover.close();
   }
 
   /** Expend/restore one use by clicking its dot. Max + recharge stay editable in the modal only. */
@@ -526,18 +495,19 @@ export class CharacterSheet {
     );
   }
 
-  /** Show a feature's full details in a popover beside the hovered name. */
-  protected showFeatureDetails(event: MouseEvent, feature: Feature): void {
-    const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
-    this.featureTooltip.set({ feature, top: rect.top, left: rect.right + 8 });
-    requestAnimationFrame(() => {
-      const clamped = this.clamp(this.featureTooltipEl()?.nativeElement, this.featureTooltip());
-      if (clamped) this.featureTooltip.set(clamped);
-    });
+  // --- Pinnable popovers (spells + features) -------------------------------
+
+  /** Dismiss a pinned popover on any click outside its own contents (the click that pinned it
+   * lands on the chip, which each popover ignores as its own anchor). */
+  protected onDocumentClick(event: MouseEvent): void {
+    const target = event.target as Node | null;
+    this.spellPopover.closeIfOutside(target);
+    this.featurePopover.closeIfOutside(target);
   }
 
-  protected hideFeatureDetails(): void {
-    this.featureTooltip.set(null);
+  protected unpinPopovers(): void {
+    this.spellPopover.unpin();
+    this.featurePopover.unpin();
   }
 
   // --- JSON view -----------------------------------------------------------

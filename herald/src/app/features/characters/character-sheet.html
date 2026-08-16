@@ -530,12 +530,19 @@
                   @if (!isSpellGroupCollapsed(group.level)) {
                     <ul class="mt-1 flex flex-wrap gap-2">
                       @for (spell of group.spells; track $index) {
-                        <li
-                          class="cursor-help rounded-full bg-muted px-2 py-0.5 text-xs"
-                          (mouseenter)="showSpellDetails($event, spell)"
-                          (mouseleave)="hideSpellDetails()"
-                        >
-                          {{ spell.name || 'Unnamed' }}
+                        <li>
+                          <button
+                            type="button"
+                            class="cursor-help rounded-full bg-muted px-2 py-0.5 text-xs"
+                            (mouseenter)="spellPopover.show($event, spell)"
+                            (mouseleave)="spellPopover.hide()"
+                            (click)="spellPopover.pin($event, spell)"
+                            [attr.aria-label]="
+                              'Details for ' + (spell.name || 'Unnamed') + ' (click to keep open)'
+                            "
+                          >
+                            {{ spell.name || 'Unnamed' }}
+                          </button>
                         </li>
                       }
                     </ul>
@@ -550,61 +557,65 @@
       }
     </section>
 
-    <!-- Hover popover: the hovered spell's full data, beside its chip; clamped in TS so it
-         never runs off screen. -->
-    @if (spellTooltip(); as tip) {
+    <!-- Popover: the hovered spell's full data, beside its chip; clamped in TS so it never runs
+         off screen. While unpinned it ignores the pointer (so it can't steal the hover); clicking
+         the name pins it, making it interactive so a long one can be scrolled. -->
+    @if (spellPopover.state(); as tip) {
       <div
         #spellTip
-        class="pointer-events-none fixed z-50 max-h-[60vh] w-72 overflow-y-auto rounded-lg border bg-background p-3 text-sm shadow-xl"
+        class="fixed z-50 max-h-[60vh] w-72 overflow-y-auto rounded-lg border bg-background p-3 text-sm shadow-xl"
+        [class.pointer-events-none]="!tip.pinned"
+        [class.ring-2]="tip.pinned"
+        [class.ring-primary]="tip.pinned"
         [style.top.px]="tip.top"
         [style.left.px]="tip.left"
       >
         <div class="mb-2 border-b pb-1">
-          <div class="font-semibold">{{ tip.spell.name || 'Unnamed' }}</div>
+          <div class="font-semibold">{{ tip.data.name || 'Unnamed' }}</div>
           <div class="text-xs text-muted-foreground">
-            {{ tip.spell.level === 0 ? 'Cantrip' : 'Level ' + tip.spell.level }}
-            @if (tip.spell.school) {
-              <span>· {{ tip.spell.school }}</span>
+            {{ tip.data.level === 0 ? 'Cantrip' : 'Level ' + tip.data.level }}
+            @if (tip.data.school) {
+              <span>· {{ tip.data.school }}</span>
             }
           </div>
         </div>
         <dl class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-xs">
-          @if (tip.spell.casting_time) {
+          @if (tip.data.casting_time) {
             <dt class="text-muted-foreground">Casting</dt>
-            <dd>{{ tip.spell.casting_time }}</dd>
+            <dd>{{ tip.data.casting_time }}</dd>
           }
-          @if (tip.spell.range) {
+          @if (tip.data.range) {
             <dt class="text-muted-foreground">Range</dt>
-            <dd>{{ tip.spell.range }}</dd>
+            <dd>{{ tip.data.range }}</dd>
           }
-          @if (tip.spell.components) {
+          @if (tip.data.components) {
             <dt class="text-muted-foreground">Components</dt>
-            <dd>{{ tip.spell.components }}</dd>
+            <dd>{{ tip.data.components }}</dd>
           }
-          @if (tip.spell.duration) {
+          @if (tip.data.duration) {
             <dt class="text-muted-foreground">Duration</dt>
-            <dd>{{ tip.spell.duration }}</dd>
+            <dd>{{ tip.data.duration }}</dd>
           }
         </dl>
         @if (
-          tip.spell.prepared || tip.spell.always_prepared || tip.spell.ritual || tip.spell.concentration
+          tip.data.prepared || tip.data.always_prepared || tip.data.ritual || tip.data.concentration
         ) {
           <div class="mt-2 flex flex-wrap gap-1">
-            @if (tip.spell.always_prepared) {
+            @if (tip.data.always_prepared) {
               <span class="rounded-full bg-muted px-2 py-0.5 text-[11px]">Always prepared</span>
-            } @else if (tip.spell.prepared) {
+            } @else if (tip.data.prepared) {
               <span class="rounded-full bg-muted px-2 py-0.5 text-[11px]">Prepared</span>
             }
-            @if (tip.spell.ritual) {
+            @if (tip.data.ritual) {
               <span class="rounded-full bg-muted px-2 py-0.5 text-[11px]">Ritual</span>
             }
-            @if (tip.spell.concentration) {
+            @if (tip.data.concentration) {
               <span class="rounded-full bg-muted px-2 py-0.5 text-[11px]">Concentration</span>
             }
           </div>
         }
-        @if (tip.spell.description?.trim()) {
-          <app-markdown-view class="mt-2 block border-t pt-2" [source]="tip.spell.description" />
+        @if (tip.data.description?.trim()) {
+          <app-markdown-view class="mt-2 block border-t pt-2" [source]="tip.data.description" />
         }
       </div>
     }
@@ -688,12 +699,19 @@
                   @if (!isFeatureGroupCollapsed(group.source)) {
                     <ul class="mt-1 flex flex-wrap gap-2">
                       @for (feature of group.features; track $index) {
-                        <li
-                          class="cursor-help rounded-full bg-muted px-2 py-0.5 text-xs"
-                          (mouseenter)="showFeatureDetails($event, feature)"
-                          (mouseleave)="hideFeatureDetails()"
-                        >
-                          {{ feature.name || 'Unnamed' }}
+                        <li>
+                          <button
+                            type="button"
+                            class="cursor-help rounded-full bg-muted px-2 py-0.5 text-xs"
+                            (mouseenter)="featurePopover.show($event, feature)"
+                            (mouseleave)="featurePopover.hide()"
+                            (click)="featurePopover.pin($event, feature)"
+                            [attr.aria-label]="
+                              'Details for ' + (feature.name || 'Unnamed') + ' (click to keep open)'
+                            "
+                          >
+                            {{ feature.name || 'Unnamed' }}
+                          </button>
                         </li>
                       }
                     </ul>
@@ -708,33 +726,37 @@
       }
     </section>
 
-    <!-- Hover popover: the hovered feature's full details, beside its chip; clamped in TS so it
-         never runs off screen. -->
-    @if (featureTooltip(); as tip) {
+    <!-- Popover: the hovered feature's full details, beside its chip; clamped in TS so it never
+         runs off screen. While unpinned it ignores the pointer (so it can't steal the hover);
+         clicking the name pins it, making it interactive so a long one can be scrolled. -->
+    @if (featurePopover.state(); as tip) {
       <div
         #featureTip
-        class="pointer-events-none fixed z-50 max-h-[60vh] w-72 overflow-y-auto rounded-lg border bg-background p-3 text-sm shadow-xl"
+        class="fixed z-50 max-h-[60vh] w-72 overflow-y-auto rounded-lg border bg-background p-3 text-sm shadow-xl"
+        [class.pointer-events-none]="!tip.pinned"
+        [class.ring-2]="tip.pinned"
+        [class.ring-primary]="tip.pinned"
         [style.top.px]="tip.top"
         [style.left.px]="tip.left"
       >
         <div class="mb-2 border-b pb-1">
-          <div class="font-semibold">{{ tip.feature.name || 'Unnamed' }}</div>
+          <div class="font-semibold">{{ tip.data.name || 'Unnamed' }}</div>
           <div class="text-xs capitalize text-muted-foreground">
-            {{ tip.feature.source }}
-            @if (tip.feature.level) {
-              <span>· Level {{ tip.feature.level }}</span>
+            {{ tip.data.source }}
+            @if (tip.data.level) {
+              <span>· Level {{ tip.data.level }}</span>
             }
           </div>
         </div>
-        @if (tip.feature.uses; as uses) {
+        @if (tip.data.uses; as uses) {
           <div class="text-xs text-muted-foreground">
             Uses
             <strong class="text-foreground">{{ uses.max - uses.expended }}/{{ uses.max }}</strong>
             · {{ rechargePhrase(uses.recharge) }}
           </div>
         }
-        @if (tip.feature.description?.trim()) {
-          <app-markdown-view class="mt-2 block border-t pt-2" [source]="tip.feature.description" />
+        @if (tip.data.description?.trim()) {
+          <app-markdown-view class="mt-2 block border-t pt-2" [source]="tip.data.description" />
         }
       </div>
     }
