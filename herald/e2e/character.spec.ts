@@ -155,6 +155,15 @@ test.describe('character sheet', () => {
     await expect(page.getByText('Three darts of force.')).toBeVisible();
     await expect(page.getByText('Level 1 · Evocation')).toBeVisible();
 
+    // Clicking the name pins the popover: it stays put once the pointer moves away (so a long
+    // one can be scrolled), until a click lands outside it.
+    await chip.click();
+    const counts = summary.getByText('Prepared').first(); // the popover has a 'Prepared' tag too
+    await counts.hover();
+    await expect(page.getByText('Three darts of force.')).toBeVisible();
+    await counts.click();
+    await expect(page.getByText('Three darts of force.')).toBeHidden();
+
     // Collapsing the level hides its spells (the summary counts stay).
     await summary.getByRole('button', { name: /Level 1 \(1\)/ }).click();
     await expect(chip).toHaveCount(0);

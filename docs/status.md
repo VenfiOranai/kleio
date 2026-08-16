@@ -293,9 +293,10 @@ against available-first ordering, so clicking a dot moved the count the wrong wa
 again per level — Cantrips first, then 1→9, alphabetical within a level, each header showing its count.
 Expanded, a level shows **names only**; hovering a name opens a popover with the spell's full data
 (level · school, casting time, range, components, duration, prepared/ritual/concentration tags, and the
-Markdown description). The popover is clamped back on screen after render by a shared `clamp()` helper
-now used by the attack tooltip too. Component specs cover grouping/ordering, per-level collapse, the
-hover popover, and expend/restore incl. the saved `spell_slots` payload.
+Markdown description), and clicking the name pins it open (see *Pinnable popovers* below). The popover
+is clamped back on screen after render by a shared `clampToViewport()` helper used by the attack
+tooltip too. Component specs cover grouping/ordering, per-level collapse, the hover popover, pinning,
+and expend/restore incl. the saved `spell_slots` payload.
 
 ## Features & traits preview (grouping + use tracking)
 The features block listed every feature as one flat run of chips; it now mirrors the spells preview.
@@ -319,6 +320,25 @@ available-first ordering, so a click moved the count the wrong way.
 
 **Names carry their details on hover.** Expanded, a group shows **names only**; hovering one opens a
 popover with source · level, the uses/recharge line, and the Markdown description, clamped back on
-screen by the shared `clamp()` helper. Specs cover the pure module (grouping, level ordering, unknown
-sources, dot maths, recharge wording) and the component (grouping/ordering, per-source collapse, the
-hover popover, and expend incl. the saved `features` payload).
+screen by the shared `clampToViewport()` helper, and clicking the name pins it open (see *Pinnable
+popovers* below). Specs cover the pure module (grouping, level ordering, unknown sources, dot maths,
+recharge wording) and the component (grouping/ordering, per-source collapse, the hover popover,
+pinning, and expend incl. the saved `features` payload).
+
+## Pinnable popovers (spells + features)
+A description longer than the popover's `max-h-[60vh]` scrolls inside it — but it was unreachable:
+the popover is `pointer-events-none` (it has to be, or it steals the hover from the chip it's anchored
+to), so the moment the pointer left the chip, `mouseleave` closed it. **Clicking a chip now pins its
+popover:** it survives `mouseleave`, drops `pointer-events-none` so it can be scrolled and clicked
+through (a `ring-2` marks it pinned), and other chips stop stealing it on hover. It closes on a click
+anywhere outside its own contents, on Escape, on a second click of the same chip, or when its
+section/group collapses.
+
+The state machine lives in one place, `features/characters/popover.ts` — a `PinnablePopover<T>`
+holding the signal (`show`/`hide`/`pin`/`unpin`/`close`/`closeIfOutside`), plus the `clampToViewport()`
+helper lifted out of the component. `CharacterSheet` owns one instance per section
+(`spellPopover`, `featurePopover`) and wires them to two host listeners, `(document:click)` and
+`(document:keydown.escape)`; the outside-click check skips the popover's own element **and its
+anchor**, so the click that pins it doesn't immediately close it. Chip names became `<button>`s, so
+pinning is keyboard-reachable. `popover.spec.ts` unit-tests the state machine (hover vs. pin
+precedence, re-pinning, click-inside/outside, unpin), on top of the per-section component specs.
