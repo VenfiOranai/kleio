@@ -201,6 +201,13 @@
               [value]="spell.description"
               (valueChange)="setText(spell, 'description', $event)"
             />
+
+            <app-markdown-editor
+              [rows]="3"
+              placeholder="At higher levels…"
+              [value]="spell.at_higher_levels"
+              (change)="setText(spell, 'at_higher_levels', $any($event.target).value)"
+            />
           </div>
         }
       </div>
