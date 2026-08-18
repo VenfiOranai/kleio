@@ -635,6 +635,14 @@
         @if (tip.data.description?.trim()) {
           <app-markdown-view class="mt-2 block border-t pt-2" [source]="tip.data.description" />
         }
+        @if (tip.data.at_higher_levels?.trim()) {
+          <div class="mt-2 border-t pt-2">
+            <div class="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              At higher levels
+            </div>
+            <app-markdown-view class="mt-1 block" [source]="tip.data.at_higher_levels" />
+          </div>
+        }
       </div>
     }
 

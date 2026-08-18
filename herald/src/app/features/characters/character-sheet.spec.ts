@@ -39,6 +39,7 @@ function makeSpell(overrides: Partial<Spell> = {}): Spell {
     components: '',
     duration: '',
     description: '',
+    at_higher_levels: '',
     ...overrides,
   };
 }

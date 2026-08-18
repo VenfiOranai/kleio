@@ -119,7 +119,8 @@ section-level `notes`. Planned columns/shapes:
 - **`equipment`** (JSONB) — items `{name, quantity, category, weight?, equipped?, attuned?,
   description(md)}`; optional derived total weight / attunement count *(feat. 1)*.
 - **`spells`** (JSONB) — `{name, level, school, prepared, always_prepared, ritual, concentration,
-  casting_time, range, components, duration, description(md)}`; **`spell_slots`** (JSONB) per
+  casting_time, range, components, duration, description(md), at_higher_levels(md)}`;
+  **`spell_slots`** (JSONB) per
   level `{total, expended}` *(feat. 2)*.
 - **`features`** (JSONB) — `{name, source, level?, uses?{max, expended, recharge}, description(md)}`
   *(feat. 3)*.
