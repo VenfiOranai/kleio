@@ -31,6 +31,7 @@ function blankSpell(level = 0): Spell {
     components: '',
     duration: '',
     description: '',
+    at_higher_levels: '',
   };
 }
 
@@ -145,7 +146,15 @@ export class SpellsModal {
 
   protected setText(
     spell: WorkSpell,
-    field: 'name' | 'school' | 'casting_time' | 'range' | 'components' | 'duration' | 'description',
+    field:
+      | 'name'
+      | 'school'
+      | 'casting_time'
+      | 'range'
+      | 'components'
+      | 'duration'
+      | 'description'
+      | 'at_higher_levels',
     value: string,
   ): void {
     spell[field] = value;

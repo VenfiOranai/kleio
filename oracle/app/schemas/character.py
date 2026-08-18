@@ -54,6 +54,7 @@ class Spell(BaseModel):
     components: str = ""
     duration: str = ""
     description: str = ""  # markdown
+    at_higher_levels: str = ""  # markdown; the spell's "At Higher Levels" rider, if any
 
 
 class SpellSlot(BaseModel):

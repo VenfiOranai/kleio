@@ -201,6 +201,14 @@
               [value]="spell.description"
               (change)="setText(spell, 'description', $any($event.target).value)"
             ></textarea>
+
+            <textarea
+              z-input
+              rows="2"
+              placeholder="At higher levels (markdown)…"
+              [value]="spell.at_higher_levels"
+              (change)="setText(spell, 'at_higher_levels', $any($event.target).value)"
+            ></textarea>
           </div>
         }
       </div>

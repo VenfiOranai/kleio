@@ -86,6 +86,8 @@ export interface Spell {
   components: string;
   duration: string;
   description: string;
+  /** The spell's "At Higher Levels" rider (markdown); empty when it has none. */
+  at_higher_levels: string;
 }
 
 /** A per-level spell-slot tracker (manual; auto-from-class planned for Phase 14). */
