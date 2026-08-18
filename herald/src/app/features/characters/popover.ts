@@ -33,8 +33,9 @@ export function clampToViewport<T extends { top: number; left: number }>(
  * chip, becomes interactive, and ignores hovers over other chips, until it's dismissed by a click
  * outside its own contents (`closeIfOutside`), Escape, or a second click of the same chip.
  *
- * One instance per preview section (spells, features); the component owns the rendered element
- * and hands it over as `el` for clamping and outside-click hit-testing.
+ * One instance per preview section (equipment, spells, features); the component owns the rendered
+ * element and hands it over as `el` for clamping and outside-click hit-testing. `opensFor` gates
+ * chips with nothing to show (an equipment item without a description).
  */
 export class PinnablePopover<T> {
   private readonly tip = signal<PopoverState<T> | null>(null);
@@ -42,7 +43,10 @@ export class PinnablePopover<T> {
   /** The popover to render, if any. */
   readonly state = this.tip.asReadonly();
 
-  constructor(private readonly el: () => HTMLElement | undefined) {}
+  constructor(
+    private readonly el: () => HTMLElement | undefined,
+    private readonly opensFor: (data: T) => boolean = () => true,
+  ) {}
 
   /** Open on hover — a pinned popover wins, so hovering elsewhere leaves it in place. */
   show(event: MouseEvent, data: T): void {
@@ -84,6 +88,7 @@ export class PinnablePopover<T> {
   }
 
   private open(event: MouseEvent, data: T, pinned: boolean): void {
+    if (!this.opensFor(data)) return;
     const anchor = event.currentTarget as HTMLElement;
     const rect = anchor.getBoundingClientRect();
     this.tip.set({ data, top: rect.top, left: rect.right + 8, pinned, anchor });

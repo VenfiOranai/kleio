@@ -325,7 +325,7 @@ popovers* below). Specs cover the pure module (grouping, level ordering, unknown
 recharge wording) and the component (grouping/ordering, per-source collapse, the hover popover,
 pinning, and expend incl. the saved `features` payload).
 
-## Pinnable popovers (spells + features)
+## Pinnable popovers (equipment + spells + features)
 A description longer than the popover's `max-h-[60vh]` scrolls inside it — but it was unreachable:
 the popover is `pointer-events-none` (it has to be, or it steals the hover from the chip it's anchored
 to), so the moment the pointer left the chip, `mouseleave` closed it. **Clicking a chip now pins its
@@ -336,9 +336,17 @@ section/group collapses.
 
 The state machine lives in one place, `features/characters/popover.ts` — a `PinnablePopover<T>`
 holding the signal (`show`/`hide`/`pin`/`unpin`/`close`/`closeIfOutside`), plus the `clampToViewport()`
-helper lifted out of the component. `CharacterSheet` owns one instance per section
-(`spellPopover`, `featurePopover`) and wires them to two host listeners, `(document:click)` and
+helper lifted out of the component. `CharacterSheet` owns one instance per section (`itemPopover`,
+`spellPopover`, `featurePopover`) and wires them to two host listeners, `(document:click)` and
 `(document:keydown.escape)`; the outside-click check skips the popover's own element **and its
 anchor**, so the click that pins it doesn't immediately close it. Chip names became `<button>`s, so
-pinning is keyboard-reachable. `popover.spec.ts` unit-tests the state machine (hover vs. pin
-precedence, re-pinning, click-inside/outside, unpin), on top of the per-section component specs.
+pinning is keyboard-reachable.
+
+The equipment popover joined last and brought two wrinkles: only items **with a description** have
+anything to show, so its instance takes the optional `opensFor` predicate (which gates hover *and*
+pin) and its chips render `[disabled]` when empty — inert and unfocusable, and Tailwind's preflight
+(`color: inherit`, `opacity: 1` on buttons) keeps them looking exactly like the plain chips they
+replaced. It was also the one popover with no `max-h`/`overflow` and no clamping, so it now matches
+the other two. `popover.spec.ts` unit-tests the state machine (hover vs. pin precedence, re-pinning,
+click-inside/outside, `opensFor`, unpin), on top of per-section component specs and e2e coverage of
+the equipment + spells popovers.
