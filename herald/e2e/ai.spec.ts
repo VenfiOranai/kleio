@@ -14,14 +14,14 @@ test.describe('AI summary', () => {
 
     // The summary lives on the "Summary" tab of the embedded editor.
     await page.getByRole('button', { name: 'Summary', exact: true }).click();
-    const summary = page.locator('textarea[formcontrolname="summary"]');
+    const summary = page.locator('app-markdown-editor[formcontrolname="summary"] textarea');
     await summary.fill('## My recap\n- We defeated the lich.');
     await page.getByRole('button', { name: 'Save' }).click();
     await expect(page.getByText('Saved')).toBeVisible();
 
     await page.reload();
     await page.getByRole('button', { name: 'Summary', exact: true }).click();
-    await expect(page.locator('textarea[formcontrolname="summary"]')).toHaveValue(
+    await expect(page.locator('app-markdown-editor[formcontrolname="summary"] textarea')).toHaveValue(
       '## My recap\n- We defeated the lich.',
     );
   });
@@ -30,7 +30,7 @@ test.describe('AI summary', () => {
     await openNewSession(page);
 
     // Saving auto-triggers summarization — there is no manual button.
-    await page.locator('app-mention-textarea textarea').fill('The party explored the crypt.');
+    await page.locator('app-markdown-editor textarea').fill('The party explored the crypt.');
     await page.getByRole('button', { name: 'Save' }).click();
     // The save itself still succeeds regardless of the AI step.
     await expect(page.getByText('Saved')).toBeVisible();

@@ -9,6 +9,7 @@ import {
   EquipmentItem,
   Spell,
 } from '@/core/api/models';
+import { MarkdownEditor } from '@/shared/markdown-editor/markdown-editor';
 import { Modal } from '@/shared/modal/modal';
 
 /** An attack plus a transient client id so `@for` tracking survives in-place edits. */
@@ -43,7 +44,7 @@ function blankAttack(): Attack {
 
 @Component({
   selector: 'app-attacks-modal',
-  imports: [Modal, ZardButtonComponent, ZardInputDirective],
+  imports: [Modal, ZardButtonComponent, ZardInputDirective, MarkdownEditor],
   templateUrl: './attacks-modal.html',
 })
 export class AttacksModal {

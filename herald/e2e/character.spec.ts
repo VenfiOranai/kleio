@@ -84,7 +84,7 @@ test.describe('character sheet', () => {
 
     await dialog.getByRole('button', { name: '+ Add item' }).click();
     await dialog.getByPlaceholder('Item name').fill('Longsword');
-    await dialog.getByPlaceholder('Description (markdown)…').fill('A finely balanced blade.');
+    await dialog.getByPlaceholder('Description…').fill('A finely balanced blade.');
     await dialog.getByLabel('Weight').fill('3');
     await dialog.getByLabel('Weight').blur();
     // Bump quantity to 2 via the stepper → carried weight 2 × 3 = 6.
@@ -141,7 +141,7 @@ test.describe('character sheet', () => {
     await dialog.getByPlaceholder('Spell name').fill('Magic Missile');
     await dialog.getByLabel('Spell level').selectOption('1');
     await dialog.getByPlaceholder('School').fill('Evocation');
-    await dialog.getByPlaceholder('Description (markdown)…').fill('Three darts of force.');
+    await dialog.getByPlaceholder('Description…').fill('Three darts of force.');
     await dialog.getByRole('checkbox', { name: 'Prepared', exact: true }).check();
 
     // Expend a slot by clicking the last available dot → one available, one expended.

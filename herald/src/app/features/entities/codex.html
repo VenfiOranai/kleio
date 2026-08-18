@@ -126,13 +126,13 @@
         <button z-button zType="ghost" zSize="sm" (click)="deleteEntity(entity)">Delete</button>
       </div>
     </div>
-    <textarea
-      z-input
-      rows="2"
-      class="text-sm"
+    <!-- Saved on blur (commit), not per keystroke: each save is a PATCH. -->
+    <app-markdown-editor
+      [rows]="3"
       placeholder="Description (optional)"
+      [ariaLabel]="entity.name + ' description'"
       [value]="entity.description ?? ''"
-      (blur)="saveDescription(entity, $any($event.target).value)"
-    ></textarea>
+      (commit)="saveDescription(entity, $event)"
+    />
   </div>
 </ng-template>

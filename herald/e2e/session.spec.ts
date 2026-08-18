@@ -13,7 +13,7 @@ test.describe('session editor', () => {
     await page.getByPlaceholder('Session title').fill(title);
 
     // Typing Markdown updates the live preview (marked + DOMPurify), shown on its own tab.
-    await page.locator('app-mention-textarea textarea').fill('# Hello World\n\nSome **bold** notes.');
+    await page.locator('app-markdown-editor textarea').fill('# Hello World\n\nSome **bold** notes.');
     await page.getByRole('button', { name: 'Preview', exact: true }).click();
     const preview = page.locator('app-markdown-view');
     await expect(preview.getByRole('heading', { name: 'Hello World' })).toBeVisible();
@@ -28,6 +28,35 @@ test.describe('session editor', () => {
     await expect(page.getByPlaceholder('Session title')).toHaveValue(title);
     await page.getByRole('button', { name: 'Preview', exact: true }).click();
     await expect(preview.getByRole('heading', { name: 'Hello World' })).toBeVisible();
+  });
+
+  test('formats notes from the toolbar and previews the summary', async ({ page }) => {
+    await openFreshCampaign(page, 'Toolbar Campaign');
+    await newSession(page);
+
+    const notes = page.locator('app-markdown-editor textarea');
+    await notes.fill('the goblin king');
+    // Select "goblin" and bold it from the toolbar; the word stays selected afterwards…
+    await notes.evaluate((el: HTMLTextAreaElement) => el.setSelectionRange(4, 10));
+    await page.getByRole('button', { name: 'Bold' }).click();
+    await expect(notes).toHaveValue('the **goblin** king');
+
+    // …so the Ctrl+I shortcut nests italics inside the bold rather than breaking it.
+    await page.keyboard.press('Control+i');
+    await expect(notes).toHaveValue('the ***goblin*** king');
+
+    // A table lands below the current line, leaving the sentence intact.
+    await page.getByRole('button', { name: 'Table' }).click();
+    await expect(notes).toHaveValue(/^the \*\*\*goblin\*\*\* king\n\n\| Column \| Column \|/);
+
+    // The summary editor renders its own Markdown behind the preview toggle.
+    await page.getByRole('button', { name: 'Summary', exact: true }).click();
+    const summary = page.locator('app-markdown-editor[formcontrolname="summary"] textarea');
+    await summary.fill('## Recap\n\n- The **lich** fell.');
+    await page.getByRole('button', { name: 'Toggle preview' }).click();
+    const preview = page.locator('app-markdown-editor[formcontrolname="summary"] app-markdown-view');
+    await expect(preview.getByRole('heading', { name: 'Recap' })).toBeVisible();
+    await expect(preview.getByText('lich')).toBeVisible();
   });
 
   test('defaults new sessions to today and keeps the picker sorted by date', async ({ page }) => {

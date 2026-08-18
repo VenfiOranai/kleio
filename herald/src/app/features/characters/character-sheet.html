@@ -784,12 +784,13 @@
       (featuresChange)="featureItems.set($event)"
     />
 
-    <!-- Freeform -->
+    <!-- Freeform. A div, not a label: the editor's toolbar buttons are labelable, so a wrapping
+         <label> would bind to the first of them instead of the textarea. -->
     <section class="grid gap-4 md:grid-cols-2">
-      <label class="flex flex-col gap-1 text-sm">
+      <div class="flex flex-col gap-1 text-sm">
         <span class="capitalize text-muted-foreground">Notes</span>
-        <textarea z-input rows="4" formControlName="notes"></textarea>
-      </label>
+        <app-markdown-editor [rows]="5" ariaLabel="Character notes" formControlName="notes" />
+      </div>
     </section>
     </div>
   </div>

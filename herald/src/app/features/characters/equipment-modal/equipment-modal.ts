@@ -3,6 +3,7 @@ import { Component, computed, input, output, signal, viewChild } from '@angular/
 import { ZardButtonComponent } from '@/components/button/button.component';
 import { ZardInputDirective } from '@/components/input/input.directive';
 import { EquipmentItem } from '@/core/api/models';
+import { MarkdownEditor } from '@/shared/markdown-editor/markdown-editor';
 import { Modal } from '@/shared/modal/modal';
 
 /** Display label for items left without a category (their stored category stays ''). */
@@ -29,7 +30,7 @@ function blankItem(): EquipmentItem {
 
 @Component({
   selector: 'app-equipment-modal',
-  imports: [Modal, ZardButtonComponent, ZardInputDirective],
+  imports: [Modal, ZardButtonComponent, ZardInputDirective, MarkdownEditor],
   templateUrl: './equipment-modal.html',
 })
 export class EquipmentModal {

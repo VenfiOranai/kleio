@@ -3,6 +3,7 @@ import { Component, computed, input, output, signal, viewChild } from '@angular/
 import { ZardButtonComponent } from '@/components/button/button.component';
 import { ZardInputDirective } from '@/components/input/input.directive';
 import { FEATURE_SOURCES, Feature, FeatureSource, Recharge } from '@/core/api/models';
+import { MarkdownEditor } from '@/shared/markdown-editor/markdown-editor';
 import { Modal } from '@/shared/modal/modal';
 import { groupFeaturesBySource, toggleUseDot, useDots } from '../features';
 
@@ -21,7 +22,7 @@ function blankFeature(source: FeatureSource = 'other'): Feature {
 
 @Component({
   selector: 'app-features-modal',
-  imports: [Modal, ZardButtonComponent, ZardInputDirective],
+  imports: [Modal, ZardButtonComponent, ZardInputDirective, MarkdownEditor],
   templateUrl: './features-modal.html',
 })
 export class FeaturesModal {

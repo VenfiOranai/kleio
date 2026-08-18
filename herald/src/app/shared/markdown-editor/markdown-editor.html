@@ -1,0 +1,95 @@
+<div class="flex flex-col">
+  <div
+    class="flex flex-wrap items-center gap-0.5 rounded-t-lg border border-b-0 border-input bg-muted/40 px-1.5 py-1"
+    role="toolbar"
+    [attr.aria-label]="(ariaLabel() || 'Markdown') + ' formatting'"
+  >
+    @for (group of groups; track $index) {
+      @for (button of group; track button.command) {
+        <!-- mousedown is swallowed so the textarea keeps focus (and its selection) on click. -->
+        <button
+          type="button"
+          [class]="toolClass"
+          [title]="tooltip(button)"
+          [attr.aria-label]="button.label"
+          [disabled]="mode() === 'preview'"
+          (mousedown)="$event.preventDefault()"
+          (click)="run(button.command)"
+        >
+          <ng-icon [name]="button.icon" size="15" />
+        </button>
+      }
+      @if (!$last) {
+        <span class="mx-1 h-5 w-px bg-border" aria-hidden="true"></span>
+      }
+    }
+
+    @if (preview()) {
+      <!-- Named "Toggle preview" rather than "Preview" so it can't be confused with a host's own
+           Preview tab (the session editor has one). -->
+      <button
+        type="button"
+        [class]="toggleClass"
+        aria-label="Toggle preview"
+        [attr.aria-pressed]="mode() === 'preview'"
+        (mousedown)="$event.preventDefault()"
+        (click)="mode.set(mode() === 'preview' ? 'write' : 'preview')"
+      >
+        <ng-icon [name]="mode() === 'write' ? 'lucideEye' : 'lucidePencil'" size="15" />
+        {{ mode() === 'write' ? 'Preview' : 'Write' }}
+      </button>
+    }
+  </div>
+
+  <!-- Hidden rather than destroyed while previewing, so the caret and scroll position survive. -->
+  <div class="relative" [class.hidden]="mode() === 'preview'">
+    <textarea
+      #ta
+      [class]="textareaClass"
+      [rows]="rows()"
+      [placeholder]="placeholder()"
+      [attr.aria-label]="ariaLabel() || null"
+      (input)="onInput()"
+      (keydown)="onKeydown($event)"
+      (keyup)="onKeyup($event)"
+      (click)="sync()"
+      (blur)="onBlur()"
+    ></textarea>
+
+    @if (open()) {
+      <ul
+        class="absolute z-50 max-h-56 w-64 overflow-auto rounded-md border bg-background p-1 shadow-md"
+        [style.top.px]="top()"
+        [style.left.px]="left()"
+      >
+        @for (option of options(); track option.name; let i = $index) {
+          <li>
+            <button
+              type="button"
+              class="flex w-full items-center gap-1.5 rounded px-2 py-1.5 text-left text-sm hover:bg-muted"
+              [class.bg-muted]="i === activeIndex()"
+              (mousedown)="$event.preventDefault(); choose(i)"
+              (mouseenter)="activeIndex.set(i)"
+            >
+              @if (option.create) {
+                <span class="text-muted-foreground">Create</span>
+                <span class="font-medium">“{{ option.name }}”</span>
+              } @else {
+                <span class="truncate">{{ option.name }}</span>
+              }
+            </button>
+          </li>
+        }
+      </ul>
+    }
+  </div>
+
+  @if (mode() === 'preview') {
+    <div
+      class="overflow-auto rounded-b-lg border border-t-0 border-input px-3 py-2"
+      [style.min-height.em]="rows() * 1.5"
+    >
+      <app-markdown-view [source]="text()" [entities]="entities()" />
+    </div>
+  }
+</div>

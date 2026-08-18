@@ -31,6 +31,7 @@ import {
   SpellSlot,
 } from '@/core/api/models';
 import { ConfirmDeleteModal } from '@/shared/confirm-delete-modal/confirm-delete-modal';
+import { MarkdownEditor } from '@/shared/markdown-editor/markdown-editor';
 import { MarkdownView } from '@/shared/markdown-view/markdown-view';
 import { AttacksModal } from './attacks-modal/attacks-modal';
 import { CharacterDraft, draftToJson, parseCharacterDraft } from './character-json';
@@ -76,6 +77,7 @@ function toggle(set: Set<string>, key: string): Set<string> {
     FeaturesModal,
     AttacksModal,
     MarkdownView,
+    MarkdownEditor,
     ConfirmDeleteModal,
   ],
   templateUrl: './character-sheet.html',

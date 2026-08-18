@@ -35,6 +35,19 @@ docs/      architecture.md, roadmap.md  (source of truth for design)
   **The backend is authoritative**; the frontend may mirror the math for live preview only.
 - **Notes are Markdown.** `raw_notes` is the canonical text the user writes and is **always
   preserved**; `summary` is a separate, nullable, editable field (filled by Gemini later).
+- **One Markdown input: `shared/markdown-editor`.** Every place Markdown is written (session notes
+  + summary, entity descriptions, equipment/spell/feature/attack descriptions, character notes)
+  uses `app-markdown-editor` — never a bare `<textarea>`. It's a plain textarea (the raw Markdown
+  stays canonical — no WYSIWYG, no third-party editor) plus a formatting toolbar, Ctrl/Cmd
+  shortcuts, a Write/Preview toggle, and the optional `@`-mention typeahead (`[mentions]="true"`,
+  which absorbed the old `mention-textarea`). All the text transforms live in one **pure**
+  `markdown-commands.ts` (`applyCommand(state, command)`, like `character_calc`). It's a
+  `ControlValueAccessor` (`formControlName`) *and* takes `[value]`/`(valueChange)`/`(commit)` for
+  the modals that edit JSONB rows — `commit` fires on blur, the save-on-blur hook. Set
+  `[preview]="false"` where the host already renders its own preview pane. Gotcha: it strips
+  `placeholder`/`arialabel` off its host element (a static attribute in a host template feeds the
+  input *and* stays in the DOM, so lookups would match twice), and it must not be wrapped in a
+  `<label>` — the toolbar buttons are labelable and would steal the association.
 - **Entity mentions (Phase 7).** Notes tag important words with an `@[Name]` token stored inline
   in `raw_notes` — **referenced by name, not id** (keeps raw text readable / Gemini-friendly;
   `entities.name` is the stable key). `@[Name]` renders as bold+italic with the `@` stripped,
@@ -145,6 +158,9 @@ one-liners below are the map.
   `pointer-events-none` or they steal the hover from their own chip. Chips with nothing to show
   (equipment without a description) are gated by the optional `opensFor` predicate and render
   `[disabled]`.
+- **Markdown editor** — every Markdown input is now `shared/markdown-editor` (toolbar + shortcuts +
+  Write/Preview toggle) instead of a bare textarea; it absorbed `shared/mention-textarea`, which is
+  gone. See the convention above.
 
 **Next up:** Phase 13/14 (5etools import), or Phase 6 (polish/hardening, backups) — see
 `docs/roadmap.md`.
