@@ -47,13 +47,6 @@ import { PinnablePopover, clampToViewport } from './popover';
 import { slotDots, toggleSlotDot } from './spell-slots';
 import { SpellsModal } from './spells-modal/spells-modal';
 
-/** A hover tooltip anchored to an equipment chip in the read-only sheet preview. */
-interface ItemTooltip {
-  item: EquipmentItem;
-  top: number;
-  left: number;
-}
-
 /** A hover tooltip anchored to a row in the read-only attacks table. */
 interface AttackTooltip {
   attack: Attack;
@@ -185,10 +178,15 @@ export class CharacterSheet {
     this.featureGroups().flatMap((group) => group.features.filter((f) => f.uses && f.uses.max > 0)),
   );
 
-  /** Read-only equipment preview: whole-section + per-category collapse, and a hover tooltip. */
+  /** Read-only equipment preview: whole-section + per-category collapse, and a hover/pinnable
+   * popover — only for items that carry a description; the rest are inert chips. */
   protected readonly equipmentCollapsed = signal(false);
   protected readonly equipmentGroupsCollapsed = signal<Set<string>>(new Set());
-  protected readonly itemTooltip = signal<ItemTooltip | null>(null);
+  private readonly itemTooltipEl = viewChild<ElementRef<HTMLDivElement>>('itemTip');
+  protected readonly itemPopover = new PinnablePopover<EquipmentItem>(
+    () => this.itemTooltipEl()?.nativeElement,
+    (item) => !!item.description?.trim(),
+  );
 
   /** Equipment grouped by category (custom alphabetically, then Uncategorized) for the preview. */
   protected readonly equipmentGroups = computed(() => {
@@ -423,7 +421,7 @@ export class CharacterSheet {
 
   protected toggleEquipmentCollapsed(): void {
     this.equipmentCollapsed.update((v) => !v);
-    if (this.equipmentCollapsed()) this.itemTooltip.set(null);
+    if (this.equipmentCollapsed()) this.itemPopover.close();
   }
 
   protected isEquipmentGroupCollapsed(category: string): boolean {
@@ -432,17 +430,7 @@ export class CharacterSheet {
 
   protected toggleEquipmentGroup(category: string): void {
     this.equipmentGroupsCollapsed.update((set) => toggle(set, category));
-  }
-
-  /** Show the item's description in a tooltip to the right of the hovered chip. */
-  protected showItemDescription(event: MouseEvent, item: EquipmentItem): void {
-    if (!item.description?.trim()) return;
-    const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
-    this.itemTooltip.set({ item, top: rect.top, left: rect.right + 8 });
-  }
-
-  protected hideItemDescription(): void {
-    this.itemTooltip.set(null);
+    this.itemPopover.close();
   }
 
   // --- Spells preview ------------------------------------------------------
@@ -495,17 +483,19 @@ export class CharacterSheet {
     );
   }
 
-  // --- Pinnable popovers (spells + features) -------------------------------
+  // --- Pinnable popovers (equipment + spells + features) --------------------
 
   /** Dismiss a pinned popover on any click outside its own contents (the click that pinned it
    * lands on the chip, which each popover ignores as its own anchor). */
   protected onDocumentClick(event: MouseEvent): void {
     const target = event.target as Node | null;
+    this.itemPopover.closeIfOutside(target);
     this.spellPopover.closeIfOutside(target);
     this.featurePopover.closeIfOutside(target);
   }
 
   protected unpinPopovers(): void {
+    this.itemPopover.unpin();
     this.spellPopover.unpin();
     this.featurePopover.unpin();
   }

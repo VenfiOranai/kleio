@@ -136,13 +136,15 @@ one-liners below are the map.
   by level (lowest first), names only with a hover popover, and clickable use dots for limited-use
   features (max/recharge stay modal-only). Grouping + use maths live in one **pure** `features.ts`
   shared with the modal (its dot helpers wrap `spell-slots.ts`).
-- **Pinnable popovers** — the spells/features preview popovers are hover-only *until clicked*:
-  **clicking a chip pins** its popover so a scrollable one is reachable (it survives mouseleave and
-  takes the pointer), closing on an outside click, Escape, or a second click of the chip. The state
-  machine is one shared `characters/popover.ts` (`PinnablePopover<T>` + `clampToViewport`), one
-  instance per section, driven by `(document:click)`/`(document:keydown.escape)` host listeners on
-  `CharacterSheet`. Unpinned popovers **must** stay `pointer-events-none` or they steal the hover
-  from their own chip.
+- **Pinnable popovers** — the equipment/spells/features preview popovers are hover-only *until
+  clicked*: **clicking a chip pins** its popover so a scrollable one is reachable (it survives
+  mouseleave and takes the pointer), closing on an outside click, Escape, or a second click of the
+  chip. The state machine is one shared `characters/popover.ts` (`PinnablePopover<T>` +
+  `clampToViewport`), one instance per section, driven by `(document:click)`/
+  `(document:keydown.escape)` host listeners on `CharacterSheet`. Unpinned popovers **must** stay
+  `pointer-events-none` or they steal the hover from their own chip. Chips with nothing to show
+  (equipment without a description) are gated by the optional `opensFor` predicate and render
+  `[disabled]`.
 
 **Next up:** Phase 13/14 (5etools import), or Phase 6 (polish/hardening, backups) — see
 `docs/roadmap.md`.

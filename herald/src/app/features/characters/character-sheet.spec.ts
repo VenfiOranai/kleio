@@ -4,9 +4,22 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { Character, Feature, Spell } from '@/core/api/models';
+import { Character, EquipmentItem, Feature, Spell } from '@/core/api/models';
 
 import { CharacterSheet } from './character-sheet';
+
+function makeItem(overrides: Partial<EquipmentItem> = {}): EquipmentItem {
+  return {
+    name: 'Item',
+    quantity: 1,
+    category: '',
+    weight: null,
+    equipped: false,
+    attuned: false,
+    description: '',
+    ...overrides,
+  };
+}
 
 function makeFeature(overrides: Partial<Feature> = {}): Feature {
   return { name: 'Feature', source: 'class', level: null, uses: null, description: '', ...overrides };
@@ -200,6 +213,95 @@ describe('CharacterSheet JSON view', () => {
   });
 
   afterEach(() => http.verify());
+});
+
+/** The read-only equipment preview: item chips and their description popover. */
+describe('CharacterSheet equipment preview', () => {
+  let fixture: ComponentFixture<CharacterSheet>;
+  let http: HttpTestingController;
+
+  const el = (): HTMLElement => fixture.nativeElement;
+  const chipFor = (name: string) =>
+    [...el().querySelectorAll<HTMLButtonElement>('li button')].find((b) =>
+      b.textContent!.trim().startsWith(name),
+    )!;
+  const popover = () => el().querySelector<HTMLElement>('div.fixed.z-50');
+
+  function click(element: HTMLElement): void {
+    element.click();
+    fixture.detectChanges();
+  }
+
+  function hover(name: string): void {
+    chipFor(name).dispatchEvent(new MouseEvent('mouseenter'));
+    fixture.detectChanges();
+  }
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      imports: [CharacterSheet],
+      providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])],
+    });
+    http = TestBed.inject(HttpTestingController);
+
+    fixture = TestBed.createComponent(CharacterSheet);
+    fixture.componentRef.setInput('characterId', 1);
+    fixture.componentRef.setInput('campaignId', 2);
+    fixture.detectChanges();
+    http.expectOne('/api/characters/1').flush(
+      makeCharacter({
+        equipment: [
+          makeItem({ name: 'Longsword', description: 'A finely balanced blade.' }),
+          makeItem({ name: 'Rations', quantity: 5 }),
+        ],
+      }),
+    );
+    fixture.detectChanges();
+  });
+
+  it('shows an item’s description on hover, and drops it on leave', () => {
+    hover('Longsword');
+
+    expect(el().textContent).toContain('A finely balanced blade.');
+    expect(popover()!.classList).toContain('pointer-events-none'); // unpinned: can't steal the hover
+
+    chipFor('Longsword').dispatchEvent(new MouseEvent('mouseleave'));
+    fixture.detectChanges();
+
+    expect(el().textContent).not.toContain('A finely balanced blade.');
+  });
+
+  it('keeps a clicked (pinned) popover open once the pointer leaves, and closes it outside', () => {
+    click(chipFor('Longsword'));
+    chipFor('Longsword').dispatchEvent(new MouseEvent('mouseleave'));
+    fixture.detectChanges();
+
+    expect(el().textContent).toContain('A finely balanced blade.');
+    expect(popover()!.classList).not.toContain('pointer-events-none'); // pinned: scrollable
+
+    click(popover()!); // a click inside (e.g. its scrollbar) leaves it alone
+    expect(el().textContent).toContain('A finely balanced blade.');
+
+    document.body.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    fixture.detectChanges();
+
+    expect(el().textContent).not.toContain('A finely balanced blade.');
+  });
+
+  it('leaves an item without a description as an inert chip', () => {
+    const chip = chipFor('Rations');
+
+    expect(chip.disabled).toBe(true);
+    expect(chip.getAttribute('aria-label')).toBeNull();
+
+    hover('Rations');
+    expect(popover()).toBeNull();
+  });
+
+  afterEach(() => {
+    http.verify();
+    fixture.destroy();
+  });
 });
 
 /** The read-only spells preview: slot dots, per-level sections, and the hover popover. */

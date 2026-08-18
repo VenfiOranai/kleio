@@ -419,19 +419,31 @@
                   @if (!isEquipmentGroupCollapsed(group.category)) {
                     <ul class="mt-1 flex flex-wrap gap-2">
                       @for (item of group.items; track $index) {
-                        <li
-                          class="rounded-full bg-muted px-2 py-0.5 text-xs"
-                          [class.cursor-help]="item.description?.trim()"
-                          (mouseenter)="showItemDescription($event, item)"
-                          (mouseleave)="hideItemDescription()"
-                        >
-                          {{ item.name || 'Unnamed' }}
-                          @if (item.quantity !== 1) {
-                            <span class="text-muted-foreground">×{{ item.quantity }}</span>
-                          }
-                          @if (item.equipped) {
-                            <span class="text-muted-foreground">· equipped</span>
-                          }
+                        <li>
+                          <!-- Only items with a description have anything to show, so the rest
+                               render as inert (disabled) chips. -->
+                          <button
+                            type="button"
+                            class="rounded-full bg-muted px-2 py-0.5 text-xs"
+                            [class.cursor-help]="item.description?.trim()"
+                            [disabled]="!item.description?.trim()"
+                            (mouseenter)="itemPopover.show($event, item)"
+                            (mouseleave)="itemPopover.hide()"
+                            (click)="itemPopover.pin($event, item)"
+                            [attr.aria-label]="
+                              item.description?.trim()
+                                ? 'Details for ' + (item.name || 'Unnamed') + ' (click to keep open)'
+                                : null
+                            "
+                          >
+                            {{ item.name || 'Unnamed' }}
+                            @if (item.quantity !== 1) {
+                              <span class="text-muted-foreground">×{{ item.quantity }}</span>
+                            }
+                            @if (item.equipped) {
+                              <span class="text-muted-foreground">· equipped</span>
+                            }
+                          </button>
                         </li>
                       }
                     </ul>
@@ -446,15 +458,21 @@
       }
     </section>
 
-    <!-- Hover tooltip: the hovered item's Markdown-rendered description, to the right of the chip. -->
-    @if (itemTooltip(); as tip) {
+    <!-- Popover: the hovered item's Markdown-rendered description, to the right of its chip.
+         While unpinned it ignores the pointer (so it can't steal the hover); clicking the chip
+         pins it, making it interactive so a long one can be scrolled. -->
+    @if (itemPopover.state(); as tip) {
       <div
-        class="pointer-events-none fixed z-50 max-w-xs rounded-lg border bg-background p-3 text-sm shadow-xl"
+        #itemTip
+        class="fixed z-50 max-h-[60vh] max-w-xs overflow-y-auto rounded-lg border bg-background p-3 text-sm shadow-xl"
+        [class.pointer-events-none]="!tip.pinned"
+        [class.ring-2]="tip.pinned"
+        [class.ring-primary]="tip.pinned"
         [style.top.px]="tip.top"
         [style.left.px]="tip.left"
       >
-        <div class="mb-1 border-b pb-1 font-semibold">{{ tip.item.name || 'Unnamed' }}</div>
-        <app-markdown-view [source]="tip.item.description" />
+        <div class="mb-1 border-b pb-1 font-semibold">{{ tip.data.name || 'Unnamed' }}</div>
+        <app-markdown-view [source]="tip.data.description" />
       </div>
     }
 

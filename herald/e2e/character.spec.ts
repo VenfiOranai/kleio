@@ -84,6 +84,7 @@ test.describe('character sheet', () => {
 
     await dialog.getByRole('button', { name: '+ Add item' }).click();
     await dialog.getByPlaceholder('Item name').fill('Longsword');
+    await dialog.getByPlaceholder('Description (markdown)…').fill('A finely balanced blade.');
     await dialog.getByLabel('Weight').fill('3');
     await dialog.getByLabel('Weight').blur();
     // Bump quantity to 2 via the stepper → carried weight 2 × 3 = 6.
@@ -103,6 +104,18 @@ test.describe('character sheet', () => {
     await expect(summary.getByText('Longsword')).toBeVisible();
     await expect(summary.getByText('×2')).toBeVisible();
     await expect(summary.getByText(/Weight/).locator('strong')).toHaveText('6');
+
+    // The chip's description popover: on hover, then pinned by a click so it survives the pointer
+    // leaving (long ones scroll), until a click lands outside it.
+    const chip = summary.getByRole('button', { name: /Details for Longsword/ });
+    await chip.hover();
+    await expect(page.getByText('A finely balanced blade.')).toBeVisible();
+    await chip.click();
+    const counts = summary.getByText('Items');
+    await counts.hover();
+    await expect(page.getByText('A finely balanced blade.')).toBeVisible();
+    await counts.click();
+    await expect(page.getByText('A finely balanced blade.')).toBeHidden();
   });
 
   test('tracks spells and slots in the modal and reflects them in the summary', async ({

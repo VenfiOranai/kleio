@@ -69,6 +69,17 @@ describe('PinnablePopover', () => {
     expect(popover.state()).toBeNull();
   });
 
+  it('never opens for a chip with nothing to show', () => {
+    const popover = new PinnablePopover<string>(
+      () => undefined,
+      (data) => data !== 'Rations', // e.g. an equipment item with no description
+    );
+    popover.show(chip().event, 'Rations');
+    popover.pin(chip().event, 'Rations');
+
+    expect(popover.state()).toBeNull();
+  });
+
   it('only unpins a popover that is pinned', () => {
     const popover = makePopover();
     popover.show(chip().event, 'Shield');
