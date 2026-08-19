@@ -42,12 +42,12 @@ test.describe('workspace split view', () => {
     // Seed a session with notes so the preview has something to render.
     // newSession leaves the workspace in the notes-only pane with the editor open.
     await newSession(page);
-    await page.locator('app-mention-textarea textarea').fill('# Heading');
+    await page.locator('app-markdown-editor textarea').fill('# Heading');
     await page.getByRole('button', { name: 'Save' }).click();
     await expect(page.getByText('Saved')).toBeVisible();
 
-    const notesTextarea = page.locator('app-mention-textarea textarea');
-    const summaryTextarea = page.locator('textarea[formcontrolname="summary"]');
+    const notesTextarea = page.locator('app-markdown-editor textarea');
+    const summaryTextarea = page.locator('app-markdown-editor[formcontrolname="summary"] textarea');
 
     // Default tab is Write: raw notes shown, other panes not rendered.
     await expect(notesTextarea).toBeVisible();

@@ -194,21 +194,20 @@
               </button>
             </div>
 
-            <textarea
-              z-input
-              rows="2"
-              placeholder="Description (markdown)…"
+            <app-markdown-editor
+              [rows]="3"
+              placeholder="Description…"
+              [ariaLabel]="(spell.name || 'Spell') + ' description'"
               [value]="spell.description"
-              (change)="setText(spell, 'description', $any($event.target).value)"
-            ></textarea>
+              (valueChange)="setText(spell, 'description', $event)"
+            />
 
-            <textarea
-              z-input
-              rows="2"
-              placeholder="At higher levels (markdown)…"
+            <app-markdown-editor
+              [rows]="3"
+              placeholder="At higher levels…"
               [value]="spell.at_higher_levels"
               (change)="setText(spell, 'at_higher_levels', $any($event.target).value)"
-            ></textarea>
+            />
           </div>
         }
       </div>

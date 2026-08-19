@@ -3,6 +3,7 @@ import { Component, computed, input, output, signal, viewChild } from '@angular/
 import { ZardButtonComponent } from '@/components/button/button.component';
 import { ZardInputDirective } from '@/components/input/input.directive';
 import { SPELL_SCHOOLS, Spell, SpellSlot } from '@/core/api/models';
+import { MarkdownEditor } from '@/shared/markdown-editor/markdown-editor';
 import { Modal } from '@/shared/modal/modal';
 import { clampExpended, slotDots, toggleSlotDot } from '../spell-slots';
 
@@ -41,7 +42,7 @@ function levelLabel(level: number): string {
 
 @Component({
   selector: 'app-spells-modal',
-  imports: [Modal, ZardButtonComponent, ZardInputDirective],
+  imports: [Modal, ZardButtonComponent, ZardInputDirective, MarkdownEditor],
   templateUrl: './spells-modal.html',
 })
 export class SpellsModal {

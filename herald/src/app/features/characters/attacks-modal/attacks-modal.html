@@ -146,17 +146,18 @@
           />
         </label>
 
-        <label class="flex flex-col gap-1 text-sm">
-          <span class="text-muted-foreground">Description <span class="text-xs">(markdown, shown on hover)</span></span>
-          <textarea
-            z-input
-            rows="3"
+        <!-- A div, not a label: the editor's toolbar buttons are labelable, so a wrapping
+             <label> would bind to the first of them instead of the textarea. -->
+        <div class="flex flex-col gap-1 text-sm">
+          <span class="text-muted-foreground">Description <span class="text-xs">(shown on hover)</span></span>
+          <app-markdown-editor
+            [rows]="3"
             placeholder="Longer detail — abilities, special effects, rules text…"
+            [ariaLabel]="attack.name + ' description'"
             [value]="attack.description"
-            (change)="setText(attack, 'description', $any($event.target).value)"
-            [attr.aria-label]="attack.name + ' description'"
-          ></textarea>
-        </label>
+            (valueChange)="setText(attack, 'description', $event)"
+          />
+        </div>
 
         <div class="flex flex-wrap items-center gap-4 text-sm">
           <button type="button" class="text-muted-foreground hover:underline" (click)="duplicate(attack)">

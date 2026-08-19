@@ -98,9 +98,13 @@
       <ng-template #notesPane>
         <div class="flex flex-col gap-1">
           <label class="text-sm font-medium">Raw notes (Markdown)</label>
-          <app-mention-textarea
+          <!-- No built-in preview: this pane already sits beside (or tabs with) the Preview one. -->
+          <app-markdown-editor
             [rows]="18"
+            [preview]="false"
+            [mentions]="true"
             placeholder="# Session notes&#10;What happened... (type @ to tag a name, place, …)"
+            ariaLabel="Raw notes"
             [entities]="entities()"
             (create)="onCreateEntity($event)"
             formControlName="raw_notes"
@@ -126,18 +130,14 @@
               <span class="text-sm text-muted-foreground">Summarizing…</span>
             }
           </div>
-          @if (summary()) {
-            <div class="rounded-lg border bg-muted/30 p-3">
-              <app-markdown-view [source]="summary()" [entities]="entities()" />
-            </div>
-          }
-          <textarea
-            z-input
-            rows="6"
-            class="font-mono text-sm"
+          <!-- The editor's own Preview toggle renders the summary, so there's no separate view. -->
+          <app-markdown-editor
+            [rows]="6"
+            [entities]="entities()"
             placeholder="Saving regenerates this from your notes — or write one yourself…"
+            ariaLabel="AI summary"
             formControlName="summary"
-          ></textarea>
+          />
           @if (summarizeError()) {
             <p class="text-sm text-destructive">{{ summarizeError() }}</p>
           }

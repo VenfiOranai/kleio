@@ -7,11 +7,11 @@ test.describe('Entities & mentions', () => {
     await openFreshCampaign(page, 'Codex Campaign');
     await newSession(page);
 
-    const textarea = page.locator('app-mention-textarea textarea');
+    const textarea = page.locator('app-markdown-editor textarea');
     await textarea.click();
     // A multi-word name (spaces allowed): the @-typeahead offers a "Create" option.
     await textarea.pressSequentially('We fought @The Balrog');
-    await expect(page.locator('app-mention-textarea ul')).toContainText('The Balrog');
+    await expect(page.locator('app-markdown-editor ul')).toContainText('The Balrog');
     await textarea.press('Enter');
     await expect(textarea).toHaveValue('We fought @[The Balrog]');
 
@@ -20,7 +20,7 @@ test.describe('Entities & mentions', () => {
 
     // Reopening the note shows its content in the Write tab (regression: it loaded empty).
     await page.reload();
-    await expect(page.locator('app-mention-textarea textarea')).toHaveValue('We fought @[The Balrog]');
+    await expect(page.locator('app-markdown-editor textarea')).toHaveValue('We fought @[The Balrog]');
 
     // The preview renders the mention as emphasized text with no '@[' and links to search.
     await page.getByRole('button', { name: 'Preview', exact: true }).click();
@@ -65,7 +65,7 @@ test.describe('Entities & mentions', () => {
     await newSession(page);
 
     // Mention an entity in the notes (which creates it), and save.
-    const textarea = page.locator('app-mention-textarea textarea');
+    const textarea = page.locator('app-markdown-editor textarea');
     await textarea.click();
     await textarea.pressSequentially('Meet @Gandalf');
     await textarea.press('Enter');

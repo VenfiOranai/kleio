@@ -58,10 +58,43 @@
 .markdown em {
   font-style: italic;
 }
+.markdown del {
+  text-decoration: line-through;
+  color: var(--muted-foreground);
+}
 .markdown hr {
   border: 0;
   border-top: 1px solid var(--border);
   margin: 1rem 0;
+}
+/* `display: block` so a wide table scrolls inside the note instead of stretching the pane. */
+.markdown table {
+  display: block;
+  width: max-content;
+  max-width: 100%;
+  overflow-x: auto;
+  border-collapse: collapse;
+  margin: 0.75rem 0;
+  font-size: 0.9375em;
+}
+.markdown th,
+.markdown td {
+  border: 1px solid var(--border);
+  padding: 0.3rem 0.6rem;
+  text-align: left;
+}
+.markdown th {
+  background: var(--muted);
+  font-weight: 600;
+}
+/* GFM task lists: marked emits a disabled checkbox, so drop the bullet beside it. */
+.markdown li:has(> input[type='checkbox']) {
+  list-style: none;
+  margin-left: -1.15rem;
+}
+.markdown input[type='checkbox'] {
+  margin-right: 0.4rem;
+  vertical-align: middle;
 }
 .entity-tooltip {
   position: fixed;

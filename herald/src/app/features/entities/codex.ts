@@ -7,6 +7,7 @@ import { ZardButtonComponent } from '@/components/button/button.component';
 import { ZardInputDirective } from '@/components/input/input.directive';
 import { EntityService } from '@/core/api/entity.service';
 import { Entity, EntityGroup } from '@/core/api/models';
+import { MarkdownEditor } from '@/shared/markdown-editor/markdown-editor';
 
 interface GroupedSection {
   group: EntityGroup;
@@ -21,6 +22,7 @@ interface GroupedSection {
     RouterLink,
     ZardButtonComponent,
     ZardInputDirective,
+    MarkdownEditor,
   ],
   templateUrl: './codex.html',
 })

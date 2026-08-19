@@ -350,3 +350,58 @@ replaced. It was also the one popover with no `max-h`/`overflow` and no clamping
 the other two. `popover.spec.ts` unit-tests the state machine (hover vs. pin precedence, re-pinning,
 click-inside/outside, `opensFor`, unpin), on top of per-section component specs and e2e coverage of
 the equipment + spells popovers.
+
+## Markdown editor (all Markdown inputs)
+Every Markdown field was a bare `<textarea>`: no formatting help, and preview only where a host
+happened to render one. They all now use one component, **`shared/markdown-editor`**
+(`app-markdown-editor`) — session notes and summary, entity descriptions on the Codex,
+equipment/spell/feature/attack descriptions in the character modals, and the character's freeform
+notes.
+
+**Why no package.** Nothing off the shelf fits: the Angular Markdown editors are stale (Material-era,
+none built for Angular 22), and the framework-agnostic ones (EasyMDE, ToastUI) swap the textarea for
+CodeMirror/ProseMirror — which would break the `@[Name]` typeahead (it measures a real textarea's
+caret via `caret-coordinates.ts`), bypass the `marked` + DOMPurify pipeline with our custom mention
+extension, and drag in their own CSS to fight with Tailwind/dark mode. The editor is deliberately
+**not** WYSIWYG: `raw_notes` stays the canonical text the user typed.
+
+**What it is.** A plain textarea, plus:
+- a toolbar in four groups — bold / italic / strikethrough / inline code · H1–H3 · bullet, numbered
+  and task lists + quote · link, table, code block, rule (lucide icons, `mousedown` swallowed so the
+  textarea keeps its selection);
+- Ctrl/Cmd + **B**, **I**, **E**, **K** shortcuts (the tooltip shows `⌘` on Mac);
+- a **Write/Preview** toggle rendering through the existing `app-markdown-view`, so mentions,
+  tooltips and styling are identical to the read-only views. It's labelled "Toggle preview" so it
+  can't be confused with a host's own Preview tab;
+- the `@`-mention typeahead, moved here wholesale from `shared/mention-textarea` (now deleted) and
+  gated behind `[mentions]="true"` — descriptions don't tag entities.
+
+**The transforms are pure.** `markdown-commands.ts` exports `applyCommand(state, command)` over
+`{value, selectionStart, selectionEnd}` — no DOM — so wrapping, unwrapping, list renumbering and
+block insertion are exhaustively unit-tested (23 cases, written with `‸`/`‹…›` markers so the
+expected text and selection read as one line). The fiddly parts it pins down: italic **nests** inside
+bold rather than eating one asterisk (`**x**` → `***x***`); list styles **replace** one another
+instead of stacking, and a task item counts as a task, not a bullet; quotes stack but never double
+up; toggling a prefix off requires *every* non-blank line to have it; blank lines inside a selection
+are left alone; a collapsed caret keeps its distance from the end of its line as prefixes change; and
+tables/rules land **after** the current line so they can't overwrite a selection (the code fence is
+the deliberate exception — it swallows the selection).
+
+**Wiring.** It's a `ControlValueAccessor` (`formControlName`, as in the session form and the sheet)
+and also takes `[value]` + `(valueChange)` for the modals that edit JSONB rows in place, plus
+`(commit)` — the value at blur — for the Codex, where each save is a PATCH. `[preview]="false"`
+turns the toggle off for session notes, which already sit beside (or tab with) a Preview pane; that
+pane's separate summary `markdown-view` was dropped in favour of the editor's own toggle.
+
+Two DOM gotchas are handled in the component: a static `placeholder="…"` in a host template feeds the
+input *and* stays on the host element, so it strips `placeholder`/`arialabel` from itself via host
+bindings (otherwise a placeholder lookup matches twice); and it must not be wrapped in a `<label>`,
+since `<button>` is labelable and the label would bind to the first toolbar button instead of the
+textarea (fixed in the attacks modal and the sheet's notes field).
+
+`markdown-view.css` gained the styles the new buttons can now produce: GFM tables (scrolling inside
+the note rather than stretching the pane), task-list checkboxes, and `<del>`.
+
+E2E updated for the new markup (`app-markdown-editor textarea`), with a new spec covering the toolbar
+end to end: bolding a selection, Ctrl+I nesting into it, a table landing below the line, and the
+summary editor's preview toggle.

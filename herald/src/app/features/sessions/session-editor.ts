@@ -22,8 +22,8 @@ import { Entity, Session } from '@/core/api/models';
 import { SessionService } from '@/core/api/session.service';
 import { Ask } from '@/features/ask/ask';
 import { ConfirmDeleteModal } from '@/shared/confirm-delete-modal/confirm-delete-modal';
+import { MarkdownEditor } from '@/shared/markdown-editor/markdown-editor';
 import { MarkdownView } from '@/shared/markdown-view/markdown-view';
-import { MentionTextarea } from '@/shared/mention-textarea/mention-textarea';
 
 @Component({
   selector: 'app-session-editor',
@@ -34,7 +34,7 @@ import { MentionTextarea } from '@/shared/mention-textarea/mention-textarea';
     ZardButtonComponent,
     ZardInputDirective,
     MarkdownView,
-    MentionTextarea,
+    MarkdownEditor,
     Ask,
     ConfirmDeleteModal,
   ],
@@ -71,11 +71,8 @@ export class SessionEditor {
     summary: [''],
   });
 
-  /** Live-updating sources for the markdown previews. */
+  /** Live-updating source for the notes preview pane (the summary previews inside its editor). */
   protected readonly rawNotes = toSignal(this.form.controls.raw_notes.valueChanges, {
-    initialValue: '',
-  });
-  protected readonly summary = toSignal(this.form.controls.summary.valueChanges, {
     initialValue: '',
   });
 

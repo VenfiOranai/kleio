@@ -156,13 +156,13 @@
               </button>
             </div>
 
-            <textarea
-              z-input
-              rows="2"
-              placeholder="Description (markdown)…"
+            <app-markdown-editor
+              [rows]="3"
+              placeholder="Description…"
+              [ariaLabel]="(feature.name || 'Feature') + ' description'"
               [value]="feature.description"
-              (change)="setText(feature, 'description', $any($event.target).value)"
-            ></textarea>
+              (valueChange)="setText(feature, 'description', $event)"
+            />
           </div>
         }
       </div>
