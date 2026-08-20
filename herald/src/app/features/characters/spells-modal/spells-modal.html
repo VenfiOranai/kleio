@@ -72,7 +72,12 @@
       <span>Spells <strong class="text-foreground">{{ working().length }}</strong></span>
       <span>Prepared <strong class="text-foreground">{{ preparedCount() }}</strong></span>
     </div>
-    <button z-button zSize="sm" class="ml-auto" (click)="addSpell()">+ Add spell</button>
+    <div class="ml-auto flex items-center gap-2">
+      @if (referenceAvailable()) {
+        <button z-button zType="outline" zSize="sm" (click)="browse()">Browse reference</button>
+      }
+      <button z-button zSize="sm" (click)="addSpell()">+ Add spell</button>
+    </div>
   </div>
 
   <div class="mb-4 flex flex-wrap items-center gap-3">
@@ -218,3 +223,6 @@
     </p>
   }
 </app-modal>
+
+<!-- Sibling, not nested: a second native <dialog> stacks in the top layer on its own. -->
+<app-reference-modal (picked)="importSpell($event)" />

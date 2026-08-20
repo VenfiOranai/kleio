@@ -1,4 +1,4 @@
-import { Component, computed, input, output, signal, viewChild } from '@angular/core';
+import { Component, computed, inject, input, output, signal, viewChild } from '@angular/core';
 
 import { ZardButtonComponent } from '@/components/button/button.component';
 import { ZardInputDirective } from '@/components/input/input.directive';
@@ -7,10 +7,13 @@ import {
   Attack,
   AttackAbility,
   EquipmentItem,
+  ReferenceRecord,
   Spell,
 } from '@/core/api/models';
+import { ReferenceService } from '@/core/api/reference.service';
 import { MarkdownEditor } from '@/shared/markdown-editor/markdown-editor';
 import { Modal } from '@/shared/modal/modal';
+import { ReferenceModal } from '../reference-modal/reference-modal';
 
 /** An attack plus a transient client id so `@for` tracking survives in-place edits. */
 interface WorkAttack extends Attack {
@@ -44,7 +47,7 @@ function blankAttack(): Attack {
 
 @Component({
   selector: 'app-attacks-modal',
-  imports: [Modal, ZardButtonComponent, ZardInputDirective, MarkdownEditor],
+  imports: [Modal, ZardButtonComponent, ZardInputDirective, MarkdownEditor, ReferenceModal],
   templateUrl: './attacks-modal.html',
 })
 export class AttacksModal {
@@ -57,6 +60,10 @@ export class AttacksModal {
   readonly attacksChange = output<Attack[]>();
 
   private readonly modal = viewChild.required(Modal);
+  private readonly reference = viewChild.required(ReferenceModal);
+  private readonly referenceService = inject(ReferenceService);
+  /** Hides the Browse button unless a 5etools dataset is mounted (see ReferenceService). */
+  protected readonly referenceAvailable = this.referenceService.available;
 
   protected readonly abilities = ATTACK_ABILITIES;
   protected readonly abilityLabels = ABILITY_LABELS;
@@ -79,6 +86,8 @@ export class AttacksModal {
   });
 
   open(): void {
+    // Lazily resolves whether reference import is available (once per session).
+    this.referenceService.ensureStatus();
     this.working.set(this.attacks().map((a) => ({ ...a, _id: nextId++ })));
     this.search.set('');
     this.modal().open();
@@ -108,6 +117,17 @@ export class AttacksModal {
       ...w,
       { ...blankAttack(), name, ability: 'spellcasting', source: 'spell', _id: nextId++ },
     ]);
+    this.emit();
+  }
+
+  /** Browse the 5etools reference for a weapon; only weapons carry an attack row. */
+  protected browse(): void {
+    this.reference().open('item', { weaponsOnly: true, title: 'Browse weapons' });
+  }
+
+  protected importAttack(record: ReferenceRecord): void {
+    if (!record.attack) return;
+    this.working.update((w) => [...w, { ...record.attack!, _id: nextId++ }]);
     this.emit();
   }
 

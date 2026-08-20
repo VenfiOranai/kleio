@@ -29,6 +29,9 @@
           }
         </select>
       }
+      @if (referenceAvailable()) {
+        <button z-button zType="outline" zSize="sm" (click)="browse()">Browse weapons</button>
+      }
       <button z-button zSize="sm" (click)="addAttack()">+ Add attack</button>
     </div>
   </div>
@@ -175,3 +178,6 @@
     }
   </div>
 </app-modal>
+
+<!-- Sibling, not nested: a second native <dialog> stacks in the top layer on its own. -->
+<app-reference-modal (picked)="importAttack($event)" />

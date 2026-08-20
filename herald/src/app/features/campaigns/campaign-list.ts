@@ -7,6 +7,7 @@ import { ZardCardComponent } from '@/components/card/card.component';
 import { ZardInputDirective } from '@/components/input/input.directive';
 import { CampaignService } from '@/core/api/campaign.service';
 import { Campaign } from '@/core/api/models';
+import { ReferenceDataCard } from '@/features/reference/reference-data-card';
 
 @Component({
   selector: 'app-campaign-list',
@@ -16,6 +17,7 @@ import { Campaign } from '@/core/api/models';
     ZardButtonComponent,
     ZardCardComponent,
     ZardInputDirective,
+    ReferenceDataCard,
   ],
   templateUrl: './campaign-list.html',
 })

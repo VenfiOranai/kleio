@@ -1,0 +1,13 @@
+{
+  "PHB": {
+    "Detect Magic": {
+      "class": [
+        { "name": "Cleric", "source": "PHB" },
+        { "name": "Druid", "source": "PHB" }
+      ],
+      "subclass": [
+        { "class": { "name": "Fighter" }, "subclass": { "name": "Eldritch Knight" } }
+      ]
+    }
+  }
+}

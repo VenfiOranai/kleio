@@ -26,6 +26,20 @@ class Settings(BaseSettings):
     # (see app.services.ai.EMBED_DIM), so change the model here but not the dimension.
     gemini_embed_model: str = "gemini-embedding-001"
 
+    # 5etools reference import (Phase 13). Points at the user's own copy of the 5etools
+    # static JSON — either the repo root or its `data/` directory. **Never bundled**: the
+    # dataset is WotC-copyrighted, so Kleio ships none of it. Unset ⇒ import is disabled
+    # (the /api/reference endpoints return 503) and the sheet works exactly as before.
+    fivetools_data_dir: str = ""
+
+    # Where `POST /api/reference/fetch` downloads a dataset to, when you'd rather not place
+    # the files yourself. Relative paths resolve against the oracle directory. It's only used
+    # when `fivetools_data_dir` is unset — your own copy always wins.
+    fivetools_download_dir: str = "var/fivetools"
+    # Base URL the fetch pulls from. 5etools has no API; these are its static JSON paths, so
+    # this can break when the site reorganizes — point it at a mirror if that happens.
+    fivetools_source_url: str = "https://5e.tools/data"
+
 
 @lru_cache
 def get_settings() -> Settings:

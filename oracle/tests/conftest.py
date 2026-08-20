@@ -15,6 +15,8 @@ os.environ["APP_USERNAME"] = TEST_USERNAME
 os.environ["APP_PASSWORD_HASH"] = hash_password(TEST_PASSWORD)
 os.environ["JWT_SECRET"] = "test-secret-key-not-for-production"
 
+from pathlib import Path  # noqa: E402
+
 import pytest  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
 from sqlalchemy import create_engine, text  # noqa: E402
@@ -45,6 +47,40 @@ def auth_token(client: TestClient, credentials: dict[str, str]) -> str:
     resp = client.post("/api/auth/login", json=credentials)
     assert resp.status_code == 200, resp.text
     return resp.json()["access_token"]
+
+
+# --- 5etools reference fixtures (no DB) --------------------------------------
+
+# A miniature stand-in for a user's 5etools dataset: three spells, a handful of items plus
+# magic variants, two feats and two optional features. Kleio ships no real game data.
+FIVETOOLS_FIXTURE_DIR = Path(__file__).parent / "fixtures" / "fivetools"
+
+
+@pytest.fixture
+def fivetools_data(monkeypatch) -> Path:
+    """Point the reference loader at the fixture dataset (and reset its load-once cache)."""
+    from app.services import fivetools
+
+    monkeypatch.setattr(get_settings(), "fivetools_data_dir", str(FIVETOOLS_FIXTURE_DIR))
+    fivetools.reset_cache()
+    yield FIVETOOLS_FIXTURE_DIR
+    fivetools.reset_cache()
+
+
+@pytest.fixture
+def no_fivetools_data(monkeypatch, tmp_path) -> None:
+    """Explicitly unconfigured: no dataset dir *and* no downloaded one.
+
+    Both matter — the loader falls back to the download dir, which a developer who has used
+    the "Download reference data" button will have populated.
+    """
+    from app.services import fivetools
+
+    monkeypatch.setattr(get_settings(), "fivetools_data_dir", "")
+    monkeypatch.setattr(get_settings(), "fivetools_download_dir", str(tmp_path / "nothing-here"))
+    fivetools.reset_cache()
+    yield
+    fivetools.reset_cache()
 
 
 # --- DB-backed fixtures (require Postgres) -----------------------------------

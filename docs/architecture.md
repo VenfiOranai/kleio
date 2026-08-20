@@ -128,16 +128,26 @@ section-level `notes`. Planned columns/shapes:
   notes, source}`; `character_calc` derives each attack's **to-hit** and **damage string**
   *(feat. 4)*.
 
-**5etools reference import** *(feat. 5)*: `services/fivetools.py` reads the **5etools static
+**5etools reference import** *(feat. 5)*: `services/fivetools/` reads the **5etools static
 JSON** (5etools has **no API**) from a configured `FIVETOOLS_DATA_DIR` — spells
-(`spells/index.json` → `spells-<src>.json`), classes (`class/class-<name>.json`), items
-(`items.json` + `items-base.json` + `magicvariants.json`), `races`/`backgrounds`/`feats`/
-`optionalfeatures` — builds a searchable in-memory index, and a **pure** renderer converts the
-nested `entries` arrays + `{@tag name|source|display}` markup into Markdown while normalizing
-each object into our item/spell/feature schema. Auto-registered `api/routers/reference.py`:
-Stage 1 — `GET /api/reference/search?type=&q=` (autocomplete) + `/api/reference/{type}/{id}`
-(full record) fill a structured entry; Stage 2 — `POST /api/characters/{id}/populate` parses the
+(`spells/index.json` → `spells-<src>.json` + `spells/sources.json`), items (`items.json` +
+`items-base.json` + `magicvariants.json`), `feats`/`optionalfeatures`, and (Stage 2) classes
+(`class/class-<name>.json`), `races`/`backgrounds`. `index.py` builds a searchable in-memory
+index **once per process** (`lru_cache` on the resolved directory, warmed at startup from the
+app lifespan) holding raw records plus cheap filter facets; the **pure** `render.py` converts
+nested `entries` arrays + `{@tag name|source|display}` markup into Markdown and `normalize.py`
+maps each object onto our item/spell/feature/attack schema (also doing 5etools' own client-side
+jobs: `_copy` inheritance and magic-variant × base-item assembly). Rendering is deferred to the
+per-record endpoint, so loading stays cheap. Auto-registered `api/routers/reference.py`:
+Stage 1 — `GET /api/reference/status` (availability + counts, always 200), `/facets?type=`,
+`/search?type=&q=` (sort/direction/paging + per-type filters) and `/{type}/{id}` (full record)
+fill a structured entry; Stage 2 — `POST /api/characters/{id}/populate` parses the
 class JSON for level-appropriate features / proficiencies / slots (reviewed before applying).
+`GET|POST /api/reference/fetch` drives an optional **background download** (`fetch.py`) of a
+dataset from `FIVETOOLS_SOURCE_URL` into `FIVETOOLS_DOWNLOAD_DIR` — the campaigns page's
+"Download reference data" button — so the feature can be set up without server access. It is
+never run at startup (a third-party dependency that should fail loudly once, not per boot) and
+is refused when `FIVETOOLS_DATA_DIR` is set, since the index would ignore what it wrote.
 **The dataset is user-supplied, never bundled**: it's verbatim WotC-copyrighted content (not
 SRD/OGL — the 5etools mirror was DMCA'd in 2024), so Kleio ships no game data; the user mounts
 their own copy for personal single-user use, and import is disabled (503) when the dir is unset.
@@ -219,15 +229,18 @@ oracle/
         entities.py         # entities + entity-groups CRUD (auto-registered)
         ai.py               # POST /api/sessions/{id}/summarize
         ask.py              # POST /api/campaigns/{id}/ask  (RAG Q&A)
-        reference.py        # (planned Ph13/14) 5etools autocomplete/import + populate-from-class
+        reference.py        # 5etools browse/import (Ph13); populate-from-class planned (Ph14)
     services/
       character_calc.py     # PURE derived-stat math (unit-tested)
       search.py             # Postgres FTS query builder
       entities.py           # PURE extract_mentions() + save-time backfill/upsert
       ai.py                 # Gemini client: summarize, embeddings, RAG answer
       rag.py                # PURE chunk_text() + index/retrieve/answer orchestration
-      fivetools.py          # (planned Ph13/14) 5etools static-JSON loader + PURE entries/@tag
-                            #   → Markdown renderer + schema normalizer (no API; data mounted)
+      fivetools/            # 5etools reference: index.py (load-once static-JSON loader — the
+                            #   only IO) + PURE render.py (entries/@tag → Markdown) and
+                            #   normalize.py (→ our schemas, magic-variant assembly), plus
+                            #   fetch.py (optional background download of a dataset).
+                            #   No API; the dataset is user-mounted or fetched. Ph14 extends it.
   alembic/                  # migrations
   tests/
     unit/                   # character_calc, security — no DB
@@ -341,10 +354,12 @@ herald/src/app/
   `shared/modal` component — a **native `<dialog>`** (focus-trap/Esc/backdrop for free, **no CDK
   Overlay**; Zard's `dialog` was rejected because it pulls in CDK Overlay/Portal) — with
   grouped/collapsible entries,
-  add/edit/remove, in-modal search, and quantity/use/slot trackers. Structured-entry forms get
-  a **5etools name autocomplete** (`/api/reference/search`, backed by a user-mounted 5etools JSON
-  dataset) that imports full data; a "Populate from class" action reviews level-appropriate
-  suggestions before applying.
+  add/edit/remove, in-modal search, and quantity/use/slot trackers. Each of those modals also has a
+  **Browse** button beside its *+ Add*, opening one shared **5etools reference browser**
+  (`characters/reference-modal` → `/api/reference/*`, backed by a user-mounted dataset) with
+  search, per-type filters/sorts and expandable detail; picking a result imports the full record
+  as an ordinary editable entry. A "Populate from class" action (Ph14) will review
+  level-appropriate suggestions before applying.
 - **E2E:** Playwright covers login → create campaign → add session → add character (verify a
   derived stat) → global search → split-view collapse/expand. Entities: type `@` in a note →
   dropdown → *Create* a new entity → token inserted → preview shows the name in bold+italic with

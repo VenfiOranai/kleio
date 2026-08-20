@@ -1,0 +1,50 @@
+{
+  "item": [
+    {
+      "name": "Potion of Healing",
+      "source": "DMG",
+      "type": "P",
+      "rarity": "common",
+      "value": 5000,
+      "weight": 0.5,
+      "entries": ["You regain {@dice 2d4 + 2} hit points when you drink this potion."]
+    },
+    {
+      "name": "Potion of Greater Healing",
+      "source": "DMG",
+      "_copy": { "name": "Potion of Healing", "source": "DMG" },
+      "rarity": "uncommon",
+      "value": 15000
+    },
+    {
+      "name": "Staff of Fire",
+      "source": "DMG",
+      "type": "ST",
+      "rarity": "very rare",
+      "reqAttune": "by a druid, sorcerer, warlock, or wizard",
+      "weight": 4,
+      "charges": 10,
+      "entries": [
+        "You have resistance to fire damage while you hold this staff.",
+        {
+          "type": "list",
+          "items": [
+            "{@spell burning hands} (1 charge)",
+            { "type": "item", "name": "Wall of Fire", "entry": "4 charges" }
+          ]
+        }
+      ]
+    }
+  ],
+  "itemGroup": [
+    {
+      "name": "Bag of Tricks",
+      "source": "DMG",
+      "type": "W",
+      "rarity": "uncommon",
+      "reqAttune": true,
+      "weight": 0.5,
+      "entries": ["This ordinary bag appears empty."]
+    }
+  ]
+}

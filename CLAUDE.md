@@ -53,6 +53,23 @@ docs/      architecture.md, roadmap.md  (source of truth for design)
   `entities.name` is the stable key). `@[Name]` renders as bold+italic with the `@` stripped,
   linking to search. Parsing lives in one **pure** `extract_mentions()` (like `character_calc`);
   entities/groups are first-class tables (user-defined groups).
+- **5etools reference data is user-supplied and loaded once.** `services/fivetools/` reads the
+  5etools JSON from `FIVETOOLS_DATA_DIR` (repo root *or* its `data/` dir — both are accepted),
+  else from `FIVETOOLS_DOWNLOAD_DIR` (`oracle/var/fivetools`, gitignored) where the optional
+  **download** puts it, and builds one in-memory index, cached for the process (`index._build`
+  is `lru_cache`d; a daemon thread warms it from `main.lifespan`). **Kleio ships no game data**
+  — it's WotC-copyrighted, so nothing is bundled or committed; with neither source present
+  `/api/reference/status` answers `available: false`, the data routes 503, and herald hides its
+  Browse buttons. The download (`fetch.py` → `POST /api/reference/fetch`, or
+  `scripts/fetch_fivetools.py`) is a **background job, never startup** — it walks undocumented
+  static paths on a third-party host, so it must fail loudly once, not silently on every boot;
+  it's refused when `FIVETOOLS_DATA_DIR` is set, since the index would ignore what it wrote.
+  Records
+  are indexed **raw** with cheap facets; Markdown rendering happens per record on
+  `GET /api/reference/{type}/{id}`. The two transform modules are **pure** (like
+  `character_calc`): `render.py` (`{@tag}` + `entries` → Markdown) and `normalize.py` (5etools
+  objects → our `Spell`/`EquipmentItem`/`Feature`/`Attack`, plus `_copy` and magic-variant
+  assembly). Only `index.py` touches the filesystem.
 - **Routers auto-register.** Don't edit `main.py` to add endpoints — drop a module under
   `oracle/app/api/routers/` that defines an `APIRouter` named `router`; `register_routers()`
   (in `app/utils/router_registry.py`) discovers and mounts it under `/api` automatically.
@@ -102,6 +119,8 @@ Oracle uses a local venv at `oracle/.venv` (Windows paths shown; use `.venv/bin/
 - Oracle tests: `cd oracle && ./.venv/Scripts/python -m pytest`
 - Oracle lint: `cd oracle && ./.venv/Scripts/python -m ruff check .`
 - Oracle dev server: `cd oracle && ./.venv/Scripts/python run.py`
+- Download 5etools reference data (same job as the campaigns-page button, for a headless box):
+  `cd oracle && ./.venv/Scripts/python scripts/fetch_fivetools.py [DEST]`
 - Herald build: `cd herald && npx ng build`
 - Herald e2e: `cd herald && npx playwright test` — Playwright starts both the oracle (system/venv
   Python, overridable via `ORACLE_PYTHON`) and herald (`ng serve`) itself, so you only need
@@ -161,6 +180,15 @@ one-liners below are the map.
 - **Markdown editor** — every Markdown input is now `shared/markdown-editor` (toolbar + shortcuts +
   Write/Preview toggle) instead of a bare textarea; it absorbed `shared/mention-textarea`, which is
   gone. See the convention above.
+- **Phase 13 — 5etools reference import.** `services/fivetools/` + `api/routers/reference.py`
+  (`status` / `facets` / `search` / `{type}/{id}` / `fetch`) expose spells, items (base + magic +
+  assembled variants) and features (feats + optional features) from a dataset the user either
+  mounts or downloads with the campaigns page's **Download reference data** button
+  (`features/reference/reference-data-card`, polling the job). Herald browses
+  them through **one** modal, `characters/reference-modal` — opened by a **Browse** button beside
+  the *+ Add* button in each section modal (equipment, spells, features, and attacks, which opens
+  it weapons-only) — with search, per-type filters/sorts, expandable detail, and multi-add. Picking
+  a result imports the full record into the entry, still fully editable.
 
-**Next up:** Phase 13/14 (5etools import), or Phase 6 (polish/hardening, backups) — see
-`docs/roadmap.md`.
+**Next up:** Phase 14 (populate from class/subclass/level), or Phase 6 (polish/hardening, backups)
+— see `docs/roadmap.md`.

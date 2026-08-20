@@ -42,6 +42,10 @@ export default defineConfig({
         // Force AI off so /summarize deterministically returns a 503 (never calls Gemini),
         // regardless of any key in a local oracle/.env. The e2e asserts the graceful error.
         GEMINI_API_KEY: '',
+        // Reference import runs against the miniature 5etools stand-in in the oracle's test
+        // fixtures (Kleio ships no real game data), so reference.spec.ts has something to
+        // browse. Path is relative to this webServer's cwd (../oracle).
+        FIVETOOLS_DATA_DIR: 'tests/fixtures/fivetools',
         DATABASE_URL:
           process.env.DATABASE_URL ?? 'postgresql+psycopg://kleio:kleio@localhost:5432/kleio',
       },

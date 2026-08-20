@@ -7,6 +7,9 @@
 !.venv.example
 secrets/
 
+# Downloaded 5etools reference data (user-supplied game content — never committed).
+oracle/var/
+
 # ---- Python (oracle) ----
 __pycache__/
 *.py[cod]

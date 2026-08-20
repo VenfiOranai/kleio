@@ -1,0 +1,81 @@
+{
+  "spell": [
+    {
+      "name": "Fire Bolt",
+      "source": "PHB",
+      "level": 0,
+      "school": "V",
+      "time": [{ "number": 1, "unit": "action" }],
+      "range": { "type": "point", "distance": { "type": "feet", "amount": 120 } },
+      "components": { "v": true, "s": true },
+      "duration": [{ "type": "instant" }],
+      "classes": {
+        "fromClassList": [
+          { "name": "Sorcerer", "source": "PHB" },
+          { "name": "Wizard", "source": "PHB" }
+        ]
+      },
+      "entries": [
+        "You hurl a mote of fire at a creature or object within range. On a hit, the target takes {@damage 1d10} fire damage."
+      ]
+    },
+    {
+      "name": "Fireball",
+      "source": "PHB",
+      "level": 3,
+      "school": "V",
+      "time": [{ "number": 1, "unit": "action" }],
+      "range": { "type": "point", "distance": { "type": "feet", "amount": 150 } },
+      "components": { "v": true, "s": true, "m": "a tiny ball of bat guano and sulfur" },
+      "duration": [{ "type": "instant" }],
+      "classes": {
+        "fromClassList": [
+          { "name": "Sorcerer", "source": "PHB" },
+          { "name": "Wizard", "source": "PHB" }
+        ]
+      },
+      "entries": [
+        "Each creature in a 20-foot-radius sphere must make a Dexterity saving throw against your {@dc 15}, taking {@damage 8d6} fire damage on a failed save.",
+        {
+          "type": "entries",
+          "name": "Ignition",
+          "entries": ["The fire spreads around corners and ignites {@i flammable objects}."]
+        }
+      ],
+      "entriesHigherLevel": [
+        {
+          "type": "entries",
+          "name": "At Higher Levels",
+          "entries": [
+            "When you cast this spell using a slot of 4th level or higher, the damage increases by {@scaledamage 8d6|3-9|1d6} for each slot level above 3rd."
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Detect Magic",
+      "source": "PHB",
+      "level": 1,
+      "school": "D",
+      "meta": { "ritual": true },
+      "time": [{ "number": 1, "unit": "action" }],
+      "range": { "type": "sphere", "distance": { "type": "feet", "amount": 30 } },
+      "components": { "v": true, "s": true },
+      "duration": [
+        { "type": "timed", "duration": { "type": "minute", "amount": 10 }, "concentration": true }
+      ],
+      "entries": [
+        "For the duration, you sense the presence of magic within 30 feet of you.",
+        {
+          "type": "table",
+          "caption": "Magic Auras",
+          "colLabels": ["{@dice d6}", "School"],
+          "rows": [
+            [{ "type": "cell", "roll": { "min": 1, "max": 3 } }, "Abjuration"],
+            [{ "type": "cell", "roll": { "exact": 6 } }, "Evocation"]
+          ]
+        }
+      ]
+    }
+  ]
+}
