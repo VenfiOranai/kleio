@@ -1,11 +1,15 @@
 """Unit tests for the PURE 5etools → Kleio normalizers, against the fixture dataset."""
 
 import json
+from pathlib import Path
 
 import pytest
 
 from app.services.fivetools import normalize
-from tests.conftest import FIVETOOLS_FIXTURE_DIR
+
+# Same miniature dataset conftest's `fivetools_data` fixture points the loader at; resolved
+# here rather than imported, since `tests` isn't an importable package under a bare `pytest`.
+FIVETOOLS_FIXTURE_DIR = Path(__file__).resolve().parents[1] / "fixtures" / "fivetools"
 
 
 def _load(*parts: str) -> dict:
