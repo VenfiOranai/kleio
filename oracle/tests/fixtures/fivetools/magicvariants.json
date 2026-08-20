@@ -1,0 +1,30 @@
+{
+  "magicvariant": [
+    {
+      "name": "+1 Weapon",
+      "type": "GV",
+      "requires": [{ "weapon": true }],
+      "excludes": { "net": true },
+      "inherits": {
+        "namePrefix": "+1 ",
+        "source": "DMG",
+        "rarity": "uncommon",
+        "bonusWeapon": "+1",
+        "entries": [
+          "You have a {=bonusWeapon} bonus to attack and damage rolls made with this magic weapon."
+        ]
+      }
+    },
+    {
+      "name": "Adamantine Armor",
+      "type": "GV",
+      "requires": [{ "type": "HA" }, { "type": "MA" }],
+      "inherits": {
+        "namePrefix": "Adamantine ",
+        "source": "DMG",
+        "rarity": "uncommon",
+        "entries": ["This suit of {=baseName/l} is reinforced with adamantine."]
+      }
+    }
+  ]
+}

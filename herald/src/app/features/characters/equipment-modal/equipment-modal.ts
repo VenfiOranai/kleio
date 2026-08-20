@@ -1,10 +1,12 @@
-import { Component, computed, input, output, signal, viewChild } from '@angular/core';
+import { Component, computed, inject, input, output, signal, viewChild } from '@angular/core';
 
 import { ZardButtonComponent } from '@/components/button/button.component';
 import { ZardInputDirective } from '@/components/input/input.directive';
-import { EquipmentItem } from '@/core/api/models';
+import { EquipmentItem, ReferenceRecord } from '@/core/api/models';
+import { ReferenceService } from '@/core/api/reference.service';
 import { MarkdownEditor } from '@/shared/markdown-editor/markdown-editor';
 import { Modal } from '@/shared/modal/modal';
+import { ReferenceModal } from '../reference-modal/reference-modal';
 
 /** Display label for items left without a category (their stored category stays ''). */
 const UNCATEGORIZED = 'Uncategorized';
@@ -30,7 +32,7 @@ function blankItem(): EquipmentItem {
 
 @Component({
   selector: 'app-equipment-modal',
-  imports: [Modal, ZardButtonComponent, ZardInputDirective, MarkdownEditor],
+  imports: [Modal, ZardButtonComponent, ZardInputDirective, MarkdownEditor, ReferenceModal],
   templateUrl: './equipment-modal.html',
 })
 export class EquipmentModal {
@@ -40,6 +42,10 @@ export class EquipmentModal {
   readonly itemsChange = output<EquipmentItem[]>();
 
   private readonly modal = viewChild.required(Modal);
+  private readonly reference = viewChild.required(ReferenceModal);
+  private readonly referenceService = inject(ReferenceService);
+  /** Hides the Browse button unless a 5etools dataset is mounted (see ReferenceService). */
+  protected readonly referenceAvailable = this.referenceService.available;
 
   protected readonly working = signal<WorkItem[]>([]);
   protected readonly search = signal('');
@@ -84,6 +90,8 @@ export class EquipmentModal {
   });
 
   open(): void {
+    // Lazily resolves whether reference import is available (once per session).
+    this.referenceService.ensureStatus();
     this.working.set(this.items().map((i) => ({ ...i, _id: nextId++ })));
     this.search.set('');
     this.equippedOnly.set(false);
@@ -105,6 +113,17 @@ export class EquipmentModal {
 
   protected addItem(): void {
     this.working.update((w) => [...w, { ...blankItem(), _id: nextId++ }]);
+    this.emit();
+  }
+
+  /** Browse the 5etools reference and import full items — still editable afterwards. */
+  protected browse(): void {
+    this.reference().open('item');
+  }
+
+  protected importItem(record: ReferenceRecord): void {
+    if (!record.item) return;
+    this.working.update((w) => [...w, { ...record.item!, _id: nextId++ }]);
     this.emit();
   }
 

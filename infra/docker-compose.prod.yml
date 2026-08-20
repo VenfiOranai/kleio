@@ -33,6 +33,14 @@ services:
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.5-flash}
       GEMINI_EMBED_MODEL: ${GEMINI_EMBED_MODEL:-gemini-embedding-001}
+      # 5etools reference import (Phase 13). Kleio bundles no game data: either press
+      # "Download reference data" on the campaigns page (it saves into the fivetools volume
+      # below and survives redeploys), or set this to your own mounted copy — which wins over
+      # a download and hides the button.
+      # FIVETOOLS_DATA_DIR: /data/5etools
+    volumes:
+      - fivetools:/app/var
+      # - ${FIVETOOLS_DATA_DIR}:/data/5etools:ro
     depends_on:
       db:
         condition: service_healthy
@@ -48,3 +56,4 @@ services:
 
 volumes:
   pgdata:
+  fivetools:

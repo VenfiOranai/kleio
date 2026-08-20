@@ -405,3 +405,103 @@ the note rather than stretching the pane), task-list checkboxes, and `<del>`.
 E2E updated for the new markup (`app-markdown-editor textarea`), with a new spec covering the toolbar
 end to end: bolding a selection, Ctrl+I nesting into it, a table landing below the line, and the
 summary editor's preview toggle.
+
+## Phase 13 — 5etools reference import (browse + import)
+Structured entries no longer have to be typed from the book. Each section modal gained a **Browse**
+button that opens the reference index and imports a full, still-editable entry.
+
+**The dataset is yours, not ours.** 5etools has no API and its JSON is verbatim WotC-copyrighted
+content, so Kleio bundles and commits **none** of it. Two ways to have one, and the sheet works
+without either: point `FIVETOOLS_DATA_DIR` at your own copy (the repo root or its `data/` dir — both
+are accepted; in Docker, mount it read-only), or press **Download reference data** on the campaigns
+page. With neither, the whole feature is invisible: `GET /api/reference/status` answers
+`available: false`, the data routes return 503, and herald hides every Browse button. Tests run
+against a miniature stand-in dataset in `oracle/tests/fixtures/fivetools` (three spells, six base
+items, three magic items, two variants, two feats, two optional features).
+
+**The download** (`fetch.py`, `POST /api/reference/fetch`, mirrored by
+`scripts/fetch_fivetools.py` for a headless box) walks `spells/index.json` → the per-source spell
+files, plus the item/feat files, from `FIVETOOLS_SOURCE_URL` (default `https://5e.tools/data`) into
+`FIVETOOLS_DOWNLOAD_DIR` (`oracle/var/fivetools`, gitignored; a `fivetools` volume in compose so it
+survives redeploys). It is a **background job, deliberately not part of startup**: it depends on a
+third party over undocumented paths, so it should fail loudly once where you can see it rather than
+re-downloading — and silently failing — on every boot. Each file is validated as JSON before being
+saved (a site that 200s an HTML shell for unknown paths would otherwise poison the dataset) and
+written via a `.part` temp file; optional files absent from older datasets are skipped, a missing
+*required* one fails the job. Finishing invalidates the load-once index so the new data is picked up
+without a restart. `POST` is refused with a 409 while one is running, and when `FIVETOOLS_DATA_DIR`
+is set — downloading then would write files the index would never read. The dest is server-side
+config only; the client never names a path.
+
+**Herald's setup card** (`features/reference/reference-data-card`, on the campaigns page) shows what's
+loaded ("936 spells · 9,524 items · 489 feats & features"), offers the download, polls the job every
+1.5s with a progress bar, and refreshes the app's reference status when it lands. A download already
+running when the page loads is picked back up. When `FIVETOOLS_DATA_DIR` is set it explains that
+instead of offering a button.
+
+**Loaded once, not per request.** `services/fivetools/index.py` parses `spells/index.json` →
+`spells-<src>.json` (+ the newer `spells/sources.json` for the spell→class mapping), `items.json` +
+`items-base.json` + `magicvariants.json`, `feats.json` and `optionalfeatures.json` into one in-memory
+index, cached for the process (`lru_cache` on the resolved directory, behind a lock). `main.lifespan`
+warms it in a daemon thread, so startup stays instant and the first Browse doesn't pay the parse.
+Entries are stored **raw** alongside cheap facets (level/school/classes, category/rarity/value/weight,
+kind…); the expensive part — rendering `entries` into Markdown — happens per record when one is
+opened or imported.
+
+**Two pure transform modules**, split from the loader exactly the way `character_calc` is split from
+its routers, and unit-tested against JSON fixtures:
+- `render.py` resolves `{@tag}` markup (`{@damage 1d10}` → `1d10`, `{@spell fireball|phb|a fireball}`
+  → `a fireball`, `{@dc 15}` → `DC 15`, `{@i x}` → `*x*`, nested tags innermost-first, unknown tags
+  degrade to their first argument) and renders nested `entries` arrays — named entries, lists,
+  tables, quotes/insets — as Markdown.
+- `normalize.py` maps a 5etools object onto our own schemas: spells (school codes, casting time,
+  range incl. shaped areas, components, duration, "At Higher Levels" unwrapped from its heading),
+  items (bucketed into the sheet's preset categories, description = italic type/rarity header +
+  bulleted stat line + prose), feats/optional features (with a readable *Prerequisite:* line), and a
+  ready-to-add **Attack** row for weapons (finesse/ranged ⇒ DEX, damage dice/type, `+N` from a magic
+  variant). It also does the two assembly jobs 5etools leaves to the client: `_copy` inheritance, and
+  crossing `magicvariants.json` with matching base items (`requires`/`excludes`, name prefixes, and
+  `{=field}` templating) so "+1 Longsword" is a thing you can search for.
+
+**API** (`api/routers/reference.py`, auto-registered, DB-free, auth-protected): `GET /status` (always
+200 — "unavailable" is an answer, not an error), `GET /facets?type=` (the filter values the loaded
+dataset actually holds, plus its valid sorts), `GET /search?type=&q=&sort=&direction=&limit=&offset=`
+plus per-type filters (`level` repeatable, `school`, `class`, `ritual`, `concentration`, `category`,
+`rarity`, `attunement`, `weapons_only`, `kind`), and `GET /{type}/{id}` for the full normalized
+record. Default sort is **relevance** — prefix matches, then word-start matches, then the rest,
+alphabetical within each — because "fire" should find *Fire Bolt* before *Wall of Fire*.
+
+**One modal for every section.** `characters/reference-modal` is opened as `open(type, options)` by
+whichever section wants it: equipment (`item`), spells (`spell`), features (`feature`), and attacks
+(`item` + `weaponsOnly`, titled "Browse weapons"). It renders the search box, the filters that make
+sense for that type, a sort select + direction toggle, and rows of *name · subtitle · source*;
+clicking a row expands the full record underneath (fetched once, then cached, and shown through
+`app-markdown-view`), and **Add** imports it and stays open so several picks can be made in one
+visit. The host maps the emitted record into its own list — `record.spell` / `.item` / `.feature` /
+`.attack` — after which it's an ordinary, editable entry with no link back to the reference data.
+
+Two wiring notes: the browser is a **sibling** of each section's `<app-modal>`, not nested inside it
+(two native `<dialog>`s stack in the top layer on their own, and Esc closes the top one); and
+`ReferenceService.ensureStatus()` is called from each section modal's `open()` rather than the
+service constructor, so a sheet that's only *viewed* costs no reference request.
+
+Coverage: 100 oracle unit tests (renderer tags/entries, normalizers, variant assembly, index
+loading/search/sort/facets, and the downloader against a fake site — no test touches the network) +
+22 integration tests for the endpoints; a 7-case herald spec driving
+the modal (query building, weapons-only, detail caching, add/emit, paging); and `e2e/reference.spec.ts`
+running the real flow against the fixture dataset — Playwright starts the oracle with
+`FIVETOOLS_DATA_DIR=tests/fixtures/fivetools` — the campaigns-page card reporting what's loaded, then
+browsing, filtering, expanding and importing a spell into the spell list, and a weapon into the
+attacks panel with its to-hit derived on the sheet.
+
+**Checked against a real dataset.** A live download (24 files, 4.5 MB) indexes in 0.26s to **936
+spells, 9,524 items** (magic-variant assembly doing most of that) **and 489 feats/optional features**;
+normalizing every one of those records produced no errors, no unresolved `{@tag}`/`{=field}` markup,
+and only 5 items with an empty description. It did surface one bug, now fixed: 5etools puts inline
+markup in *scalar* fields too (a Luck Blade's `"charges": "{@dice 1d4 - 1}"`), which the item stat
+line printed raw — scalars now go through `normalize.scalar()`.
+
+Two deliberate simplifications remain: `_copy` inheritance ignores 5etools' `_mod` patch language,
+and Phase 13 indexes feats + optional features but not race/background traits (those arrive with the
+class parsing in Phase 14). Note also that a specific magic variant inherits its base item's `value`
+(a Flame Tongue Longsword reads "15 gp"), which is what 5etools itself shows.

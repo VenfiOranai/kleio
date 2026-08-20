@@ -1,11 +1,19 @@
-import { Component, computed, input, output, signal, viewChild } from '@angular/core';
+import { Component, computed, inject, input, output, signal, viewChild } from '@angular/core';
 
 import { ZardButtonComponent } from '@/components/button/button.component';
 import { ZardInputDirective } from '@/components/input/input.directive';
-import { FEATURE_SOURCES, Feature, FeatureSource, Recharge } from '@/core/api/models';
+import {
+  FEATURE_SOURCES,
+  Feature,
+  FeatureSource,
+  Recharge,
+  ReferenceRecord,
+} from '@/core/api/models';
+import { ReferenceService } from '@/core/api/reference.service';
 import { MarkdownEditor } from '@/shared/markdown-editor/markdown-editor';
 import { Modal } from '@/shared/modal/modal';
 import { groupFeaturesBySource, toggleUseDot, useDots } from '../features';
+import { ReferenceModal } from '../reference-modal/reference-modal';
 
 /** A feature plus a transient client id so `@for` tracking survives in-place edits. */
 interface WorkFeature extends Feature {
@@ -22,7 +30,7 @@ function blankFeature(source: FeatureSource = 'other'): Feature {
 
 @Component({
   selector: 'app-features-modal',
-  imports: [Modal, ZardButtonComponent, ZardInputDirective, MarkdownEditor],
+  imports: [Modal, ZardButtonComponent, ZardInputDirective, MarkdownEditor, ReferenceModal],
   templateUrl: './features-modal.html',
 })
 export class FeaturesModal {
@@ -32,6 +40,10 @@ export class FeaturesModal {
   readonly featuresChange = output<Feature[]>();
 
   private readonly modal = viewChild.required(Modal);
+  private readonly reference = viewChild.required(ReferenceModal);
+  private readonly referenceService = inject(ReferenceService);
+  /** Hides the Browse button unless a 5etools dataset is mounted (see ReferenceService). */
+  protected readonly referenceAvailable = this.referenceService.available;
 
   protected readonly sources = FEATURE_SOURCES;
   protected readonly recharges = RECHARGES;
@@ -60,6 +72,8 @@ export class FeaturesModal {
   });
 
   open(): void {
+    // Lazily resolves whether reference import is available (once per session).
+    this.referenceService.ensureStatus();
     this.working.set(this.features().map((f) => ({ ...f, _id: nextId++ })));
     this.search.set('');
     this.sourceFilter.set('');
@@ -72,6 +86,17 @@ export class FeaturesModal {
   protected addFeature(): void {
     const source = this.sourceFilter() || 'other';
     this.working.update((w) => [...w, { ...blankFeature(source), _id: nextId++ }]);
+    this.emit();
+  }
+
+  /** Browse the 5etools reference (feats + optional features) and import full entries. */
+  protected browse(): void {
+    this.reference().open('feature');
+  }
+
+  protected importFeature(record: ReferenceRecord): void {
+    if (!record.feature) return;
+    this.working.update((w) => [...w, { ...record.feature!, _id: nextId++ }]);
     this.emit();
   }
 

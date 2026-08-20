@@ -1,10 +1,12 @@
-import { Component, computed, input, output, signal, viewChild } from '@angular/core';
+import { Component, computed, inject, input, output, signal, viewChild } from '@angular/core';
 
 import { ZardButtonComponent } from '@/components/button/button.component';
 import { ZardInputDirective } from '@/components/input/input.directive';
-import { SPELL_SCHOOLS, Spell, SpellSlot } from '@/core/api/models';
+import { ReferenceRecord, SPELL_SCHOOLS, Spell, SpellSlot } from '@/core/api/models';
+import { ReferenceService } from '@/core/api/reference.service';
 import { MarkdownEditor } from '@/shared/markdown-editor/markdown-editor';
 import { Modal } from '@/shared/modal/modal';
+import { ReferenceModal } from '../reference-modal/reference-modal';
 import { clampExpended, slotDots, toggleSlotDot } from '../spell-slots';
 
 /** A spell plus a transient client id so `@for` tracking survives in-place edits. */
@@ -42,7 +44,7 @@ function levelLabel(level: number): string {
 
 @Component({
   selector: 'app-spells-modal',
-  imports: [Modal, ZardButtonComponent, ZardInputDirective, MarkdownEditor],
+  imports: [Modal, ZardButtonComponent, ZardInputDirective, MarkdownEditor, ReferenceModal],
   templateUrl: './spells-modal.html',
 })
 export class SpellsModal {
@@ -59,6 +61,10 @@ export class SpellsModal {
   readonly spellSlotsChange = output<SpellSlot[]>();
 
   private readonly modal = viewChild.required(Modal);
+  private readonly reference = viewChild.required(ReferenceModal);
+  private readonly referenceService = inject(ReferenceService);
+  /** Hides the Browse button unless a 5etools dataset is mounted (see ReferenceService). */
+  protected readonly referenceAvailable = this.referenceService.available;
 
   protected readonly schools = SPELL_SCHOOLS;
   protected readonly levels = SPELL_LEVELS;
@@ -109,6 +115,8 @@ export class SpellsModal {
   });
 
   open(): void {
+    // Lazily resolves whether reference import is available (once per session).
+    this.referenceService.ensureStatus();
     this.working.set(this.spells().map((s) => ({ ...s, _id: nextId++ })));
     this.slots.set(
       SLOT_LEVELS.map((level) => {
@@ -128,6 +136,17 @@ export class SpellsModal {
   protected addSpell(): void {
     const level = this.levelFilter() >= 0 ? this.levelFilter() : 0;
     this.working.update((w) => [...w, { ...blankSpell(level), _id: nextId++ }]);
+    this.emitSpells();
+  }
+
+  /** Browse the 5etools reference and import full spells — still editable afterwards. */
+  protected browse(): void {
+    this.reference().open('spell');
+  }
+
+  protected importSpell(record: ReferenceRecord): void {
+    if (!record.spell) return;
+    this.working.update((w) => [...w, { ...record.spell!, _id: nextId++ }]);
     this.emitSpells();
   }
 

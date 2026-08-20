@@ -24,13 +24,23 @@ services:
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     environment:
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-kleio}:${POSTGRES_PASSWORD:-kleio}@db:5432/${POSTGRES_DB:-kleio}
+      # 5etools reference import (Phase 13) is off unless you mount your own dataset —
+      # uncomment this and the volume below, pointing FIVETOOLS_DATA_DIR at your copy.
+      # FIVETOOLS_DATA_DIR: /data/5etools
     ports:
       - "8000:8000"
     volumes:
       - ../oracle/app:/app/app
+      # Keeps a downloaded 5etools dataset ("Download reference data") across container
+      # rebuilds — it lands in /app/var by default.
+      - fivetools:/app/var
+      # Alternatively, your own copy of the 5etools static JSON, read-only (uncomment both
+      # this and FIVETOOLS_DATA_DIR above). Kleio bundles no game data.
+      # - ${FIVETOOLS_DATA_DIR}:/data/5etools:ro
     depends_on:
       db:
         condition: service_healthy
 
 volumes:
   pgdata:
+  fivetools:

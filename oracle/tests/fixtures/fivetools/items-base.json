@@ -1,0 +1,118 @@
+{
+  "itemProperty": [
+    {
+      "abbreviation": "F",
+      "source": "PHB",
+      "entries": [{ "type": "entries", "name": "Finesse", "entries": ["..."] }]
+    },
+    {
+      "abbreviation": "L",
+      "source": "PHB",
+      "entries": [{ "type": "entries", "name": "Light", "entries": ["..."] }]
+    },
+    {
+      "abbreviation": "T",
+      "source": "PHB",
+      "entries": [{ "type": "entries", "name": "Thrown", "entries": ["..."] }]
+    },
+    {
+      "abbreviation": "V",
+      "source": "PHB",
+      "entries": [{ "type": "entries", "name": "Versatile", "entries": ["..."] }]
+    }
+  ],
+  "itemType": [
+    {
+      "abbreviation": "M",
+      "source": "PHB",
+      "entries": [{ "type": "entries", "name": "Melee Weapon", "entries": ["..."] }]
+    },
+    {
+      "abbreviation": "HA",
+      "source": "PHB",
+      "entries": [{ "type": "entries", "name": "Heavy Armor", "entries": ["..."] }]
+    },
+    {
+      "abbreviation": "S",
+      "source": "PHB",
+      "entries": [{ "type": "entries", "name": "Shield", "entries": ["..."] }]
+    },
+    {
+      "abbreviation": "G",
+      "source": "PHB",
+      "entries": [{ "type": "entries", "name": "Adventuring Gear", "entries": ["..."] }]
+    }
+  ],
+  "baseitem": [
+    {
+      "name": "Longsword",
+      "source": "PHB",
+      "type": "M|PHB",
+      "rarity": "none",
+      "weapon": true,
+      "weaponCategory": "martial",
+      "value": 1500,
+      "weight": 3,
+      "dmg1": "1d8",
+      "dmgType": "S",
+      "dmg2": "1d10",
+      "property": ["V"]
+    },
+    {
+      "name": "Dagger",
+      "source": "PHB",
+      "type": "M|PHB",
+      "rarity": "none",
+      "weapon": true,
+      "weaponCategory": "simple",
+      "value": 200,
+      "weight": 1,
+      "dmg1": "1d4",
+      "dmgType": "P",
+      "range": "20/60",
+      "property": ["F", "L", "T"]
+    },
+    {
+      "name": "Net",
+      "source": "PHB",
+      "type": "M|PHB",
+      "rarity": "none",
+      "weapon": true,
+      "net": true,
+      "value": 100,
+      "weight": 3,
+      "property": ["T"]
+    },
+    {
+      "name": "Plate Armor",
+      "source": "PHB",
+      "type": "HA|PHB",
+      "rarity": "none",
+      "armor": true,
+      "ac": 18,
+      "strength": "15",
+      "stealth": true,
+      "value": 150000,
+      "weight": 65
+    },
+    {
+      "name": "Shield",
+      "source": "PHB",
+      "type": "S|PHB",
+      "rarity": "none",
+      "armor": true,
+      "ac": 2,
+      "value": 1000,
+      "weight": 6,
+      "entries": ["A shield is made from wood or metal and is carried in one hand."]
+    },
+    {
+      "name": "Rope, Hempen (50 feet)",
+      "source": "PHB",
+      "type": "G|PHB",
+      "rarity": "none",
+      "value": 100,
+      "weight": 10
+    }
+  ]
+}

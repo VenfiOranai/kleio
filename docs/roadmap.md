@@ -161,21 +161,32 @@ A combat "Attacks & Spellcasting" panel like a standard sheet.
 - **Herald:** an attacks **table** (name · to-hit · damage · range · notes) on the sheet, edited
   via the modal, with the quick "add from weapon/spell" action. *(Depends on 8, 9, 10.)*
 
-### Phase 13 — 5etools import, Stage 1: autocomplete + full import  (feat. 5a)
-- **Oracle:** `services/fivetools.py` — loads the 5etools JSON from `FIVETOOLS_DATA_DIR`
-  (spells via `spells/index.json` → `spells-<src>.json`; `items.json` + `items-base.json` +
-  `magicvariants.json` assembled; `feats.json`; `optionalfeatures.json`) and builds a
-  **searchable in-memory index** (name + type + source). A **pure** `render.py` sub-module turns
-  5etools `entries` arrays + `{@tag}` markup into Markdown and normalizes each object into our
-  item / spell / feature schema. Config gains `fivetools_data_dir`; if unset, the endpoints
-  return 503 (reference import unavailable) and the sheet still works. Auto-registered
-  `api/routers/reference.py`: `GET /api/reference/search?type=&q=` (autocomplete over the index)
-  and `GET /api/reference/{type}/{id}` (full normalized record). Unit-test the renderer/normalizer
-  against small JSON fixtures (tags stripped, entries → Markdown, item assembly).
-- **Herald:** the structured-entry forms (spell / item / feature) get a **name autocomplete**
-  backed by `/api/reference/search`; picking a result **imports the full data** into the entry,
-  still fully editable. Manual entry always remains; when reference import is unavailable it's
-  simply hidden.
+### Phase 13 — 5etools import, Stage 1: browse + full import  (feat. 5a) ✅ done
+- **Oracle:** `services/fivetools/` — `index.py` loads the 5etools JSON from `FIVETOOLS_DATA_DIR`
+  (spells via `spells/index.json` → `spells-<src>.json` + `spells/sources.json`; `items.json` +
+  `items-base.json` + `magicvariants.json` assembled; `feats.json`; `optionalfeatures.json`)
+  **once per process** into a searchable in-memory index (name + type + source + filter facets),
+  warmed at startup. Two **pure** sub-modules do the transforms: `render.py` (5etools `entries` +
+  `{@tag}` markup → Markdown) and `normalize.py` (each object → our item / spell / feature /
+  attack schema, plus `_copy` inheritance and magic-variant assembly). Config gained
+  `fivetools_data_dir`; unset, the data endpoints return 503 and the sheet still works.
+  Auto-registered `api/routers/reference.py`: `GET /api/reference/status` (200 even when
+  unavailable, so herald can hide its buttons), `/facets?type=`, `/search?type=&q=` (+ sort,
+  direction, paging and per-type filters) and `/{type}/{id}` (full normalized record).
+  Unit-tested against small JSON fixtures (tags stripped, entries → Markdown, item assembly).
+  *(Added beyond the original sketch:* `fetch.py` + `GET|POST /api/reference/fetch` — an optional
+  background download of a dataset from `FIVETOOLS_SOURCE_URL` into `FIVETOOLS_DOWNLOAD_DIR`, so
+  the dataset needn't be placed by hand. Still never at startup, and still nothing bundled.*)*
+- **Herald:** **one shared browse modal** (`characters/reference-modal`), opened by a **Browse**
+  button beside the *+ Add* button in each section modal — equipment, spells, features, and
+  attacks (weapons only) — with a search box, per-type filters/sorts (level / school / class /
+  ritual / concentration; category / rarity / attunement; kind), expandable detail, and repeated
+  picking without closing. Importing fills the entry, which stays fully editable. Manual entry
+  always remains; when reference import is unavailable the buttons are simply hidden. The
+  campaigns page carries a **reference-data card**: what's loaded, plus the download button and
+  its progress.
+  *(Chosen over the originally-sketched inline name autocomplete: browsing with filters suits
+  picking an unknown spell/item, and one modal serves every section.)*
 
 ### Phase 14 — 5etools import, Stage 2: auto-populate by class/subclass/level  (feat. 5b)
 - **Oracle:** extend `fivetools.py` to parse `class/class-<name>.json` — its `classFeature` /
@@ -213,9 +224,10 @@ A combat "Attacks & Spellcasting" panel like a standard sheet.
   text. `character_calc` unit tests assert **spell save DC = 8 + prof + spellcasting mod** and
   **spell attack = prof + mod** across abilities/levels, and per-attack to-hit/damage. The
   attacks panel shows correct to-hit for a proficient weapon; the spells modal decrements a slot;
-  the 5etools renderer strips `{@tag}`s + turns `entries` into Markdown (unit fixtures), and
-  autocomplete imports a full spell's data when `FIVETOOLS_DATA_DIR` is set (Stage 1); "populate
-  from class" suggests level-appropriate features without clobbering manual edits (Stage 2).
+  the 5etools renderer strips `{@tag}`s + turns `entries` into Markdown (unit fixtures), and the
+  reference browser imports a full spell's data when `FIVETOOLS_DATA_DIR` is set (Stage 1 — e2e
+  runs against the fixture dataset in `oracle/tests/fixtures/fivetools`); "populate from class"
+  suggests level-appropriate features without clobbering manual edits (Stage 2).
 
 ---
 

@@ -1,0 +1,24 @@
+{
+  "feat": [
+    {
+      "name": "Grappler",
+      "source": "PHB",
+      "prerequisite": [{ "ability": [{ "str": 13 }] }],
+      "entries": [
+        "You've developed the {@i skills} necessary to hold your own in close-quarters grappling.",
+        {
+          "type": "list",
+          "items": [
+            "You have advantage on attack rolls against a creature you are grappling.",
+            "You can use your action to try to pin a creature grappled by you."
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Alert",
+      "source": "PHB",
+      "entries": ["Always on the lookout for danger, you gain a +5 bonus to initiative."]
+    }
+  ]
+}

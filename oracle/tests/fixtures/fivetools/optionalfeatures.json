@@ -1,0 +1,19 @@
+{
+  "optionalfeature": [
+    {
+      "name": "Agonizing Blast",
+      "source": "PHB",
+      "featureType": ["EI"],
+      "prerequisite": [{ "spell": ["eldritch blast#c"] }],
+      "entries": [
+        "When you cast {@spell eldritch blast}, add your Charisma modifier to the damage it deals on a hit."
+      ]
+    },
+    {
+      "name": "Careful Spell",
+      "source": "PHB",
+      "featureType": ["MM"],
+      "entries": ["When you cast a spell that forces other creatures to make a saving throw..."]
+    }
+  ]
+}

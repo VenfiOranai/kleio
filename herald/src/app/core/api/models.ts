@@ -174,6 +174,84 @@ export const SPELL_SCHOOLS = [
   'Transmutation',
 ] as const;
 
+// --- 5etools reference import (Phase 13) -------------------------------------
+// Backed by a dataset the user mounts themselves; when it isn't configured the oracle
+// reports `available: false` and every Browse button stays hidden.
+
+export type ReferenceType = 'spell' | 'item' | 'feature';
+
+export interface ReferenceStatus {
+  available: boolean;
+  counts: Partial<Record<ReferenceType, number>>;
+  /** Set when the data comes from the user's own FIVETOOLS_DATA_DIR rather than a download. */
+  configured_dir: string;
+}
+
+/** Progress of the optional one-shot dataset download. */
+export interface ReferenceFetchStatus {
+  state: 'idle' | 'running' | 'done' | 'error';
+  downloaded: number;
+  total: number;
+  current: string;
+  message: string;
+  dest: string;
+  started_at: string | null;
+  finished_at: string | null;
+}
+
+/** Filter values the loaded dataset actually contains, plus its valid sort fields. */
+export interface ReferenceFacets {
+  type: ReferenceType;
+  sorts: string[];
+  sources: string[];
+  levels: number[];
+  schools: string[];
+  classes: string[];
+  categories: string[];
+  rarities: string[];
+  kinds: string[];
+}
+
+/** One row in the reference browser: identity plus the facets it filters/sorts on. */
+export interface ReferenceSummary {
+  id: string;
+  type: ReferenceType;
+  name: string;
+  source: string;
+  subtitle: string;
+  level: number | null;
+  school: string;
+  classes: string[];
+  ritual: boolean;
+  concentration: boolean;
+  category: string;
+  rarity: string;
+  /** Price in copper pieces (5etools' unit). */
+  value: number | null;
+  weight: number | null;
+  attunement: boolean;
+  weapon: boolean;
+  kind: string;
+}
+
+export interface ReferenceSearchResponse {
+  total: number;
+  results: ReferenceSummary[];
+}
+
+/** A full record: exactly one payload is set, plus `attack` for weapons. */
+export interface ReferenceRecord {
+  id: string;
+  type: ReferenceType;
+  name: string;
+  source: string;
+  subtitle: string;
+  spell: Spell | null;
+  item: EquipmentItem | null;
+  feature: Feature | null;
+  attack: Attack | null;
+}
+
 export interface Character {
   id: number;
   campaign_id: number;

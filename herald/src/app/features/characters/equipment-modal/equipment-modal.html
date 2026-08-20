@@ -11,7 +11,12 @@
       </span>
       <span>Items <strong class="text-foreground">{{ working().length }}</strong></span>
     </div>
-    <button z-button zSize="sm" class="ml-auto" (click)="addItem()">+ Add item</button>
+    <div class="ml-auto flex items-center gap-2">
+      @if (referenceAvailable()) {
+        <button z-button zType="outline" zSize="sm" (click)="browse()">Browse reference</button>
+      }
+      <button z-button zSize="sm" (click)="addItem()">+ Add item</button>
+    </div>
   </div>
 
   <div class="mb-4 flex flex-wrap items-center gap-3">
@@ -134,3 +139,6 @@
     </p>
   }
 </app-modal>
+
+<!-- Sibling, not nested: a second native <dialog> stacks in the top layer on its own. -->
+<app-reference-modal (picked)="importItem($event)" />
